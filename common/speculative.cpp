@@ -1961,6 +1961,60 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
             chain_h[seq_id].clear();
         }
     }
+
+    bool get_state(llama_seq_id seq_id, std::vector<uint8_t> & data) const override {
+        if (seq_id < 0 || seq_id >= (llama_seq_id) n_seq) {
+            return false;
+        }
+
+        static constexpr uint32_t state_magic = 0x4d545031;
+        const size_t row_bytes = (size_t) n_embd * sizeof(float);
+        data.resize(sizeof(state_magic) + sizeof(pending_h_pos[seq_id]) + row_bytes);
+
+        uint8_t * dst = data.data();
+        std::memcpy(dst, &state_magic, sizeof(state_magic));
+        dst += sizeof(state_magic);
+        std::memcpy(dst, &pending_h_pos[seq_id], sizeof(pending_h_pos[seq_id]));
+        dst += sizeof(pending_h_pos[seq_id]);
+        std::memcpy(dst, pending_h[seq_id].data(), row_bytes);
+        return true;
+    }
+
+    void set_state(llama_seq_id seq_id, const std::vector<uint8_t> & data) override {
+        if (seq_id < 0 || seq_id >= (llama_seq_id) n_seq) {
+            return;
+        }
+
+        std::fill(pending_h[seq_id].begin(), pending_h[seq_id].end(), 0.0f);
+        pending_h_pos[seq_id] = -1;
+        std::fill(rollback_h[seq_id].begin(), rollback_h[seq_id].end(), 0.0f);
+        rollback_h_pos[seq_id] = -1;
+        verify_h[seq_id].clear();
+        verify_pos[seq_id].clear();
+        verify_h_rows[seq_id] = 0;
+        i_last[seq_id] = -1;
+        if (chain_heads) {
+            chain_h[seq_id].clear();
+        }
+
+        static constexpr uint32_t state_magic = 0x4d545031;
+        const size_t row_bytes = (size_t) n_embd * sizeof(float);
+        const size_t state_size = sizeof(state_magic) + sizeof(pending_h_pos[seq_id]) + row_bytes;
+        if (data.size() != state_size) {
+            return;
+        }
+
+        const uint8_t * src = data.data();
+        uint32_t magic = 0;
+        std::memcpy(&magic, src, sizeof(magic));
+        if (magic != state_magic) {
+            return;
+        }
+        src += sizeof(magic);
+        std::memcpy(&pending_h_pos[seq_id], src, sizeof(pending_h_pos[seq_id]));
+        src += sizeof(pending_h_pos[seq_id]);
+        std::memcpy(pending_h[seq_id].data(), src, row_bytes);
+    }
 };
 
 // state of self-speculation (simple implementation, not ngram-map)

@@ -22,7 +22,7 @@ This repository is the required CIRU `llama.cpp` runtime. The model files are ho
 | 8K generation | **30.80 tok/s** | H121, 128 generated tokens, MTP depth 3 |
 | Long-context coverage | **131,072 prompt tokens** | Cold, exact-count context ladder |
 
-Quality results use the same released model artifacts on the earlier H96 depth-1 runtime. H121 is a runtime-only allocator-lifetime correction; the quality suites have not yet been rerun on H121 depth 3. Scores marked local-custom are not claimed as canonical leaderboard submissions. See [benchmarks and methodology](docs/BENCHMARKS.md).
+Quality results use the same released model artifacts on the earlier H96 depth-1 runtime. Version 1.0 added the H121 allocator-lifetime correction. Version 1.1 adds the cached-prefix/MTP state fix and completed the full 20-scenario HermesAgent cache-on validation without an MTP position or server-runtime error. Scores marked local-custom are not claimed as canonical leaderboard submissions. See [benchmarks and methodology](docs/BENCHMARKS.md).
 
 ## What is special about this build?
 
@@ -63,7 +63,7 @@ The target GGUF and every file under `ple/` are mandatory. The MTP file is optio
 The validated fast path is Linux x86-64, AMD ROCm, and `gfx1151` on a Ryzen AI Max+ 395 / Radeon 8060S:
 
 ```bash
-git clone --branch v1.0.0-h121 \
+git clone --branch v1.1 \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
 cd Qwen3.8-Flash-CIRU-STRIX-IU4
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
@@ -86,6 +86,14 @@ MODEL_DIR="$PWD/../model" ./scripts/ciru/run-server.sh
 The launcher binds to `127.0.0.1:8080`, enables normal prompt/prefill caching, uses a 262,144-token context, loads the mandatory PLE sidecar, and enables MTP depth 3 when the draft file is present. It deliberately does **not** use our benchmark-only cache disables, slot erases, fixed seed, fixed output cap, or forced deterministic sampling.
 
 See [Running in production](docs/RUNNING.md) for the expanded command, recommended sampling, API examples, checksums, and safe network exposure.
+
+## Version 1.1 cached-prefix/MTP fix
+
+Version 1.1 keeps the production prompt cache enabled. It fixes the H121 multi-turn failure that could occur when a cached target prefix was reused while MTP's hidden-state timeline remained at a different position.
+
+The runtime now saves and restores MTP pending hidden state with each compatible target/draft context checkpoint. If no compatible checkpoint exists, it safely resets that request's cached MTP state instead of continuing with mismatched positions. The model, PLE, and MTP files are unchanged.
+
+Validation covered direct branched-prefix reuse, the previously failing HA-07 cached multi-turn case, HA-01, HA-20, and the full 20-scenario HermesAgent run with production cache settings. No decreasing-position, HSA, pager, or server-runtime error occurred.
 
 ## H121 correctness fix
 

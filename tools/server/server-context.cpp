@@ -3370,6 +3370,34 @@ private:
                                 }
                             }
 
+                            const bool mtp_cache = spec && ctx_dft && std::find(
+                                    params_base.speculative.types.begin(), params_base.speculative.types.end(),
+                                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
+                            if (mtp_cache && slot.task->params.cache_prompt && n_past > 0) {
+                                const auto it = std::find_if(
+                                        slot.prompt.checkpoints.rbegin(),
+                                        slot.prompt.checkpoints.rend(),
+                                        [&](const auto & cur) {
+                                            return !cur.data_spec.empty() && cur.n_tokens <= n_past && cur.pos_max <= pos_next;
+                                        });
+
+                                if (it != slot.prompt.checkpoints.rend()) {
+                                    it->load_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                                    it->load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                                    common_speculative_set_state(spec.get(), slot.id, it->data_spec);
+                                    pos_next = std::min(pos_next, std::max(it->pos_min + 1, it->pos_max));
+                                    n_past = std::min(slot.prompt.tokens.size_up_to_pos(pos_next), (size_t) it->n_tokens);
+                                    SLT_TRC(slot, "restored MTP cache checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", n_past = %d)\n",
+                                            it->pos_min, it->pos_max, it->n_tokens, n_past);
+                                } else {
+                                    slot.mem.seq_rm(slot.id, 0, -1);
+                                    common_speculative_set_state(spec.get(), slot.id, {});
+                                    pos_next = 0;
+                                    n_past = 0;
+                                    SLT_TRC(slot, "%s", "reset MTP cache state because no matching checkpoint was available\n");
+                                }
+                            }
+
                             {
                                 // erase any checkpoints with pos_max > pos_next
                                 for (auto it = slot.prompt.checkpoints.begin(); it != slot.prompt.checkpoints.end();) {
