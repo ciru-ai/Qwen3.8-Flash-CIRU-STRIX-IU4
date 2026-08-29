@@ -3063,6 +3063,25 @@ common_params_context common_params_parser_init(common_params & params, llama_ex
         }
     ).set_examples({LLAMA_EXAMPLE_COMMON, LLAMA_EXAMPLE_EXPORT_LORA, LLAMA_EXAMPLE_DOWNLOAD, LLAMA_EXAMPLE_TOKENIZE}).set_env("LLAMA_ARG_MODEL"));
     add_opt(common_arg(
+        {"--ple-sidecar"}, "PATH",
+        "external Qwen4Exp PLE sidecar directory (default: unused)",
+        [](common_params & params, const std::string & value) {
+            params.ple_sidecar = value;
+        }
+    ).set_examples({LLAMA_EXAMPLE_COMMON, LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_PLE_SIDECAR"));
+    add_opt(common_arg(
+        {"--ple-cache-mib"}, "N",
+        "maximum external Qwen4Exp PLE cache in MiB (default: model/runtime default)",
+        [](common_params & params, const std::string & value) {
+            const uint64_t mib = std::stoull(value);
+            constexpr uint64_t bytes_per_mib = 1024ULL * 1024ULL;
+            if (mib > UINT64_MAX / bytes_per_mib) {
+                throw std::invalid_argument("PLE cache size is too large");
+            }
+            params.ple_cache_bytes = mib * bytes_per_mib;
+        }
+    ).set_examples({LLAMA_EXAMPLE_COMMON, LLAMA_EXAMPLE_SERVER}).set_env("LLAMA_ARG_PLE_CACHE_MIB"));
+    add_opt(common_arg(
         {"-mu", "--model-url"}, "MODEL_URL",
         "model download url (default: unused)",
         [](common_params & params, const std::string & value) {

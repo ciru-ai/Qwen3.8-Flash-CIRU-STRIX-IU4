@@ -440,6 +440,10 @@ static bool ggml_backend_cpu_device_supports_op(ggml_backend_dev_t dev, const st
     }
 
     switch (op->op) {
+        case GGML_OP_E3_QR05:
+            // The fixed packet and fused H30+H24 implementation are HIP-only.
+            // Do not let the scheduler copy a 1.363-GB resident layer to CPU.
+            return false;
         case GGML_OP_CPY:
         case GGML_OP_SET_ROWS:
             return

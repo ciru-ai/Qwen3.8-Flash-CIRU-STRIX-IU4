@@ -1125,6 +1125,11 @@ private:
             {
                 common_params params_dft = common_base_params_to_speculative(params_base);
 
+                // The target's CIRUPLE1 pager is not part of a separate MTP GGUF.
+                // Do not leak target-only PLE ownership into the draft model load.
+                params_dft.ple_sidecar.clear();
+                params_dft.ple_cache_bytes = 0;
+
                 // progress callback
                 params_dft.load_progress_callback           = load_progress_callback;
                 params_dft.load_progress_callback_user_data = &load_progress_spec;
@@ -2993,9 +2998,9 @@ private:
                                 llama_memory_seq_pos_max(llama_get_memory(ctx_tgt), slot.id));
 
                         if (use_ckpt_dft) {
-                            slot.spec_ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                            slot.spec_ckpt.update_dft(ctx_dft, slot.id,
+                                    LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
                         }
-
                         slot.spec_prompt = slot.prompt.tokens.get_text_tokens();
 
                         common_speculative_get_draft_params(spec.get(), slot.id) = {
@@ -3029,13 +3034,18 @@ private:
 
             // TODO: avoid restoring the draft context and re-evaluating the drafted tokens when not needed [TAG_SPEC_AVOID_DRAFT_REEVAL]
             const bool use_ckpt_dft = ctx_dft_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL;
+            const bool shifted_mtp_timeline = std::find(
+                    params_base.speculative.types.begin(), params_base.speculative.types.end(),
+                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
 
             if (ctx_dft) {
                 if (use_ckpt_dft) {
-                    ckpt.load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                    ckpt.load_dft(ctx_dft, slot.id,
+                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
                 }
 
-                if (!llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, ckpt.pos_max + 1, -1)) {
+                const llama_pos pos_rm_dft = ckpt.pos_max + (shifted_mtp_timeline ? 0 : 1);
+                if (!llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, pos_rm_dft, -1)) {
                     GGML_ABORT("failed to remove sequence %d\n", slot.id);
                 }
             }
@@ -3051,7 +3061,8 @@ private:
                 if (use_ckpt_tgt) {
                     //const int64_t t_start = ggml_time_us();
 
-                    ckpt.update_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                    ckpt.update_tgt(ctx_tgt, slot.id,
+                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
 
                     //const int64_t t_total = ggml_time_us() - t_start;
                     //printf("checkpoint total: %f ms\n", t_total / 1000.0);
@@ -3063,7 +3074,8 @@ private:
                 }
 
                 if (use_ckpt_dft) {
-                    ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                    ckpt.update_dft(ctx_dft, slot.id,
+                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
                 }
             }
         });
@@ -3885,11 +3897,27 @@ private:
 
                 GGML_ASSERT(slot.spec_i_batch.size() == n_draft + 1);
                 const auto & synth_probs = common_speculative_get_synth_probs(spec.get());
-                auto accepted = synth_probs.empty()
-                    ? common_sampler_sample_and_accept_n(slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft)
-                    : server_sample_and_accept_synth(
+                std::vector<llama_token> accepted;
+                if (slot.spec_is_replay && synth_probs.empty()) {
+                    // These tokens were accepted before the full-checkpoint restore. Re-verifying
+                    // them can disagree when logits depend on batch shape and repeatedly restore
+                    // the same checkpoint, so replay only rebuilds state and samples continuation.
+                    accepted = slot.spec_draft;
+                    for (const llama_token id : accepted) {
+                        common_sampler_accept(slot.smpl.get(), id, true);
+                    }
+                    accepted.push_back(common_sampler_sample(
+                            slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch.back()));
+                    common_sampler_accept(slot.smpl.get(), accepted.back(), true);
+                } else if (synth_probs.empty()) {
+                    accepted = common_sampler_sample_and_accept_n(
+                            slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft);
+                } else {
+                    // Retain the newer synthetic-speculation replay semantics already present in H78.
+                    accepted = server_sample_and_accept_synth(
                             slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft,
                             synth_probs, slot.spec_synth_rng, slot.spec_is_replay);
+                }
                 slot.spec_i_batch.clear();
 
                 GGML_ASSERT(accepted.size() >= 1);
@@ -3915,13 +3943,28 @@ private:
 
                         SLT_DBG(slot, "restoring speculative checkpoint (pos_min = %d, pos_max = %d, size = %zu)\n", ckpt.pos_min, ckpt.pos_max, ckpt.size());
 
-                        ckpt.load_tgt(slot.ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                        ckpt.load_tgt(slot.ctx_tgt, slot.id,
+                                LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
 
                         if (slot.ctx_dft) {
-                            ckpt.load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
+                            ckpt.load_dft(slot.ctx_dft, slot.id,
+                                    LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
                         }
+                        common_speculative_rollback(spec.get(), slot.id);
 
-                        slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
+                        const bool shifted_mtp_timeline = std::find(
+                                params_base.speculative.types.begin(), params_base.speculative.types.end(),
+                                COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
+                        if (shifted_mtp_timeline && slot.ctx_dft) {
+                            if (!llama_memory_seq_rm(
+                                        llama_get_memory(slot.ctx_tgt), slot.id, ckpt.pos_max + 1, -1) ||
+                                    !llama_memory_seq_rm(
+                                        llama_get_memory(slot.ctx_dft), slot.id, ckpt.pos_max, -1)) {
+                                GGML_ABORT("failed to remove shifted MTP target/draft sequence %d\n", slot.id);
+                            }
+                        } else {
+                            slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
+                        }
 
                         slot.prompt.tokens.keep_first(ckpt.n_tokens);
                         common_sampler_copy(smpl_save.get(), slot.smpl.get());
@@ -3968,7 +4011,18 @@ private:
             slot.sampled = ids.back(); // last accepted token
             SLT_DBG(slot, "add accepted tokens: sampled=%d, ids.size=%zu, n_draft=%zu\n", slot.sampled, ids.size(), n_draft);
 
-            slot.mem.seq_rm(slot.id, slot.prompt.tokens.pos_next(), -1);
+            const llama_pos pos_next = slot.prompt.tokens.pos_next();
+            const bool shifted_mtp_timeline = std::find(
+                    params_base.speculative.types.begin(), params_base.speculative.types.end(),
+                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
+            if (shifted_mtp_timeline && slot.ctx_dft) {
+                if (!llama_memory_seq_rm(llama_get_memory(slot.ctx_tgt), slot.id, pos_next, -1) ||
+                        !llama_memory_seq_rm(llama_get_memory(slot.ctx_dft), slot.id, pos_next - 1, -1)) {
+                    GGML_ABORT("failed to truncate shifted MTP target/draft sequence %d\n", slot.id);
+                }
+            } else {
+                slot.mem.seq_rm(slot.id, pos_next, -1);
+            }
 
             for (size_t i = 0; i < ids.size(); ++i) {
                 completion_token_output result;

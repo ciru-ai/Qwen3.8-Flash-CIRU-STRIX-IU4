@@ -109,6 +109,57 @@ void quantize_row_q2_0_ref(const float * GGML_RESTRICT x, block_q2_0 * GGML_REST
     }
 }
 
+static inline uint8_t iu4_a640_round_nearest_even(float value) {
+    if (value <= 0.0f) {
+        return 0;
+    }
+    if (value >= 15.0f) {
+        return 15;
+    }
+
+    const float lower = floorf(value);
+    const float fraction = value - lower;
+    int quant = (int) lower;
+    if (fraction > 0.5f || (fraction == 0.5f && (quant & 1))) {
+        ++quant;
+    }
+    return (uint8_t) quant;
+}
+
+void quantize_row_iu4_a640_ref(const float * GGML_RESTRICT x, block_iu4_a640 * GGML_RESTRICT y, int64_t k) {
+    assert(k % QK_IU4_A640 == 0);
+
+    const int64_t nb = k / QK_IU4_A640;
+    for (int64_t ib = 0; ib < nb; ++ib) {
+        const float * GGML_RESTRICT xb = x + ib * QK_IU4_A640;
+        block_iu4_a640 * GGML_RESTRICT out = y + ib;
+        memset(out->qs, 0, sizeof(out->qs));
+
+        for (int group = 0; group < NG_IU4_A640; ++group) {
+            const float * GGML_RESTRICT xg = xb + group * QK_IU4_A640_SUB;
+            float minimum = xg[0];
+            float maximum = xg[0];
+            for (int j = 1; j < QK_IU4_A640_SUB; ++j) {
+                minimum = xg[j] < minimum ? xg[j] : minimum;
+                maximum = xg[j] > maximum ? xg[j] : maximum;
+            }
+
+            out->offset[group] = GGML_FP32_TO_FP16(minimum);
+            const float offset = GGML_FP16_TO_FP32(out->offset[group]);
+            out->scale[group] = GGML_FP32_TO_FP16((maximum - offset) / 15.0f);
+            const float scale = GGML_FP16_TO_FP32(out->scale[group]);
+            const float divisor = scale == 0.0f ? 1.0f : scale;
+
+            const int qbase = group * QK_IU4_A640_SUB;
+            for (int j = 0; j < QK_IU4_A640_SUB; ++j) {
+                const uint8_t q = iu4_a640_round_nearest_even((xg[j] - offset) / divisor);
+                const int qindex = qbase + j;
+                out->qs[qindex / 2] |= q << (4 * (qindex & 1));
+            }
+        }
+    }
+}
+
 // reference implementation for deterministic creation of model files
 void quantize_row_q4_0_ref(const float * GGML_RESTRICT x, block_q4_0 * GGML_RESTRICT y, int64_t k) {
     static const int qk = QK4_0;
@@ -452,6 +503,24 @@ void dequantize_row_q2_0(const block_q2_0 * GGML_RESTRICT x, float * GGML_RESTRI
             const uint8_t q = (x[i].qs[byte_index] >> bit_offset) & 0x03;
             // 00=-1, 01=0, 10=+1, 11=+2
             y[i*qk + j] = ((int)q - 1) * d;
+        }
+    }
+}
+
+void dequantize_row_iu4_a640(const block_iu4_a640 * GGML_RESTRICT x, float * GGML_RESTRICT y, int64_t k) {
+    assert(k % QK_IU4_A640 == 0);
+
+    const int64_t nb = k / QK_IU4_A640;
+    for (int64_t ib = 0; ib < nb; ++ib) {
+        for (int group = 0; group < NG_IU4_A640; ++group) {
+            const float scale = GGML_FP16_TO_FP32(x[ib].scale[group]);
+            const float offset = GGML_FP16_TO_FP32(x[ib].offset[group]);
+            const int qbase = group * QK_IU4_A640_SUB;
+            for (int j = 0; j < QK_IU4_A640_SUB; ++j) {
+                const int qindex = qbase + j;
+                const uint8_t q = (x[ib].qs[qindex / 2] >> (4 * (qindex & 1))) & 0x0f;
+                y[ib * QK_IU4_A640 + qindex] = scale * q + offset;
+            }
         }
     }
 }
@@ -2123,6 +2192,12 @@ size_t quantize_q2_0(const float * GGML_RESTRICT src, void * GGML_RESTRICT dst, 
         qrow += row_size;
     }
     return nrow * row_size;
+}
+
+size_t quantize_iu4_a640(const float * GGML_RESTRICT src, void * GGML_RESTRICT dst, int64_t nrow, int64_t n_per_row, const float * quant_weights) {
+    UNUSED(quant_weights);
+    quantize_row_iu4_a640_ref(src, dst, nrow * n_per_row);
+    return nrow * ggml_row_size(GGML_TYPE_IU4_A640, n_per_row);
 }
 
 size_t quantize_q4_0(const float * GGML_RESTRICT src, void * GGML_RESTRICT dst, int64_t nrow, int64_t n_per_row, const float * quant_weights) {
@@ -5536,6 +5611,17 @@ bool ggml_validate_row_data(enum ggml_type type, const void * data, size_t nbyte
         case GGML_TYPE_Q2_0:
             {
                 VALIDATE_ROW_DATA_D_F16_IMPL(block_q2_0, data, nb);
+            } break;
+        case GGML_TYPE_IU4_A640:
+            {
+                const block_iu4_a640 * q = (const block_iu4_a640 *) data;
+                for (size_t i = 0; i < nb; ++i) {
+                    for (size_t j = 0; j < NG_IU4_A640; ++j) {
+                        if (!validate_fp16(q[i].scale[j], i) || !validate_fp16(q[i].offset[j], i)) {
+                            return false;
+                        }
+                    }
+                }
             } break;
         case GGML_TYPE_Q4_0:
             {

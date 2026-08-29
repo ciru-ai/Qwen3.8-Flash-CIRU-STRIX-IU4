@@ -13,6 +13,7 @@
 #include "llama-sampler.h"
 #include "llama.h"
 
+#include <algorithm>
 #include <cinttypes>
 #include <cmath>
 #include <cstring>
@@ -1340,11 +1341,73 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
     auto * res = gf_res_prev.get();
     auto * gf  = res->get_gf();
 
+    const bool mtp_chain_continue =
+        mtp_chain.active && mtp_chain.completed_steps > 0 &&
+        gtype == LLM_GRAPH_TYPE_DECODER_MTP && ubatch.n_tokens == 1;
+
+    // These are outputs of the preceding proposal graph.  Keep the handles
+    // before can_reuse() can decide to rebuild the result object.
+    ggml_tensor * mtp_src_token = nullptr;
+    ggml_tensor * mtp_src_h     = nullptr;
+    if (mtp_chain_continue) {
+        if (!res->t_sampled.empty()) {
+            mtp_src_token = res->t_sampled[0];
+        }
+        mtp_src_h = res->get_h_nextn();
+    }
+
     // the new graph parameters
     // in order to correctly reuse a graph, it's full topology has to be uniquely determined by these parameters
     const auto gparams = graph_params(res, ubatch, mctx, gtype);
 
-    if (!graph_reuse_disable && res->can_reuse(gparams)) {
+    const bool can_reuse = !graph_reuse_disable && res->can_reuse(gparams);
+
+    // If topology or placement cannot support a direct continuation, resolve
+    // the preceding token/h exactly once and feed the ordinary host path.  The
+    // chain remains active so deeper proposals stay correct, while end()
+    // reports that the device-resident fast path was not sustained.
+    auto mtp_chain_host_fallback = [&]() -> bool {
+        if (!mtp_chain_continue || mtp_src_token == nullptr || mtp_src_h == nullptr ||
+            ubatch.token == nullptr || ubatch.embd == nullptr) {
+            return false;
+        }
+
+        const uint32_t i = mtp_chain.completed_steps - 1;
+        if (i >= mtp_chain.sampled.size() || mtp_chain.h_stage.size() != (size_t) model.hparams.n_embd_out()) {
+            return false;
+        }
+
+        ggml_backend_t backend_token = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_src_token);
+        ggml_backend_t backend_h     = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_src_h);
+        if (backend_token == nullptr || backend_h == nullptr) {
+            return false;
+        }
+
+        ggml_backend_tensor_get_async(backend_token, mtp_src_token,
+                &mtp_chain.sampled[i], 0, sizeof(llama_token));
+        ggml_backend_tensor_get_async(backend_h, mtp_src_h,
+                mtp_chain.h_stage.data(), 0,
+                mtp_chain.h_stage.size() * sizeof(float));
+        synchronize();
+
+        ubatch.token[0] = mtp_chain.sampled[i];
+        std::memcpy(ubatch.embd, mtp_chain.h_stage.data(),
+                mtp_chain.h_stage.size() * sizeof(float));
+
+        mtp_chain.device_ok     = false;
+        mtp_chain.fallback_used = true;
+        return true;
+    };
+
+    if (mtp_chain_continue && mtp_chain.device_ok && !can_reuse) {
+        if (!mtp_chain_host_fallback()) {
+            LLAMA_LOG_ERROR("%s: failed to resolve MTP chain fallback after graph topology change\n", __func__);
+            mtp_chain.device_ok     = false;
+            mtp_chain.fallback_used = true;
+        }
+    }
+
+    if (can_reuse) {
         //LLAMA_LOG_DEBUG("%s: reusing previous graph\n", __func__);
 
         // with pipeline parallelism, the previous graph_compute_async may still be running
@@ -1385,7 +1448,72 @@ llm_graph_result * llama_context::process_ubatch(const llama_ubatch & ubatch, ll
         //const auto t_start_us = ggml_time_us();
 
         // FIXME this call causes a crash if any model inputs were not used in the graph and were therefore not allocated
-        res->set_inputs(&ubatch);
+        bool mtp_direct = mtp_chain_continue && mtp_chain.device_ok;
+
+        ggml_tensor * mtp_dst_token = mtp_direct ? res->get_inp_tokens() : nullptr;
+        ggml_tensor * mtp_dst_h     = mtp_direct ? res->get_inp_h()      : nullptr;
+
+        if (mtp_direct) {
+            const bool layouts_ok =
+                mtp_src_token && mtp_src_h && mtp_dst_token && mtp_dst_h &&
+                mtp_src_token->type == mtp_dst_token->type &&
+                mtp_src_h->type     == mtp_dst_h->type &&
+                ggml_are_same_shape(mtp_src_token, mtp_dst_token) &&
+                ggml_are_same_stride(mtp_src_token, mtp_dst_token) &&
+                ggml_is_contiguous(mtp_src_h) && ggml_is_contiguous(mtp_dst_h) &&
+                ggml_nbytes(mtp_src_h) == ggml_nbytes(mtp_dst_h) &&
+                mtp_src_token->buffer && mtp_src_h->buffer &&
+                mtp_dst_token->buffer && mtp_dst_h->buffer &&
+                !ggml_backend_buffer_is_host(mtp_dst_token->buffer) &&
+                !ggml_backend_buffer_is_host(mtp_dst_h->buffer);
+
+            if (!layouts_ok) {
+                mtp_direct = false;
+                if (!mtp_chain_host_fallback()) {
+                    LLAMA_LOG_ERROR("%s: invalid MTP device-chain tensor placement/layout\n", __func__);
+                    mtp_chain.device_ok     = false;
+                    mtp_chain.fallback_used = true;
+                }
+            }
+        }
+
+        res->set_inputs(&ubatch, mtp_direct);
+
+        if (mtp_direct) {
+            const uint32_t i = mtp_chain.completed_steps - 1;
+
+            ggml_backend_t backend_src_token = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_src_token);
+            ggml_backend_t backend_src_h     = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_src_h);
+            ggml_backend_t backend_dst_token = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_dst_token);
+            ggml_backend_t backend_dst_h     = ggml_backend_sched_get_tensor_backend(sched.get(), mtp_dst_h);
+
+            if (backend_src_token == nullptr || backend_src_h == nullptr ||
+                backend_dst_token == nullptr || backend_dst_h == nullptr) {
+                LLAMA_LOG_ERROR("%s: missing backend for MTP device-chain tensor\n", __func__);
+                ret = GGML_STATUS_FAILED;
+                return nullptr;
+            }
+
+            // Preserve proposal i for the one final host read, then feed both
+            // dependent graph inputs on-device.  All operations are enqueued
+            // behind proposal i and ahead of proposal i+1 on the same backend
+            // dependency chain.
+            ggml_backend_tensor_get_async(backend_src_token, mtp_src_token,
+                    &mtp_chain.sampled[i], 0, sizeof(llama_token));
+            ggml_backend_tensor_copy_async(backend_src_token, backend_dst_token,
+                    mtp_src_token, mtp_dst_token);
+            // h_nextn is physically contiguous [n_embd, hc, 1], while the
+            // next input is the identical byte range exposed as [hc_dim, 1].
+            // Present a stack-local layout alias to the backend copy API; no
+            // allocation or data transformation occurs.
+            ggml_tensor mtp_src_h_alias = *mtp_src_h;
+            for (int d = 0; d < GGML_MAX_DIMS; ++d) {
+                mtp_src_h_alias.ne[d] = mtp_dst_h->ne[d];
+                mtp_src_h_alias.nb[d] = mtp_dst_h->nb[d];
+            }
+            ggml_backend_tensor_copy_async(backend_src_h, backend_dst_h,
+                    &mtp_src_h_alias, mtp_dst_h);
+        }
 
         //LLAMA_LOG_INFO("graph set inputs time: %.3f ms\n", (ggml_time_us() - t_start_us)/1000.0);
     }
@@ -1951,7 +2079,7 @@ int llama_context::decode(const llama_batch & batch_inp) {
             const int64_t n_rows = masked ? n_outputs       : (int64_t) ubatch.n_tokens;
             const int64_t offset = masked ? n_outputs_prev  : n_tokens_prev;
 
-            if (embd_nextn.data && t_h_nextn && n_rows > 0 && cparams.pooling_type == LLAMA_POOLING_TYPE_NONE) {
+            if (!mtp_chain.active && embd_nextn.data && t_h_nextn && n_rows > 0 && cparams.pooling_type == LLAMA_POOLING_TYPE_NONE) {
                 ggml_backend_t backend_h = ggml_backend_sched_get_tensor_backend(sched.get(), t_h_nextn);
                 GGML_ASSERT(backend_h != nullptr);
 
@@ -1963,7 +2091,7 @@ int llama_context::decode(const llama_batch & batch_inp) {
             }
         }
 
-        if (has_samplers) {
+        if (has_samplers && !mtp_chain.active) {
             const auto stride = n_vocab;
 
             // async copy the sampling data from the backend to the host
@@ -2030,7 +2158,70 @@ int llama_context::decode(const llama_batch & batch_inp) {
     // wait for the computation to finish (automatically done when obtaining the model output)
     //synchronize();
 
+    if (mtp_chain.active) {
+        mtp_chain.completed_steps++;
+    }
+
     return 0;
+}
+
+bool llama_context::mtp_chain_begin(uint32_t n_steps) {
+    if (mtp_chain.active || cparams.ctx_type != LLAMA_CONTEXT_TYPE_MTP ||
+        n_steps < 2 || n_steps > 16 || sampling.samplers.size() != 1) {
+        return false;
+    }
+
+    mtp_chain = {};
+    mtp_chain.active         = true;
+    mtp_chain.device_ok      = true;
+    mtp_chain.n_steps        = n_steps;
+    mtp_chain.sampled.assign(n_steps, LLAMA_TOKEN_NULL);
+    mtp_chain.h_stage.resize(model.hparams.n_embd_out());
+    return true;
+}
+
+bool llama_context::mtp_chain_end(llama_token * tokens, uint32_t capacity, bool * device_resident) {
+    if (!mtp_chain.active || tokens == nullptr || capacity < mtp_chain.n_steps ||
+        mtp_chain.completed_steps != mtp_chain.n_steps) {
+        mtp_chain_abort();
+        return false;
+    }
+
+    auto * res = gf_res_prev.get();
+    ggml_tensor * sampled = res && !res->t_sampled.empty() ? res->t_sampled[0] : nullptr;
+    if (sampled == nullptr) {
+        mtp_chain_abort();
+        return false;
+    }
+
+    ggml_backend_t backend = ggml_backend_sched_get_tensor_backend(sched.get(), sampled);
+    if (backend == nullptr) {
+        mtp_chain_abort();
+        return false;
+    }
+
+    ggml_backend_tensor_get_async(backend, sampled,
+            &mtp_chain.sampled[mtp_chain.n_steps - 1], 0, sizeof(llama_token));
+    synchronize();
+
+    const bool valid = std::all_of(mtp_chain.sampled.begin(), mtp_chain.sampled.end(),
+        [](llama_token id) { return id != LLAMA_TOKEN_NULL; });
+    if (valid) {
+        std::memcpy(tokens, mtp_chain.sampled.data(), mtp_chain.n_steps * sizeof(llama_token));
+    }
+    if (device_resident) {
+        *device_resident = mtp_chain.device_ok && !mtp_chain.fallback_used;
+    }
+
+    mtp_chain = {};
+    return valid;
+}
+
+void llama_context::mtp_chain_abort() {
+    if (mtp_chain.active) {
+        synchronize();
+    }
+    mtp_chain = {};
 }
 
 //
@@ -3883,6 +4074,24 @@ float * llama_get_embeddings_nextn_ith(llama_context * ctx, int32_t i) {
     ctx->synchronize();
 
     return ctx->get_embeddings_nextn_ith(i);
+}
+
+bool llama_mtp_chain_begin(llama_context * ctx, uint32_t n_steps) {
+    return ctx && ctx->mtp_chain_begin(n_steps);
+}
+
+bool llama_mtp_chain_end(
+        llama_context * ctx,
+        llama_token   * tokens,
+        uint32_t        capacity,
+        bool          * device_resident) {
+    return ctx && ctx->mtp_chain_end(tokens, capacity, device_resident);
+}
+
+void llama_mtp_chain_abort(llama_context * ctx) {
+    if (ctx) {
+        ctx->mtp_chain_abort();
+    }
 }
 
 float * llama_get_embeddings_layer_inp(llama_context * ctx, uint32_t lid) {

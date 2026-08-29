@@ -1,0 +1,48 @@
+{
+  "release": "Qwen3.8-Flash-CIRU-STRIX-IU4",
+  "runtime_tag": "v1.0.0-h121",
+  "hardware": {
+    "cpu": "AMD Ryzen AI Max+ 395",
+    "gpu": "AMD Radeon 8060S",
+    "architecture": "gfx1151",
+    "unified_memory_gib": 128
+  },
+  "quality": {
+    "humaneval_local_custom": {"passed": 160, "total": 164, "score": 0.9756097561},
+    "humaneval_plus_local_custom": {"passed": 155, "total": 164, "score": 0.9451219512},
+    "arc_challenge_full": {"passed": 1143, "total": 1172, "score": 0.9752559727},
+    "tooleval_standard_local_custom": {"points": 115, "possible_points": 138, "score": 0.8333333333},
+    "tooleval_hard_local_custom": {"points": 23, "possible_points": 30, "score": 0.7666666667},
+    "gpqa_diamond_sampled": {"passed": 46, "sampled": 50, "full_dataset": 198, "score": 0.92},
+    "mmlu_pro_sampled": {"passed": 61, "sampled": 70, "score": 0.8714285714},
+    "gsm8k_sampled": {"passed": 97, "sampled": 100, "score": 0.97},
+    "ifeval_prompt_strict_sampled": {"passed": 92, "sampled": 100, "score": 0.92}
+  },
+  "h121_8k_128": {
+    "prompt_tokens": 8192,
+    "generated_tokens": 128,
+    "prefill_tokens_per_second": 359.4267,
+    "generation_tokens_per_second": 30.7970,
+    "ttfp_seconds": 22.807,
+    "mtp_depth": 3,
+    "mtp_accepted": 84,
+    "mtp_target_tokens": 128,
+    "cold_uncached": true
+  },
+  "context_ladder_pre_h121": [
+    {"prompt_tokens": 512, "prefill_tokens_per_second": 298.3149, "generation_tokens_per_second": 29.9648, "ttfp_seconds": 1.729},
+    {"prompt_tokens": 2048, "prefill_tokens_per_second": 376.9801, "generation_tokens_per_second": 24.3850, "ttfp_seconds": 5.445},
+    {"prompt_tokens": 4096, "prefill_tokens_per_second": 378.9664, "generation_tokens_per_second": 22.8458, "ttfp_seconds": 10.824},
+    {"prompt_tokens": 8192, "prefill_tokens_per_second": 372.8099, "generation_tokens_per_second": 32.1142, "ttfp_seconds": 21.987},
+    {"prompt_tokens": 16384, "prefill_tokens_per_second": 295.0188, "generation_tokens_per_second": 28.3220, "ttfp_seconds": 55.549},
+    {"prompt_tokens": 32768, "prefill_tokens_per_second": 228.2670, "generation_tokens_per_second": 23.2864, "ttfp_seconds": 143.569},
+    {"prompt_tokens": 65536, "prefill_tokens_per_second": 174.6093, "generation_tokens_per_second": 14.7909, "ttfp_seconds": 375.350},
+    {"prompt_tokens": 131072, "prefill_tokens_per_second": 121.0477, "generation_tokens_per_second": 11.3400, "ttfp_seconds": 1082.842}
+  ],
+  "notes": [
+    "HumanEval, HumanEval+, and ToolEval rows use documented local-custom protocols.",
+    "GPQA-Diamond, MMLU-Pro, GSM8K, and IFEval rows are sampled local runs, not full leaderboard scores.",
+    "Earlier quality and context runs used the same artifacts on H96/H111; only the 8K+128 row and 6009-token stress were repeated on H121.",
+    "Performance rows are cold and uncached; the public serving profile enables normal prompt and prefill caching."
+  ]
+}

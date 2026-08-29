@@ -1,0 +1,67 @@
+# Release provenance
+
+## Model lineage
+
+| Component | Source | Frozen revision |
+|---|---|---|
+| Text model and tokenizer lineage | [`Qwen/Qwen3.8-Flash-Next`](https://huggingface.co/Qwen/Qwen3.8-Flash-Next) | `f5d08274bafd880402bd16f5e3e6c514136ec06c` |
+| Exact FP8 PLE sidecar source | [`Qwen/Qwen3.8-Flash-Next-FP8`](https://huggingface.co/Qwen/Qwen3.8-Flash-Next-FP8) | `bcd9f01ddc9cff2316eb84281bebcd5b058bddce` |
+
+Both upstream repositories may have moved since the release was built; the revisions above are the reproducibility anchors.
+
+The public release is text-only and does not include a vision projector.
+
+## Runtime lineage
+
+- Clean public base: [`ggml-org/llama.cpp@f5e85d43a048f3d5adefb4c5e29867d8077fba62`](https://github.com/ggml-org/llama.cpp/commit/f5e85d43a048f3d5adefb4c5e29867d8077fba62).
+- Qwen experimental/MTP support was adapted from the integration represented by `1d8de7c1b0c7d2febf8f983174d8e6a711e2b1af`; it is a port onto the pinned base, not a claim that the base commit already contained that integration.
+- CIRU additions include the Q4_1-to-IU4 gfx1151 kernels, PLE paging/banking, protected-core loading, speculative controls, and serving changes required by this artifact.
+- H121 release fix: persistent MTP continuation inputs in `src/models/qwen4exp.cpp`.
+
+The exact H121 patch has SHA-256:
+
+```text
+cd20f28b1939d93d4d24226f3acbdba82fe43c578a69b251db3aa14bce684c94  h121-mtp-persistent-inputs.patch
+```
+
+The corrected `src/models/qwen4exp.cpp` used for the release source had SHA-256 `90fa4b8ddbbfbff74b683c8ec3c4dd1bf311f8a340f2975c241d9d9d25f21520` before the public documentation commit.
+
+## Evaluated artifact to public-name mapping
+
+The final evaluated tensors were not requantized for publication. The two GGUF headers were mechanically rewritten to replace their internal names and descriptions with the exact public model names, which changed the file length and SHA-256 while leaving tensor arrays unchanged.
+
+| Component | Evaluated file identity | Public file identity |
+|---|---|---|
+| Target | 79,397,818,656 B; `0c9cb11d34f9ae241180798a22de160cedc493600c9ae9d1a35b34e330d93eb8` | 79,397,818,720 B; `c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0` |
+| MTP Q8_0 | 4,135,893,152 B; `cf6054d50ad260ba5b9be03b6d6d15b5100e9727bfd16f81734eba57c657f798` | 4,135,893,248 B; `e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642` |
+| PLE payload | 52,429,053,952 B; `687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2` | Unchanged |
+
+Public GGUF metadata:
+
+```text
+general.name = Qwen3.8-Flash-CIRU-STRIX-IU4
+general.name = Qwen3.8-Flash-CIRU-STRIX-IU4-MTP
+```
+
+## Composition
+
+The target contains 1,223 tensors:
+
+| Storage type | Tensor count |
+|---|---:|
+| F32 | 388 |
+| Q5_K | 328 |
+| Q8_0 | 290 |
+| Q4_1 | 144 |
+| Q5_1 | 48 |
+| BF16 | 25 |
+
+The 144 Q4_1 routed-expert tensors occupy 75,497,472,000 bytes. The remaining protected core occupies 3,900,335,968 bytes. No tensor is stored on disk as a custom `IU4_A640` type; the release runtime performs the optimized IU4 execution transform internally.
+
+## Validation identities
+
+The post-fix H121 binary used for the 8K row and stability stress had SHA-256 `3eff75a0e6276d8ebef284f981bfbc7bf04de89de5231df33df5ad609420c`.
+
+The raw matched-row capture had SHA-256 `3c25acd705bb02a76f6e0ae71642955f1f97e190e78b0eb1d5394f6511d6b126`.
+
+The clean public source export was separately configured and built on CPU through all `llama-server`, `llama-cli`, and `llama-bench` targets before publication. GPU loading of the public-name GGUFs is recorded in the release verification notes once the benchmark host is free.

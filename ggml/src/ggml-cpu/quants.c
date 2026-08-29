@@ -30,6 +30,10 @@ void quantize_row_q2_0(const float * GGML_RESTRICT x, void * GGML_RESTRICT y, in
     quantize_row_q2_0_ref(x, y, k);
 }
 
+void quantize_row_iu4_a640(const float * GGML_RESTRICT x, void * GGML_RESTRICT y, int64_t k) {
+    quantize_row_iu4_a640_ref(x, y, k);
+}
+
 void quantize_row_q4_0(const float * GGML_RESTRICT x, void * GGML_RESTRICT y, int64_t k) {
     quantize_row_q4_0_ref(x, y, k);
 }
@@ -217,6 +221,43 @@ void ggml_vec_dot_q2_0_q8_0_generic(int n, float * GGML_RESTRICT s, size_t bs, c
         }
 
         sumf += d0 * sumi;
+    }
+
+    *s = sumf;
+}
+
+void ggml_vec_dot_iu4_a640_q8_1(int n, float * GGML_RESTRICT s, size_t bs, const void * GGML_RESTRICT vx, size_t bx, const void * GGML_RESTRICT vy, size_t by, int nrc) {
+    assert(n % QK_IU4_A640 == 0);
+    assert(nrc == 1);
+    UNUSED(nrc);
+    UNUSED(bx);
+    UNUSED(by);
+    UNUSED(bs);
+
+    const block_iu4_a640 * GGML_RESTRICT x = vx;
+    const block_q8_1 * GGML_RESTRICT y = vy;
+    const int nb = n / QK_IU4_A640;
+    float sumf = 0.0f;
+
+    for (int ib = 0; ib < nb; ++ib) {
+        for (int group = 0; group < NG_IU4_A640; ++group) {
+            const float scale = GGML_CPU_FP16_TO_FP32(x[ib].scale[group]);
+            const float offset = GGML_CPU_FP16_TO_FP32(x[ib].offset[group]);
+            const int qbase = group * QK_IU4_A640_SUB;
+            const int ybase = ib * (QK_IU4_A640 / QK8_1) + group * (QK_IU4_A640_SUB / QK8_1);
+
+            for (int sub = 0; sub < QK_IU4_A640_SUB / QK8_1; ++sub) {
+                const block_q8_1 * GGML_RESTRICT yb = y + ybase + sub;
+                int sumi = 0;
+                for (int j = 0; j < QK8_1; ++j) {
+                    const int qindex = qbase + sub * QK8_1 + j;
+                    const uint8_t q = (x[ib].qs[qindex / 2] >> (4 * (qindex & 1))) & 0x0f;
+                    sumi += q * yb->qs[j];
+                }
+                sumf += scale * GGML_CPU_FP16_TO_FP32(yb->d) * sumi;
+                sumf += offset * GGML_CPU_FP16_TO_FP32(yb->s);
+            }
+        }
     }
 
     *s = sumf;

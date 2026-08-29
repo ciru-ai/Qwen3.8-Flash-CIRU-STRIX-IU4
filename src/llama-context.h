@@ -143,6 +143,16 @@ struct llama_context {
     int encode(const llama_batch & batch_inp);
     int decode(const llama_batch & batch_inp);
 
+    // Qwen4Exp MTP-only multi-proposal transaction.  begin() arms a fixed
+    // number of one-token proposal graphs.  Consecutive decode() calls feed
+    // sampled-token + h_nextn device-to-device whenever the graph/input
+    // placement permits it.  end() performs the sole required synchronize and
+    // returns all proposal ids in order.  Unsupported placement degrades to a
+    // correct host-fed continuation and reports device_resident=false.
+    bool mtp_chain_begin(uint32_t n_steps);
+    bool mtp_chain_end(llama_token * tokens, uint32_t capacity, bool * device_resident);
+    void mtp_chain_abort();
+
     //
     // state save/load
     //
@@ -366,6 +376,18 @@ private:
 
     llm_graph_result_ptr gf_res_prev;
     llm_graph_result_ptr gf_res_reserve;
+
+    struct mtp_chain_state {
+        bool active        = false;
+        bool device_ok     = true;
+        bool fallback_used = false;
+
+        uint32_t n_steps        = 0;
+        uint32_t completed_steps = 0;
+
+        std::vector<llama_token> sampled;
+        std::vector<float>       h_stage;
+    } mtp_chain;
 
     // host buffer for the model output (logits and embeddings)
     ggml_backend_buffer_ptr buf_output;

@@ -426,6 +426,10 @@ public:
     void set_input_k_rot(ggml_tensor * dst) const;
     void set_input_v_rot(ggml_tensor * dst) const;
 
+    // Current insertion slots for model-specific side caches that mirror the
+    // KV transaction.  The returned reference is valid for this ubatch only.
+    const llama_kv_cache::slot_info & get_slot_info() const;
+
     // see llama_kv_cache::get_prev_tokens()
     void get_prev_tokens(const llama_ubatch & ubatch, uint32_t n, std::vector<llama_token> & res) const;
 

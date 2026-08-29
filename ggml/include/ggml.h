@@ -430,7 +430,8 @@ extern "C" {
         GGML_TYPE_NVFP4   = 40, // NVFP4 (4 blocks, E4M3 scale)
         GGML_TYPE_Q1_0    = 41,
         GGML_TYPE_Q2_0    = 42,
-        GGML_TYPE_COUNT   = 43,
+        GGML_TYPE_IU4_A640 = 43,
+        GGML_TYPE_COUNT   = 44,
     };
 
     // precision
@@ -574,6 +575,7 @@ extern "C" {
         GGML_OP_DSV4_HC_COMB,
         GGML_OP_DSV4_HC_PRE,
         GGML_OP_DSV4_HC_POST,
+        GGML_OP_E3_QR05,
 
         GGML_OP_UNARY,
 
@@ -2412,6 +2414,21 @@ extern "C" {
             struct ggml_tensor  * a,
             int                   k);
 
+    // Qwen4Exp QSA selects complete compression blocks, not individual KV
+    // cells.  This marker keeps the long-row GPU selector private to that
+    // contract; ordinary GGML_OP_TOP_K users retain their existing kernels.
+    GGML_API struct ggml_tensor * ggml_top_k_qsa_cells(
+            struct ggml_context * ctx,
+            struct ggml_tensor  * a,
+            struct ggml_tensor  * positions,
+            int                   ratio,
+            int                   k_blocks,
+            int                   cell_base,
+            int                   end_pos);
+
+    GGML_API bool ggml_top_k_is_qsa_blocks(
+            const struct ggml_tensor * a);
+
     GGML_API struct ggml_tensor * ggml_arange(
             struct ggml_context * ctx,
             float                 start,
@@ -2449,6 +2466,17 @@ extern "C" {
     GGML_API void ggml_flash_attn_ext_add_sinks(
             struct ggml_tensor * a,
             struct ggml_tensor * sinks);
+
+    // Optional sparse-KV metadata.  Backends that do not implement indexed
+    // loads ignore it and execute the ordinary masked attention exactly.
+    GGML_API void ggml_flash_attn_ext_add_indexed_kv(
+            struct ggml_tensor * a,
+            struct ggml_tensor * cell_ids,
+            struct ggml_tensor * positions,
+            int                  ratio);
+
+    GGML_API bool ggml_flash_attn_ext_has_indexed_kv(
+            const struct ggml_tensor * a);
 
     // TODO: needs to be adapted to ggml_flash_attn_ext
     GGML_API struct ggml_tensor * ggml_flash_attn_back(
@@ -2653,6 +2681,18 @@ extern "C" {
             struct ggml_tensor  * residual,
             struct ggml_tensor  * post,
             struct ggml_tensor  * comb);
+
+    // E3.QR05 routed expert node. The expert bank is one resident
+    // 512-expert layer view in the fixed H33 packet layout. The returned F32
+    // [2560, M] view depends on one HIP-only compute node that quantizes x to
+    // G128 signed Q8. M=1 keeps the exact H30 plus H24 decode path; M>1 uses
+    // the grouped packet-native path.
+    GGML_API struct ggml_tensor * ggml_e3_qr05(
+            struct ggml_context * ctx,
+            struct ggml_tensor  * x,
+            struct ggml_tensor  * expert_bank,
+            struct ggml_tensor  * expert_ids,
+            struct ggml_tensor  * route_weights);
 
     // custom operators
 

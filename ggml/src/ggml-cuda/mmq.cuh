@@ -4,6 +4,8 @@
 
 #include <climits>
 #include <cstdint>
+#include <cstdlib>
+#include <cstring>
 
 #define MMQ_DP4A_MAX_BATCH_SIZE 64 // Max. batch size to use for dp4a MMQ kernels when FP16 tensor cores are available.
 #define MMQ_ITER_K             256
@@ -1480,6 +1482,30 @@ void mul_mat_q_switch_J(ggml_backend_cuda_context & ctx, const mmq_args & args, 
 
     int J_best        = 0;
     int ntiles_J_best = INT_MAX;
+
+    // H64: select only existing Q4_1 device specializations for the exact
+    // M512 expert gate/up/down shapes. The one-expert H62 admission graph has
+    // these same matrix dimensions and therefore admits the selected J before
+    // model load. M1 never reaches MMQ, and every other shape keeps the
+    // original automatic selector below.
+    if constexpr (type == GGML_TYPE_Q4_1 && !fallback) {
+        const bool exact_m512_moe = args.ids_dst != nullptr && args.expert_bounds != nullptr &&
+            args.ncols_max == 512 &&
+            ((args.ncols_x == 2560 && args.nrows_x == 640) ||
+             (args.ncols_x == 640  && args.nrows_x == 2560));
+
+        if (exact_m512_moe) {
+            const char * value = std::getenv("GGML_CUDA_Q41_MOE_FORCE_J");
+            int requested_J = 128;
+            if (value != nullptr) {
+                if      (std::strcmp(value, "64") == 0) requested_J = 64;
+                else if (std::strcmp(value, "48") == 0) requested_J = 48;
+                else if (std::strcmp(value, "32") == 0) requested_J = 32;
+            }
+            J_best = requested_J;
+            ntiles_J_best = 1;
+        }
+    }
 
     for (int J = 8; J <= 128 && ntiles_J_best > 1; J += 8) {
         const ggml_cuda_mmq_config config = ggml_cuda_mmq_get_config(type, J, fallback, cc);

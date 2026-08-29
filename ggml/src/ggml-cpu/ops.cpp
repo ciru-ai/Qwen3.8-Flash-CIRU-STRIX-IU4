@@ -5776,6 +5776,7 @@ void ggml_compute_forward_clamp(
         case GGML_TYPE_BF16:
         case GGML_TYPE_Q1_0:
         case GGML_TYPE_Q2_0:
+        case GGML_TYPE_IU4_A640:
         case GGML_TYPE_Q4_0:
         case GGML_TYPE_Q4_1:
         case GGML_TYPE_Q5_0:
@@ -8415,6 +8416,13 @@ struct cmp_top_k {
     }
 };
 
+struct cmp_top_k_qsa_blocks {
+    const float * data;
+    bool operator()(int32_t a, int32_t b) const {
+        return data[a] != data[b] ? data[a] > data[b] : a < b;
+    }
+};
+
 static void ggml_compute_forward_top_k_f32(
     const ggml_compute_params * params,
     ggml_tensor * dst) {
@@ -8430,20 +8438,54 @@ static void ggml_compute_forward_top_k_f32(
 
     const int64_t nr = ggml_nrows(src0);
 
-    const int top_k = ne0;
+    const bool qsa_blocks = ggml_top_k_is_qsa_blocks(dst);
+    const int top_k = qsa_blocks ? ggml_get_op_params_i32(dst, 2) : ne0;
 
     int32_t * tmp = (int32_t *) params->wdata + (ne00 + CACHE_LINE_SIZE_F32) * ith;
 
     for (int64_t i = ith; i < nr; i += nth) {
         const float * src_data = (float *)((char *) src0->data + i*nb01);
 
-        for (int64_t j = 0; j < ne00; j++) {
+        int64_t nsrc = ne00;
+        if (qsa_blocks) {
+            const ggml_tensor * positions = dst->src[1];
+            const int ratio = ggml_get_op_params_i32(dst, 1);
+            const int32_t * pos = (const int32_t *) positions->data;
+            nsrc = std::min<int64_t>(ne00, (pos[i] + 1)/ratio);
+            GGML_ASSERT(nsrc >= top_k);
+        }
+
+        for (int64_t j = 0; j < nsrc; j++) {
             tmp[j] = j;
         }
 
-        std::partial_sort(tmp, tmp + top_k, tmp + ne00, cmp_top_k{src_data});
+        if (qsa_blocks) {
+            std::partial_sort(tmp, tmp + top_k, tmp + nsrc, cmp_top_k_qsa_blocks{src_data});
+        } else {
+            std::partial_sort(tmp, tmp + top_k, tmp + nsrc, cmp_top_k{src_data});
+        }
 
         int32_t * dst_data = (int32_t *)((char *) dst->data + i*nb1);
+
+        if (qsa_blocks) {
+            const ggml_tensor * positions = dst->src[1];
+            const int ratio = ggml_get_op_params_i32(dst, 1);
+            const int cell_base = ggml_get_op_params_i32(dst, 3);
+            const int end_pos = ggml_get_op_params_i32(dst, 4);
+            const int32_t * pos = (const int32_t *) positions->data;
+
+            std::sort(tmp, tmp + top_k);
+            for (int j = 0; j < top_k; ++j) {
+                for (int t = 0; t < ratio; ++t) {
+                    dst_data[j*ratio + t] = cell_base + tmp[j]*ratio + t;
+                }
+            }
+            const int tail_start = ((pos[i] + 1)/ratio)*ratio;
+            for (int t = 0; t < ratio - 1; ++t) {
+                dst_data[top_k*ratio + t] = cell_base + std::min(tail_start + t, end_pos);
+            }
+            continue;
+        }
 
         std::copy(tmp, tmp + top_k, dst_data);
 

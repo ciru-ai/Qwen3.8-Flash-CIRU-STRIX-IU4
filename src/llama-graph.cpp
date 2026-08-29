@@ -1319,6 +1319,7 @@ int64_t llm_graph_result::get_max_nodes() const {
 void llm_graph_result::reset() {
     t_inp_tokens  = nullptr;
     t_inp_embd    = nullptr;
+    t_inp_h       = nullptr;
     t_logits      = nullptr;
     t_embd        = nullptr;
     t_embd_pooled = nullptr;
@@ -1350,8 +1351,11 @@ void llm_graph_result::reset() {
     gf = ggml_new_graph_custom(ctx_compute.get(), max_nodes, false);
 }
 
-void llm_graph_result::set_inputs(const llama_ubatch * ubatch) {
+void llm_graph_result::set_inputs(const llama_ubatch * ubatch, bool skip_mtp_chain_payload) {
     for (auto & input : inputs) {
+        if (skip_mtp_chain_payload && input->is_mtp_chain_payload()) {
+            continue;
+        }
         input->set_input(ubatch);
     }
 }
@@ -1913,7 +1917,9 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
          ggml_tensor * up_exps_s,
          ggml_tensor * gate_exps_s,
          ggml_tensor * down_exps_s,
-         ggml_tensor * selected_experts_in) const {
+         ggml_tensor * selected_experts_in,
+         ggml_tensor * e3_qr05_bank,
+         ggml_tensor * down_exps_tail) const {
     return build_moe_ffn(
         cur,
         gate_inp,  /* gate_inp_b  */ nullptr,
@@ -1934,7 +1940,9 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         up_exps_s,
         gate_exps_s,
         down_exps_s,
-        selected_experts_in
+        selected_experts_in,
+        e3_qr05_bank,
+        down_exps_tail
     );
 }
 
@@ -1962,7 +1970,9 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
          ggml_tensor * up_exps_s,
          ggml_tensor * gate_exps_s,
          ggml_tensor * down_exps_s,
-         ggml_tensor * selected_experts_in) const {
+         ggml_tensor * selected_experts_in,
+         ggml_tensor * e3_qr05_bank,
+         ggml_tensor * down_exps_tail) const {
     const int64_t n_embd   = cur->ne[0];
     const int64_t n_tokens = cur->ne[1];
     const bool weight_before_ffn = arch == LLM_ARCH_LLAMA4; // for llama4, we apply the sigmoid-ed weights before the FFN
@@ -2101,6 +2111,30 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
 
     //call early so that topk-moe can be used
     ggml_build_forward_expand(gf, weights);
+
+    if (e3_qr05_bank != nullptr) {
+        // One packet-native node consumes the resident layer packet directly.
+        // It already applies route weights and reduces top-10 experts, so the
+        // generic gate/up, activation, down, per-expert views, and sum below
+        // must not be instantiated on this branch.
+        GGML_ASSERT(n_embd == 2560);
+        GGML_ASSERT(n_expert == 512 && n_expert_used == 10);
+        GGML_ASSERT(type_op == LLM_FFN_SILU && !weight_before_ffn);
+
+        if (n_tokens != 1) {
+            selected_experts = ggml_cont(ctx0, selected_experts);
+        }
+        ggml_tensor * route_weights = ggml_reshape_2d(
+            ctx0, weights, n_expert_used, n_tokens);
+        if (n_tokens != 1) {
+            route_weights = ggml_cont(ctx0, route_weights);
+        }
+        ggml_tensor * experts = ggml_e3_qr05(
+            ctx0, cur, e3_qr05_bank, selected_experts, route_weights);
+        cb(experts, "ffn_moe_e3_qr05", il);
+        ggml_build_forward_expand(gf, experts);
+        return experts;
+    }
 
     cur = ggml_reshape_3d(ctx0, cur, n_embd, 1, n_tokens);
 
@@ -2252,7 +2286,32 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
             GGML_ABORT("fatal error");
     }
 
-    experts = build_lora_mm_id(down_exps, cur, selected_experts, down_exps_s); // [n_embd, n_expert_used, n_tokens]
+    if (down_exps_tail != nullptr) {
+        GGML_ASSERT(down_exps_s == nullptr);
+        GGML_ASSERT(down_exps->ne[0] + down_exps_tail->ne[0] == cur->ne[0]);
+        GGML_ASSERT(down_exps->ne[1] == down_exps_tail->ne[1]);
+        GGML_ASSERT(down_exps->ne[2] == down_exps_tail->ne[2]);
+
+        ggml_tensor * cur_main = ggml_view_3d(
+            ctx0, cur, down_exps->ne[0], cur->ne[1], cur->ne[2],
+            cur->nb[1], cur->nb[2], 0);
+        ggml_tensor * cur_tail = ggml_view_3d(
+            ctx0, cur, down_exps_tail->ne[0], cur->ne[1], cur->ne[2],
+            cur->nb[1], cur->nb[2], down_exps->ne[0] * cur->nb[0]);
+        cb(cur_main, "ffn_moe_down_main_in", il);
+        cb(cur_tail, "ffn_moe_down_tail_in", il);
+
+        ggml_tensor * experts_main = build_lora_mm_id(
+            down_exps, cur_main, selected_experts, nullptr);
+        ggml_tensor * experts_tail = build_lora_mm_id(
+            down_exps_tail, cur_tail, selected_experts, nullptr);
+        cb(experts_main, "ffn_moe_down_main", il);
+        cb(experts_tail, "ffn_moe_down_tail", il);
+
+        experts = ggml_add(ctx0, experts_main, experts_tail);
+    } else {
+        experts = build_lora_mm_id(down_exps, cur, selected_experts, down_exps_s); // [n_embd, n_expert_used, n_tokens]
+    }
     cb(experts, "ffn_moe_down", il);
 
     if (down_exps_s) {
@@ -2547,7 +2606,10 @@ ggml_tensor * llm_graph_context::build_attn_mha(
          ggml_tensor * sinks,
          ggml_tensor * v_mla,
                float   kq_scale,
-                 int   il) const {
+                 int   il,
+        ggml_tensor * indexed_kv,
+        ggml_tensor * indexed_pos,
+                 int   indexed_ratio) const {
     const bool v_trans = v->nb[1] > v->nb[2];
 
     // split the batch into streams if needed
@@ -2584,6 +2646,10 @@ ggml_tensor * llm_graph_context::build_attn_mha(
 
         ggml_flash_attn_ext_add_sinks(cur, sinks);
         ggml_flash_attn_ext_set_prec (cur, GGML_PREC_F32);
+        if (indexed_kv) {
+            GGML_ASSERT(indexed_pos && indexed_ratio > 0);
+            ggml_flash_attn_ext_add_indexed_kv(cur, indexed_kv, indexed_pos, indexed_ratio);
+        }
 
         if (v_mla) {
 #if 0

@@ -392,11 +392,20 @@ struct common_params_speculative {
     }
 
     uint32_t need_n_rs_seq() const {
-        bool needs_rs_seq = std::any_of(types.begin(), types.end(), [&](auto t) {
-            return t == COMMON_SPECULATIVE_TYPE_DRAFT_MTP || t == COMMON_SPECULATIVE_TYPE_DRAFT_EAGLE3 || t == COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH || t == COMMON_SPECULATIVE_TYPE_DRAFT_DSPARK;
+        const bool needs_full_depth_rs = std::any_of(types.begin(), types.end(), [&](auto t) {
+            return t == COMMON_SPECULATIVE_TYPE_DRAFT_EAGLE3 || t == COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH || t == COMMON_SPECULATIVE_TYPE_DRAFT_DSPARK;
         });
 
-        return needs_rs_seq ? draft.n_max : 0u;
+        if (needs_full_depth_rs) {
+            return draft.n_max;
+        }
+
+        const bool needs_mtp_rs = std::find(types.begin(), types.end(), COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != types.end();
+        // Qwen4Exp's GDN and both private convolution-state writers already
+        // emit K=n_rs_seq+1 trailing snapshots. Match that allocation to the
+        // configured MTP depth so a rejection at proposal zero can roll back
+        // the complete verification batch without checkpoint restore/replay.
+        return needs_mtp_rs ? (uint32_t) std::max(1, draft.n_max) : 0u;
     }
 };
 
@@ -503,6 +512,11 @@ struct common_params {
     struct common_params_diffusion   diffusion;
 
     struct common_params_model model;
+
+    // Optional external Qwen4Exp PLE storage. These fields are inert for
+    // architectures that do not consume llama_model_params::ple_sidecar.
+    std::string ple_sidecar       = "";
+    uint64_t    ple_cache_bytes   = 0;
 
     std::set<std::string> model_alias;     // model aliases                                                 // NOLINT
     std::set<std::string> model_tags;      // model tags (informational, not used for routing)              // NOLINT

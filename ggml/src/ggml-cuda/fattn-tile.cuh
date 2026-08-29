@@ -479,6 +479,116 @@ static __device__ __forceinline__ void flash_attn_tile_load_tile(
     ggml_cuda_unroll<5>{}(load);
 }
 
+// H102 QSA: gather one KV tile through the per-query physical-cell list.
+// Keeping the gather in the tile loader avoids materializing an M x 2051 x
+// head-size K/V tensor.  All threads in the block share one query column.
+template<int warp_size, int nwarps, int I, int J, int J_padding, bool oob_check>
+static __device__ __forceinline__ void flash_attn_tile_load_tile_indexed(
+        const half2 * const __restrict__ KV,
+        half2 * const __restrict__ tile_KV,
+        const int stride_KV,
+        const int * const __restrict__ cell_ids,
+        const uint64_t * const __restrict__ qsa_desc,
+        const int selected_0,
+        const int i_sup) {
+    constexpr int cpy_nb = ggml_cuda_get_max_cpy_bytes();
+    constexpr int cpy_ne = cpy_nb / 4;
+
+    auto load = [&] __device__ (const int n) {
+        const int stride_j = warp_size >> n;
+        if (stride_j == 0) {
+            return;
+        }
+
+        const int j0_start = stride_j == warp_size ? 0 : ((J/2)/cpy_ne) - ((J/2)/cpy_ne) % (2*stride_j);
+        const int j0_stop  =                             ((J/2)/cpy_ne) - ((J/2)/cpy_ne) % (1*stride_j);
+        const int stride_i = warp_size / stride_j;
+        if (j0_start == j0_stop) {
+            return;
+        }
+
+#pragma unroll
+        for (int i0 = 0; i0 < I; i0 += nwarps*stride_i) {
+            const int i = i0 + threadIdx.y*stride_i + (stride_j == warp_size ? 0 : threadIdx.x / stride_j);
+            if (i0 + nwarps*stride_i <= I || i < I) {
+#pragma unroll
+                for (int j0 = j0_start; j0 < j0_stop; j0 += stride_j) {
+                    const int j = j0*cpy_ne + (stride_j == warp_size ? threadIdx.x : threadIdx.x % stride_j)*cpy_ne;
+                    const bool valid = !oob_check || i < i_sup;
+                    const int selected = selected_0 + i;
+                    const uint64_t desc = valid && qsa_desc ? qsa_desc[1 + selected/4] : 0;
+                    const int cell = valid ? (qsa_desc ? int(uint32_t(desc)) + selected%4 : cell_ids[selected]) : 0;
+                    const __align__(16) half2 zero[cpy_ne] = {{0.0f, 0.0f}};
+                    ggml_cuda_memcpy_1<cpy_nb>(
+                        tile_KV + i*(J/2 + J_padding) + j,
+                        valid ? KV + int64_t(cell)*stride_KV + j : zero);
+                }
+            }
+        }
+    };
+
+    static_assert(J % 8 == 0, "bad J");
+    static_assert((J/2) % cpy_ne == 0, "bad J");
+    ggml_cuda_unroll<7>{}(load);
+}
+
+template<int warp_size, int nwarps, int I, int J, int J_padding, bool oob_check>
+static __device__ __forceinline__ void flash_attn_tile_load_tile_indexed(
+        const half2 * const __restrict__ KV,
+        float * const __restrict__ tile_KV,
+        const int stride_KV,
+        const int * const __restrict__ cell_ids,
+        const uint64_t * const __restrict__ qsa_desc,
+        const int selected_0,
+        const int i_sup) {
+    constexpr int cpy_nb = ggml_cuda_get_max_cpy_bytes();
+    constexpr int cpy_ne = cpy_nb / 4;
+
+    auto load = [&] __device__ (const int n) {
+        const int stride_j = warp_size >> n;
+        if (stride_j == 0) {
+            return;
+        }
+
+        const int j0_start = stride_j == warp_size ? 0 : (J/cpy_ne) - (J/cpy_ne) % (2*stride_j);
+        const int j0_stop  =                             (J/cpy_ne) - (J/cpy_ne) % (1*stride_j);
+        const int stride_i = warp_size / stride_j;
+        if (j0_start == j0_stop) {
+            return;
+        }
+
+#pragma unroll
+        for (int i0 = 0; i0 < I; i0 += nwarps*stride_i) {
+            const int i = i0 + threadIdx.y*stride_i + (stride_j == warp_size ? 0 : threadIdx.x / stride_j);
+            if (i0 + nwarps*stride_i <= I || i < I) {
+#pragma unroll
+                for (int j0 = j0_start; j0 < j0_stop; j0 += stride_j) {
+                    const int j = j0*(cpy_ne/2) + (stride_j == warp_size ? threadIdx.x : threadIdx.x % stride_j)*(cpy_ne/2);
+                    const bool valid = !oob_check || i < i_sup;
+                    const int selected = selected_0 + i;
+                    const uint64_t desc = valid && qsa_desc ? qsa_desc[1 + selected/4] : 0;
+                    const int cell = valid ? (qsa_desc ? int(uint32_t(desc)) + selected%4 : cell_ids[selected]) : 0;
+                    const half2 zero[cpy_ne/2] = {{0.0f, 0.0f}};
+                    __align__(16) half2 tmp_h2[cpy_ne/2];
+                    ggml_cuda_memcpy_1<sizeof(tmp_h2)>(
+                        tmp_h2, valid ? KV + int64_t(cell)*stride_KV + j : zero);
+
+                    __align__(16) float2 tmp_f2[cpy_ne/2];
+#pragma unroll
+                    for (int l = 0; l < cpy_ne/2; ++l) {
+                        tmp_f2[l] = __half22float2(tmp_h2[l]);
+                    }
+                    ggml_cuda_memcpy_1<sizeof(tmp_f2)>(tile_KV + i*(J + J_padding) + 2*j, tmp_f2);
+                }
+            }
+        }
+    };
+
+    static_assert(J % 8 == 0, "bad J");
+    static_assert(J % cpy_ne == 0, "bad J");
+    ggml_cuda_unroll<5>{}(load);
+}
+
 // Function that performs a single iteration in for the KQ matrix multiplication:
 template <int warp_size, int nwarps, int ncols1, int ncols2, int DKQ, int nbatch_fa, int nbatch_K,
     bool use_logit_softcap, bool oob_check, typename T_vec_dot>
@@ -490,6 +600,8 @@ static __device__ __forceinline__ void flash_attn_tile_iter_KQ(
         const int k_VKQ_0,
         const int k_VKQ_sup,
         const int k_KQ_0,
+        const int * const __restrict__ cell_ids,
+        const uint64_t * const __restrict__ qsa_desc,
         float * KQ_acc) {
     constexpr int cpy_nb = ggml_cuda_get_max_cpy_bytes();
     constexpr int cpy_ne = cpy_nb / 4;
@@ -498,8 +610,13 @@ static __device__ __forceinline__ void flash_attn_tile_iter_KQ(
     constexpr int cpw   = ncols > nwarps ? ncols/nwarps : 1; // Q columns per warp
     constexpr int np    = nwarps > ncols ? nwarps/ncols : 1; // number of parallel warps per Q column
 
-    flash_attn_tile_load_tile<warp_size, nwarps, nbatch_fa, nbatch_K, cpy_ne, oob_check>
-        (K_h2 + int64_t(k_VKQ_0)*stride_K2 + k_KQ_0/2, KV_tmp, stride_K2, k_VKQ_sup);
+    if (cell_ids || qsa_desc) {
+        flash_attn_tile_load_tile_indexed<warp_size, nwarps, nbatch_fa, nbatch_K, cpy_ne, oob_check>
+            (K_h2 + k_KQ_0/2, KV_tmp, stride_K2, cell_ids, qsa_desc, k_VKQ_0, k_VKQ_sup);
+    } else {
+        flash_attn_tile_load_tile<warp_size, nwarps, nbatch_fa, nbatch_K, cpy_ne, oob_check>
+            (K_h2 + int64_t(k_VKQ_0)*stride_K2 + k_KQ_0/2, KV_tmp, stride_K2, k_VKQ_sup);
+    }
     __syncthreads();
 
 #ifdef FAST_FP16_AVAILABLE
@@ -575,7 +692,11 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
         T_acc * const VKQ,
         const int k_VKQ_0,
         const int k_VKQ_max,
-        const int col_Q_0) {
+        const int col_Q_0,
+        const int * const __restrict__ cell_ids,
+        const int * const __restrict__ positions,
+        const int selected_stride,
+        const uint64_t * const __restrict__ qsa_desc) {
     constexpr int cpy_nb = ggml_cuda_get_max_cpy_bytes();
     constexpr int cpy_ne = cpy_nb / 4;
 
@@ -608,12 +729,12 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
 #pragma unroll
     for (int k_KQ_0 = 0; k_KQ_0 < DKQ - nbatch_K_last; k_KQ_0 += nbatch_K) {
         flash_attn_tile_iter_KQ<warp_size, nwarps, ncols1, ncols2, DKQ, nbatch_fa, nbatch_K, use_logit_softcap, oob_check>(
-            Q_tmp, K_h2, KV_tmp, stride_K2, k_VKQ_0, k_VKQ_sup, k_KQ_0, KQ_acc);
+            Q_tmp, K_h2, KV_tmp, stride_K2, k_VKQ_0, k_VKQ_sup, k_KQ_0, cell_ids, qsa_desc, KQ_acc);
     }
     if (nbatch_K_last > 0) {
         constexpr int k_KQ_0 = DKQ - nbatch_K_last;
         flash_attn_tile_iter_KQ<warp_size, nwarps, ncols1, ncols2, DKQ, nbatch_fa, nbatch_K_last, use_logit_softcap, oob_check>(
-            Q_tmp, K_h2, KV_tmp, stride_K2, k_VKQ_0, k_VKQ_sup, k_KQ_0, KQ_acc);
+            Q_tmp, K_h2, KV_tmp, stride_K2, k_VKQ_0, k_VKQ_sup, k_KQ_0, cell_ids, qsa_desc, KQ_acc);
     }
 
     // Apply logit softcap + mask, update KQ_max:
@@ -636,8 +757,18 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
             }
 
             if (!oob_check || i_KQ < k_VKQ_sup) {
-                KQ_acc[(i_KQ_0/(np*warp_size))*cpw + jc0] += (ncols2 > 1 || mask) ?
-                    slope*__half2float(mask[j*stride_mask + k_VKQ_0 + i_KQ]) : 0.0f;
+                const int selected = k_VKQ_0 + i_KQ;
+                const uint64_t desc = qsa_desc ? qsa_desc[1 + selected/4] : 0;
+                const int cell = qsa_desc ? int(uint32_t(desc)) + selected%4 : (cell_ids ? cell_ids[selected] : selected);
+                const int tail_valid = cell_ids && !qsa_desc ? ((positions[j] + 1) & 3) : 3;
+                const int query_in_group = (jc0 + (threadIdx.y / np)*cpw)/ncols2;
+                const bool grouped_selected = !qsa_desc ||
+                    ((uint16_t(desc >> 32) >> (4*(selected%4) + query_in_group)) & 1u) != 0;
+                const bool selected_valid = grouped_selected &&
+                    (!cell_ids || qsa_desc || selected < selected_stride - 3 + tail_valid);
+                const float mask_value = selected_valid ?
+                    ((ncols2 > 1 || mask) ? __half2float(mask[j*stride_mask + cell]) : 0.0f) : -INFINITY;
+                KQ_acc[(i_KQ_0/(np*warp_size))*cpw + jc0] += slope*mask_value;
 
                 KQ_max_new[jc0] = fmaxf(KQ_max_new[jc0], KQ_acc[(i_KQ_0/(np*warp_size))*cpw + jc0] + FATTN_KQ_MAX_OFFSET);
             }
@@ -718,8 +849,13 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
     static_assert(nbatch_V % np == 0, "bad nbatch_V");
 #pragma unroll
     for (int k0 = 0; k0 < nbatch_fa; k0 += nbatch_V) {
-        flash_attn_tile_load_tile<warp_size, nwarps, nbatch_V, DV, 0, oob_check>
-            (V_h2 + int64_t(k_VKQ_0 + k0)*stride_V2, KV_tmp, stride_V2, k_VKQ_sup - k0);
+        if (cell_ids || qsa_desc) {
+            flash_attn_tile_load_tile_indexed<warp_size, nwarps, nbatch_V, DV, 0, oob_check>
+                (V_h2, KV_tmp, stride_V2, cell_ids, qsa_desc, k_VKQ_0 + k0, k_VKQ_sup - k0);
+        } else {
+            flash_attn_tile_load_tile<warp_size, nwarps, nbatch_V, DV, 0, oob_check>
+                (V_h2 + int64_t(k_VKQ_0 + k0)*stride_V2, KV_tmp, stride_V2, k_VKQ_sup - k0);
+        }
         __syncthreads();
 
 #ifdef FAST_FP16_AVAILABLE
@@ -788,7 +924,7 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
     }
 }
 
-template<int DKQ, int DV, int ncols1, int ncols2, bool use_logit_softcap> // D == head size
+template<int DKQ, int DV, int ncols1, int ncols2, bool use_logit_softcap, bool indexed_kv = false, bool grouped_qsa = false> // D == head size
 __launch_bounds__(ggml_cuda_fattn_tile_get_nthreads(DKQ, DV, ncols1*ncols2), ggml_cuda_fattn_tile_get_occupancy(DKQ, DV, ncols1*ncols2))
 static __global__ void flash_attn_tile(
         const char * Q_ptr,
@@ -817,8 +953,11 @@ static __global__ void flash_attn_tile(
     const char * GGML_CUDA_RESTRICT K        = K_ptr;
     const char * GGML_CUDA_RESTRICT V        = V_ptr;
     const char * GGML_CUDA_RESTRICT mask     = mask_ptr;
-    const char * GGML_CUDA_RESTRICT sinks    = sinks_ptr;
-    const int  * GGML_CUDA_RESTRICT KV_max   = KV_max_ptr;
+    const char * GGML_CUDA_RESTRICT sinks    = indexed_kv ? nullptr : sinks_ptr;
+    const int  * GGML_CUDA_RESTRICT KV_max   = indexed_kv ? nullptr : KV_max_ptr;
+    const int  * GGML_CUDA_RESTRICT cell_ids_all = indexed_kv && !grouped_qsa ? (const int *) sinks_ptr : nullptr;
+    const uint64_t * GGML_CUDA_RESTRICT qsa_desc_all = grouped_qsa ? (const uint64_t *) sinks_ptr : nullptr;
+    const int  * GGML_CUDA_RESTRICT positions = indexed_kv ? KV_max_ptr : nullptr;
     float      * GGML_CUDA_RESTRICT dst      = dst_ptr;
     float2     * GGML_CUDA_RESTRICT dst_meta = dst_meta_ptr;
 
@@ -845,10 +984,14 @@ static __global__ void flash_attn_tile(
     constexpr int nwarps    = ggml_cuda_fattn_tile_get_nthreads (DKQ, DV, ncols1*ncols2) / warp_size;
     constexpr int nbatch_fa = ggml_cuda_fattn_tile_get_nbatch_fa(DKQ, DV, ncols1*ncols2);
     constexpr int nbatch_K  = ggml_cuda_fattn_tile_get_nbatch_K (DKQ, DV, ncols1*ncols2);
+    static_assert(!indexed_kv || grouped_qsa || ncols1 == 1, "per-query indexed QSA requires one query column per block");
+    static_assert(!grouped_qsa || (indexed_kv && ncols1 == 4), "grouped QSA requires four query columns per block");
 
     // In this kernel Q, K, V are matrices while i, j, k are matrix indices.
 
     const int col_Q_0 = blockIdx.x * ncols1; // Index of the first Q column for this CUDA block to work on.
+    const int * cell_ids = indexed_kv && !grouped_qsa ? cell_ids_all + int64_t(col_Q_0)*ne11 : nullptr;
+    const uint64_t * qsa_desc = grouped_qsa ? qsa_desc_all + int64_t(blockIdx.x)*2050 : nullptr;
 
     const int sequence = blockIdx.z / (ne02/ncols2);
     const int head0 = blockIdx.z*ncols2 - sequence*ne02; // == blockIdx.z % (ne02/ncols2)
@@ -951,22 +1094,32 @@ static __global__ void flash_attn_tile(
     __syncthreads();
 
     // Main loop over KV cache:
-    const int k_VKQ_max = KV_max ? KV_max[sequence*gridDim.x + blockIdx.x] : ne11;
-    if (ncols2 == 1) {
+    const int qsa_union_cells = grouped_qsa ? 4*int(uint32_t(qsa_desc[0])) : 0;
+    const bool qsa_use_union = grouped_qsa && qsa_union_cells < ne11;
+    if constexpr (grouped_qsa) {
+        if (!qsa_use_union) {
+            qsa_desc = nullptr;
+        }
+    }
+    const int k_VKQ_max = grouped_qsa ? (qsa_use_union ? qsa_union_cells : ne11) :
+        (KV_max ? KV_max[sequence*gridDim.x + blockIdx.x] : ne11);
+    if (ncols2 == 1 || indexed_kv) {
         // Branch with out-of-bounds checks.
         int k_VKQ_0 = blockIdx.y*nbatch_fa;
         while (k_VKQ_0 < k_VKQ_max - nbatch_fa) {
             constexpr bool oob_check = false;
             flash_attn_tile_iter<warp_size, nwarps, ncols1, ncols2, DKQ, DV, nbatch_fa, nbatch_K, use_logit_softcap, oob_check>
                 (Q_tmp, K_h2, V_h2, maskh, ne01, logit_softcap, slope, KQ, KV_tmp,
-                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0);
+                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0,
+                cell_ids, positions, ne11, qsa_desc);
             k_VKQ_0 += gridDim.y*nbatch_fa;
         }
         if (k_VKQ_0 < k_VKQ_max) {
             constexpr bool oob_check = true;
             flash_attn_tile_iter<warp_size, nwarps, ncols1, ncols2, DKQ, DV, nbatch_fa, nbatch_K, use_logit_softcap, oob_check>
                 (Q_tmp, K_h2, V_h2, maskh, ne01, logit_softcap, slope, KQ, KV_tmp,
-                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0);
+                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0,
+                cell_ids, positions, ne11, qsa_desc);
         }
     } else {
         // Branch without out-of-bounds checks.
@@ -974,7 +1127,8 @@ static __global__ void flash_attn_tile(
             constexpr bool oob_check = false;
             flash_attn_tile_iter<warp_size, nwarps, ncols1, ncols2, DKQ, DV, nbatch_fa, nbatch_K, use_logit_softcap, oob_check>
                 (Q_tmp, K_h2, V_h2, maskh, ne01, logit_softcap, slope, KQ, KV_tmp,
-                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0);
+                stride_K2, stride_V2, stride_mask, KQ_max, KQ_sum, VKQ, k_VKQ_0, k_VKQ_max, col_Q_0,
+                cell_ids, positions, ne11, qsa_desc);
         }
     }
 
@@ -1143,6 +1297,240 @@ static __global__ void flash_attn_tile(
               nb31, nb32, nb33);
     NO_DEVICE_CODE;
 #endif // FLASH_ATTN_AVAILABLE
+}
+
+// H109C consumes H49's exact but score-ordered 2051 cell IDs directly.  First
+// scatter them into one compact 16-bit membership word per physical QSA block;
+// then scan at most 2048 blocks to emit H102's existing position-ordered page
+// table.  This preserves arbitrary cutoff/tail membership without sorting IDs.
+static __global__ void h109c_qsa_scatter_membership(
+        const int * const __restrict__ cell_ids,
+        uint32_t * const __restrict__ membership,
+        const int n_queries,
+        const int selected_stride,
+        const int cell_base,
+        const int n_blocks) {
+    const int linear = int(blockIdx.x)*int(blockDim.x) + int(threadIdx.x);
+    const int total = n_queries*selected_stride;
+    if (linear >= total) {
+        return;
+    }
+
+    const int query = linear/selected_stride;
+    const int cell = cell_ids[linear];
+    const int rel = cell - cell_base;
+    if (rel < 0 || rel >= 4*n_blocks) {
+        return;
+    }
+    const int group = query/4;
+    const int query_in_group = query & 3;
+    const int block = rel/4;
+    const int cell_in_block = rel & 3;
+    atomicOr(membership + int64_t(group)*n_blocks + block,
+            1u << (4*cell_in_block + query_in_group));
+}
+
+static __global__ void h109c_qsa_compact_membership(
+        const uint32_t * const __restrict__ membership,
+        uint64_t * const __restrict__ descriptors,
+        const int n_blocks,
+        const int cell_base) {
+    if (threadIdx.x != 0) {
+        return;
+    }
+    constexpr int descriptor_stride = 2050;
+    const int group = blockIdx.x;
+    const uint32_t * in = membership + int64_t(group)*n_blocks;
+    uint64_t * out = descriptors + int64_t(group)*descriptor_stride;
+    int emitted = 0;
+    for (int block = 0; block < n_blocks; ++block) {
+        const uint32_t bits = in[block] & 0xffffu;
+        if (bits != 0) {
+            if (emitted < descriptor_stride - 1) {
+                out[++emitted] = uint64_t(uint32_t(cell_base + 4*block)) | (uint64_t(bits) << 32);
+            }
+        }
+    }
+    out[0] = uint64_t(uint32_t(emitted));
+}
+
+// H102 QSA indexed F16 attention.  One block owns one query token and four
+// GQA heads, so every K/V load can follow that query's 2051-entry cell list
+// without materializing a query-major K/V tensor.  Unsupported shapes stay
+// on the ordinary masked FA path through the dispatcher in fattn.cu.
+static void ggml_cuda_flash_attn_ext_tile_indexed_qsa(
+        ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
+    const ggml_tensor * Q = dst->src[0];
+    const ggml_tensor * K = dst->src[1];
+    const ggml_tensor * V = dst->src[2];
+    const ggml_tensor * mask = dst->src[3];
+    const ggml_tensor * cell_ids = dst->src[5];
+    const ggml_tensor * positions = dst->src[6];
+
+    GGML_ASSERT(Q->type == GGML_TYPE_F32 && K->type == GGML_TYPE_F16 && V->type == GGML_TYPE_F16);
+    GGML_ASSERT(Q->ne[0] == 256 && V->ne[0] == 256 && K->ne[0] == 256);
+    GGML_ASSERT(mask && mask->type == GGML_TYPE_F16);
+    GGML_ASSERT(cell_ids && cell_ids->type == GGML_TYPE_I32 && ggml_is_contiguous(cell_ids));
+    GGML_ASSERT(positions && positions->type == GGML_TYPE_I32 && ggml_is_contiguous(positions));
+    GGML_ASSERT(cell_ids->ne[0] == 2051 && cell_ids->ne[1] == Q->ne[1]);
+    GGML_ASSERT(Q->ne[3] == 1 && cell_ids->ne[2] == 1 && cell_ids->ne[3] == 1);
+    GGML_ASSERT(positions->ne[0] >= Q->ne[1]);
+    GGML_ASSERT(Q->ne[2] % K->ne[2] == 0);
+
+    constexpr int DKQ = 256;
+    constexpr int DV = 256;
+    constexpr int ncols1 = 1;
+    constexpr int ncols2 = 4;
+    constexpr bool use_logit_softcap = false;
+    constexpr bool indexed_kv = true;
+    constexpr size_t nbytes_shared = 0;
+
+    const int gqa_ratio = Q->ne[2] / K->ne[2];
+    GGML_ASSERT(gqa_ratio % ncols2 == 0);
+
+    float scale = 1.0f;
+    float max_bias = 0.0f;
+    float logit_softcap = 0.0f;
+    memcpy(&scale,         (const float *) dst->op_params + 0, sizeof(float));
+    memcpy(&max_bias,      (const float *) dst->op_params + 1, sizeof(float));
+    memcpy(&logit_softcap, (const float *) dst->op_params + 2, sizeof(float));
+    GGML_ASSERT(max_bias == 0.0f && logit_softcap == 0.0f);
+
+    const int cc = ggml_cuda_info().devices[ggml_cuda_get_device()].cc;
+    const int warp_size = 32;
+    const int nwarps = ggml_cuda_fattn_tile_get_nthreads(DKQ, DV, ncols1*ncols2, cc) / warp_size;
+    fattn_kernel_t kernel = flash_attn_tile<DKQ, DV, ncols1, ncols2, use_logit_softcap, indexed_kv>;
+
+    const dim3 block_dim(warp_size, nwarps, 1);
+    const dim3 blocks_num(Q->ne[1], 1, (Q->ne[2]/ncols2)*Q->ne[3]);
+    const uint32_t n_head = Q->ne[2];
+    const uint32_t n_head_log2 = 1u << uint32_t(floorf(log2f(float(n_head))));
+    const float m0 = 1.0f;
+    const float m1 = 1.0f;
+    const uint3 ne01 = init_fastdiv_values(Q->ne[1]);
+
+    const ggml_cuda_kernel_launch_params launch_params =
+        ggml_cuda_kernel_launch_params(blocks_num, block_dim, nbytes_shared, ctx.stream());
+    ggml_cuda_kernel_launch(kernel, launch_params,
+        (const char *) Q->data,
+        (const char *) K->data,
+        (const char *) V->data,
+        (const char *) mask->data,
+        (const char *) cell_ids->data,
+        (const int *) positions->data,
+        (float *) dst->data,
+        (float2 *) nullptr,
+        scale, max_bias, m0, m1, n_head_log2, logit_softcap,
+        Q->ne[0], ne01, Q->ne[2], Q->ne[3], Q->nb[1], Q->nb[2], Q->nb[3],
+        K->ne[0], cell_ids->ne[0], K->ne[2], K->ne[3], K->nb[1], K->nb[2], K->nb[3],
+        V->nb[1], V->nb[2], V->nb[3],
+        mask->ne[1], mask->ne[2], mask->ne[3], mask->nb[1], mask->nb[2], mask->nb[3]);
+    CUDA_CHECK(cudaGetLastError());
+}
+
+// H102b production candidate: one block owns four adjacent query tokens and
+// four GQA heads.  A tiny descriptor prepass restores multi-query K/V reuse;
+// the unchanged dense sparse mask remains the exact causal/selection authority.
+// If a quartet union spans at least as many cells as the dense K/V view, the
+// kernel follows the ordinary contiguous loader instead (device-only guard).
+static void ggml_cuda_flash_attn_ext_tile_group4_qsa(
+        ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
+    const ggml_tensor * Q = dst->src[0];
+    const ggml_tensor * K = dst->src[1];
+    const ggml_tensor * V = dst->src[2];
+    const ggml_tensor * mask = dst->src[3];
+    const ggml_tensor * cell_ids = dst->src[5];
+    const ggml_tensor * positions = dst->src[6];
+
+    GGML_ASSERT(Q->type == GGML_TYPE_F32 && K->type == GGML_TYPE_F16 && V->type == GGML_TYPE_F16);
+    GGML_ASSERT(Q->ne[0] == 256 && V->ne[0] == 256 && K->ne[0] == 256);
+    GGML_ASSERT(mask && mask->type == GGML_TYPE_F16);
+    GGML_ASSERT(cell_ids && cell_ids->type == GGML_TYPE_I32 && ggml_is_contiguous(cell_ids));
+    GGML_ASSERT(positions && positions->type == GGML_TYPE_I32 && ggml_is_contiguous(positions));
+    GGML_ASSERT(cell_ids->ne[0] == 2051 && cell_ids->ne[1] == Q->ne[1]);
+    GGML_ASSERT(Q->ne[1] % 4 == 0 && Q->ne[3] == 1);
+    GGML_ASSERT(positions->ne[0] >= Q->ne[1]);
+    GGML_ASSERT(Q->ne[2] % K->ne[2] == 0);
+
+    constexpr int DKQ = 256;
+    constexpr int DV = 256;
+    constexpr int ncols1 = 4;
+    constexpr int ncols2 = 4;
+    constexpr bool use_logit_softcap = false;
+    constexpr bool indexed_kv = true;
+    constexpr bool grouped_qsa = true;
+    constexpr int descriptor_stride = 2050;
+    constexpr size_t nbytes_shared = 0;
+
+    const int groups = Q->ne[1]/ncols1;
+    const int indexed_layout = ggml_get_op_params_i32(dst, 4);
+    const int indexed_ratio = indexed_layout & 0xff;
+    const int cell_base = indexed_layout >> 8;
+    GGML_ASSERT(indexed_ratio == 4 && cell_base >= 0 && cell_base < K->ne[1]);
+    const int n_physical_blocks = (int(K->ne[1]) - cell_base + indexed_ratio - 1)/indexed_ratio;
+    GGML_ASSERT(n_physical_blocks <= descriptor_stride - 2);
+
+    ggml_cuda_pool_alloc<uint64_t> descriptor_alloc(ctx.pool(), int64_t(groups)*descriptor_stride);
+    uint64_t * descriptors = descriptor_alloc.get();
+
+    ggml_cuda_pool_alloc<uint32_t> membership_alloc(ctx.pool(), int64_t(groups)*n_physical_blocks);
+    uint32_t * membership = membership_alloc.get();
+    CUDA_CHECK(cudaMemsetAsync(membership, 0,
+        int64_t(groups)*n_physical_blocks*sizeof(uint32_t), ctx.stream()));
+
+    const int scatter_count = int(Q->ne[1]*cell_ids->ne[0]);
+    constexpr int scatter_threads = 256;
+    const dim3 scatter_blocks((scatter_count + scatter_threads - 1)/scatter_threads, 1, 1);
+    ggml_cuda_kernel_launch_params scatter_params =
+        ggml_cuda_kernel_launch_params(scatter_blocks, dim3(scatter_threads, 1, 1), 0, ctx.stream());
+    ggml_cuda_kernel_launch(h109c_qsa_scatter_membership, scatter_params,
+        (const int *) cell_ids->data, membership, int(Q->ne[1]), int(cell_ids->ne[0]),
+        cell_base, n_physical_blocks);
+
+    ggml_cuda_kernel_launch_params compact_params =
+        ggml_cuda_kernel_launch_params(dim3(groups, 1, 1), dim3(32, 1, 1), 0, ctx.stream());
+    ggml_cuda_kernel_launch(h109c_qsa_compact_membership, compact_params,
+        membership, descriptors, n_physical_blocks, cell_base);
+    CUDA_CHECK(cudaGetLastError());
+
+    float scale = 1.0f;
+    float max_bias = 0.0f;
+    float logit_softcap = 0.0f;
+    memcpy(&scale,         (const float *) dst->op_params + 0, sizeof(float));
+    memcpy(&max_bias,      (const float *) dst->op_params + 1, sizeof(float));
+    memcpy(&logit_softcap, (const float *) dst->op_params + 2, sizeof(float));
+    GGML_ASSERT(max_bias == 0.0f && logit_softcap == 0.0f);
+
+    const int cc = ggml_cuda_info().devices[ggml_cuda_get_device()].cc;
+    const int warp_size = 32;
+    const int nwarps = ggml_cuda_fattn_tile_get_nthreads(DKQ, DV, ncols1*ncols2, cc) / warp_size;
+    fattn_kernel_t kernel = flash_attn_tile<DKQ, DV, ncols1, ncols2, use_logit_softcap, indexed_kv, grouped_qsa>;
+
+    const dim3 block_dim(warp_size, nwarps, 1);
+    const dim3 blocks_num(groups, 1, (Q->ne[2]/ncols2)*Q->ne[3]);
+    const uint32_t n_head = Q->ne[2];
+    const uint32_t n_head_log2 = 1u << uint32_t(floorf(log2f(float(n_head))));
+    const float m0 = 1.0f;
+    const float m1 = 1.0f;
+    const uint3 ne01 = init_fastdiv_values(Q->ne[1]);
+
+    const ggml_cuda_kernel_launch_params launch_params =
+        ggml_cuda_kernel_launch_params(blocks_num, block_dim, nbytes_shared, ctx.stream());
+    ggml_cuda_kernel_launch(kernel, launch_params,
+        (const char *) Q->data,
+        (const char *) K->data,
+        (const char *) V->data,
+        (const char *) mask->data,
+        (const char *) descriptors,
+        (const int *) positions->data,
+        (float *) dst->data,
+        (float2 *) nullptr,
+        scale, max_bias, m0, m1, n_head_log2, logit_softcap,
+        Q->ne[0], ne01, Q->ne[2], Q->ne[3], Q->nb[1], Q->nb[2], Q->nb[3],
+        K->ne[0], K->ne[1], K->ne[2], K->ne[3], K->nb[1], K->nb[2], K->nb[3],
+        V->nb[1], V->nb[2], V->nb[3],
+        mask->ne[1], mask->ne[2], mask->ne[3], mask->nb[1], mask->nb[2], mask->nb[3]);
+    CUDA_CHECK(cudaGetLastError());
 }
 
 template <int DKQ, int DV, int ncols2, bool use_logit_softcap>

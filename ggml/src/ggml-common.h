@@ -191,6 +191,18 @@ typedef struct {
 } block_q2_0;
 static_assert(sizeof(block_q2_0) == sizeof(ggml_half) + QK2_0 / 4, "wrong q2_0 block size/padding");
 
+// Private Qwen3.8-Flash-Next affine unsigned-IU4 format. Each outer block
+// contains five independently scaled G128 subgroups in code-first order.
+#define QK_IU4_A640 640
+#define QK_IU4_A640_SUB 128
+#define NG_IU4_A640 (QK_IU4_A640 / QK_IU4_A640_SUB)
+typedef struct {
+    uint8_t   qs[QK_IU4_A640 / 2];
+    ggml_half scale[NG_IU4_A640];
+    ggml_half offset[NG_IU4_A640];
+} block_iu4_a640;
+static_assert(sizeof(block_iu4_a640) == 340, "wrong iu4_a640 block size/padding");
+
 #define QK4_0 32
 typedef struct {
     ggml_half d;           // delta

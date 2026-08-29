@@ -1,0 +1,17 @@
+diff --git a/src/models/qwen4exp.cpp b/src/models/qwen4exp.cpp
+index 00000000..00000000 100644
+--- a/src/models/qwen4exp.cpp
++++ b/src/models/qwen4exp.cpp
+@@ -584,6 +584,12 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
+         ggml_backend_sched_set_tensor_backend(sched, inp->tokens, mtp_backend);
+         ggml_backend_sched_set_tensor_backend(sched, inp->embd,   mtp_backend);
+         ggml_backend_sched_set_tensor_backend(sched, inp->h,      mtp_backend);
++
++        // The depth-N continuation writes these inputs again after this graph
++        // has executed.  Retain their allocations across graph executions;
++        // input-only tensors may otherwise be recycled after their last use.
++        ggml_set_output(inp->tokens);
++        ggml_set_output(inp->h);
+     }
+ 
+     // Keep stable handles to the exact MTP payload inputs.  A multi-proposal

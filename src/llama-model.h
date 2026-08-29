@@ -227,6 +227,12 @@ struct llama_layer_nextn {
     struct ggml_tensor * shared_head_head_s    = nullptr;
     struct ggml_tensor * shared_head_head_in_s = nullptr;
     struct ggml_tensor * shared_head_norm      = nullptr;
+
+    // qwen4exp: the MTP head's own final hyper-connection mixer, which stands in for both
+    // the stream collapse and the output norm (the trunk has no separate output_norm either)
+    struct ggml_tensor * hc_head_norm          = nullptr;
+    struct ggml_tensor * hc_head_down          = nullptr;
+    struct ggml_tensor * hc_head_up            = nullptr;
 };
 
 struct llama_layer_switch_lora {
@@ -328,8 +334,11 @@ struct llama_layer {
     struct ggml_tensor * ffn_gate_inp_s    = nullptr; // gemma4
     struct ggml_tensor * ffn_gate_exps     = nullptr;
     struct ggml_tensor * ffn_down_exps     = nullptr;
+    struct ggml_tensor * ffn_down_exps_tail = nullptr;
     struct ggml_tensor * ffn_up_exps       = nullptr;
     struct ggml_tensor * ffn_gate_up_exps  = nullptr;
+    // Non-owning fixed-offset view into Qwen4Exp's persistent E3.QR05 bank.
+    struct ggml_tensor * e3_qr05_bank      = nullptr;
     struct ggml_tensor * ffn_gate_inp_b    = nullptr;
     struct ggml_tensor * ffn_gate_exps_b   = nullptr;
     struct ggml_tensor * ffn_down_exps_b   = nullptr;

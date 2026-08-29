@@ -1,126 +1,114 @@
-# llama.cpp
+# Qwen3.8-Flash-CIRU-STRIX-IU4
 
-![llama](https://raw.githubusercontent.com/ggml-org/llama.brand/refs/heads/master/cover/llama-cpp/cover-llama-cpp-dark.svg)
+[![Qwen3.8 Flash CIRU Strix IU4](assets/qwen38-flash-ciru-strix-iu4.jpg)](https://llm.ciru.ai/research)
 
-<div align="center">
+**A quality-first, long-context Qwen3.8-Flash-Next build for fast local inference on AMD Strix Halo.**
 
-<b>LLM inference in C/C++</b>
+This repository is the required CIRU `llama.cpp` runtime. The model files are hosted at [jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4](https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4).
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Release](https://img.shields.io/github/v/release/ggml-org/llama.cpp?filter=v*&color=brightgreen)](https://github.com/ggml-org/llama.cpp/releases?q=tag:v0)
-[![Nightly](https://img.shields.io/github/v/release/ggml-org/llama.cpp?label=nightly&filter=b*&color=orange)](https://github.com/ggml-org/llama.cpp/releases?q=b)
-[![Server](https://img.shields.io/github/actions/workflow/status/ggml-org/llama.cpp/server.yml?label=Server)](https://github.com/ggml-org/llama.cpp/actions/workflows/server.yml)
-[![Docker](https://img.shields.io/github/actions/workflow/status/ggml-org/llama.cpp/docker.yml?label=Docker)](https://github.com/ggml-org/llama.cpp/actions/workflows/docker.yml)
-[![Winget](https://img.shields.io/github/actions/workflow/status/ggml-org/llama.cpp/winget.yml?label=Winget)](https://github.com/ggml-org/llama.cpp/actions/workflows/winget.yml)
+> [!IMPORTANT]
+> This is not a stock-GGUF release. The main GGUF requires this runtime and the external CIRUPLE1 PLE directory. The optional MTP GGUF enables the headline speculative-decoding profile. A stock `llama.cpp` binary will not load the complete release correctly.
 
-[ggml](https://github.com/ggml-org/ggml) / [ops](https://github.com/ggml-org/llama.cpp/blob/master/docs/ops.md) / [maintainer PRs](https://github.com/ggml-org/llama.cpp/issues?q=is%3Apr%20is%3Aopen%20draft%3AFalse%20(author%3Argerganov%20OR%20author%3AKitaitiMakoto%20OR%20author%3Adanbev%20OR%20author%3Aaldehir%20OR%20author%3Amax-krasnyansky%20OR%20author%3ACISC%20OR%20author%3Aggerganov%20OR%20author%3Aam17an%20OR%20author%3Abartowski1182%20OR%20author%3Anikwen%20OR%20author%3Ahipudding%20OR%20author%3AServeurpersoCom%20OR%20author%3Apwilkin%20OR%20author%3Areeselevine%20OR%20author%3Angxson%20OR%20author%3Ajeffbolznv%20OR%20author%3Amarty1885%20OR%20author%3A0cc4m%20OR%20author%3ATitaniumtown%20OR%20author%3Aangt%20OR%20author%3AIMbackK%20OR%20author%3Aarthw%20OR%20author%3AJohannesGaessler%20OR%20author%3AORippler%20OR%20author%3Aruixiang63%20OR%20author%3Axctan%20OR%20author%3Aallozaur%20OR%20author%3Ayomaytk%20OR%20author%3Aaendk%20OR%20author%3Agaugarg-nv%20OR%20author%3Ataronaeo%20OR%20author%3Aforforever73%20OR%20author%3Alhez%20OR%20author%3Anetrunnereve%20OR%20author%3Afairydreaming)%20sort%3Aupdated-desc) / [dev stats](https://github.com/ggml-org/llama.cpp-dev) / [lib llama API](https://github.com/ggml-org/llama.cpp/issues/9289) / [llama-server REST API](https://github.com/ggml-org/llama.cpp/issues/9291)
+## Headline results
 
-</div>
+| Result | Score | Scope |
+|---|---:|---|
+| HumanEval | **160/164 (97.56%)** | Full 164-task local-custom chat run |
+| HumanEval+ | **155/164 (94.51%)** | Full 164-task EvalPlus run |
+| ARC-Challenge | **1,143/1,172 (97.53%)** | Full EvalScope dataset |
+| ToolEval Standard | **115/138 points (83.33%)** | 69 local-custom cases |
+| ToolEval Hard | **23/30 points (76.67%)** | 15 local-custom hard cases |
+| 8K cold prefill | **359.43 tok/s** | H121, 8,192-token prompt |
+| 8K generation | **30.80 tok/s** | H121, 128 generated tokens, MTP depth 3 |
+| Long-context coverage | **131,072 prompt tokens** | Cold, exact-count context ladder |
 
-## Quick start
+Quality results use the same released model artifacts on the earlier H96 depth-1 runtime. H121 is a runtime-only allocator-lifetime correction; the quality suites have not yet been rerun on H121 depth 3. Scores marked local-custom are not claimed as canonical leaderboard submissions. See [benchmarks and methodology](docs/BENCHMARKS.md).
 
-A few options to get `llama.cpp` installed on your machine:
+## What is special about this build?
 
-- Visit https://llama.app and follow the instructions
-- Run with Docker - see our [Docker documentation](docs/docker.md)
-- Download pre-built binaries from the [releases page](https://github.com/ggml-org/llama.cpp/releases)
-- Build from source by cloning this repository - check out [our build guide](docs/build.md)
+- Quality-first mixed storage: 144 routed-expert tensors use Q4_1, while protected tensors remain Q5_K, Q5_1, Q8_0, BF16, or F32.
+- Native IU4 WMMA execution for the stored Q4_1 expert weights on gfx1151. `IU4` names the optimized execution path, not a uniform four-bit model or a custom on-disk GGUF type.
+- Exact FP8 E4M3 PLE weights are paged from NVMe through the required CIRUPLE1 sidecar, with a 4 GiB decoded-page cache.
+- Q8_0 MTP speculative decoding, configured at depth 3 for the public performance profile.
+- A production prompt/prefill cache profile: prompt cache enabled, 8 GiB RAM cache, idle-slot caching, and context checkpoints enabled.
+- Native 262,144-token context configuration; measured cold-prompt coverage through 131,072 tokens.
 
-Once installed:
+## Required files
 
-```sh
-# Download and run a model directly from Hugging Face
-llama cli -hf ggml-org/Qwen3.5-0.8B-GGUF
+Download the complete package:
 
-# Launch OpenAI-compatible API server
-llama serve -hf ggml-org/Qwen3.5-0.8B-GGUF
+```bash
+python -m pip install -U "huggingface_hub[cli]"
+hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
+  --local-dir ./model
 ```
 
-<table align="center">
-    <tr>
-        <td align="center" width=50%>
-            <img width="1310" height="888" alt="VLM session with `llama cli`" src="https://github.com/user-attachments/assets/88726b48-1713-48aa-a525-95a02e78afc4" />
-            <i>VLM session with <b>llama cli</b></i>
-        </td>
-        <td align="center">
-            <img width="1392" height="958" alt="Built-in web UI against `llama serve` running Qwen 3.6" src="https://github.com/user-attachments/assets/b402f972-2e32-4def-8771-8d849f08cf2e" />
-            <i>Built-in web UI against <b>llama serve</b></i>
-        </td>
-    </tr>
-<table>
+The production profile expects:
 
-## Description
+```text
+model/
+├── Qwen3.8-Flash-CIRU-STRIX-IU4.gguf
+├── mtp/
+│   └── Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf
+└── ple/
+    ├── ple.manifest.json
+    ├── ple.payload.bin
+    └── ple.scale.bf16
+```
 
-The main goal of `llama.cpp` is to enable LLM (and VLM) inference with minimal setup and state-of-the-art performance on
-a wide range of hardware - locally and in the cloud.
+The target GGUF and every file under `ple/` are mandatory. The MTP file is optional only if you accept lower generation performance and remove the `--spec-*` flags.
 
-- Plain C/C++ implementation without any dependencies
-- Apple silicon is a first-class citizen - optimized via ARM NEON, Accelerate and Metal frameworks
-- AVX, AVX2, AVX512 and AMX support for x86 architectures
-- RVV, ZVFH, ZFH, ZICBOP and ZIHINTPAUSE support for RISC-V architectures
-- 1.5-bit, 2-bit, 3-bit, 4-bit, 5-bit, 6-bit, and 8-bit integer quantization for faster inference and reduced memory use
-- Custom CUDA kernels for running LLMs on NVIDIA GPUs (support for AMD GPUs via HIP and Moore Threads GPUs via MUSA)
-- Vulkan and SYCL backend support
-- CPU+GPU hybrid inference to partially accelerate models larger than the total VRAM capacity
+## Build
 
-The `llama.cpp` project is build on top of the [ggml](https://github.com/ggml-org/ggml) library.
+The validated fast path is Linux x86-64, AMD ROCm, and `gfx1151` on a Ryzen AI Max+ 395 / Radeon 8060S:
 
-## Supported backends
+```bash
+git clone --branch v1.0.0-h121 \
+  https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
+cd Qwen3.8-Flash-CIRU-STRIX-IU4
+ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
+```
 
-| Backend | Target devices |
-| --- | --- |
-| [BLAS](docs/build.md#blas-build) | All |
-| [BLIS](docs/backend/BLIS.md) | All |
-| [CANN](docs/build.md#cann) | Ascend NPU |
-| [CUDA](docs/build.md#cuda) | Nvidia GPU |
-| [HIP](docs/build.md#hip) | AMD GPU |
-| [Hexagon [In Progress]](docs/backend/snapdragon/README.md) | Snapdragon |
-| [IBM zDNN](docs/backend/zDNN.md) | IBM Z & LinuxONE |
-| [MUSA](docs/build.md#musa) | Moore Threads GPU |
-| [Metal](docs/build.md#metal-build) | Apple Silicon |
-| [OpenCL](docs/backend/OPENCL.md) | Adreno GPU |
-| [OpenVINO [In Progress]](docs/backend/OPENVINO.md) | Intel CPUs, GPUs, and NPUs |
-| [RPC](https://github.com/ggml-org/llama.cpp/tree/master/tools/rpc) | All |
-| [SYCL](docs/backend/SYCL.md) | Intel GPU |
-| [VirtGPU](docs/backend/VirtGPU.md) | VirtGPU APIR |
-| [Vulkan](docs/build.md#vulkan) | GPU |
-| [WebGPU](docs/build.md#webgpu) | All |
-| [ZenDNN](docs/build.md#zendnn) | AMD CPU |
+Other operating systems and distro-specific dependencies are covered here:
 
-## Documentation
+- [Linux and WSL2](docs/BUILD_LINUX.md)
+- [Windows](docs/BUILD_WINDOWS.md)
+- [macOS](docs/BUILD_MACOS.md)
 
-#### Tools
+Windows CPU and macOS Metal are compatibility builds, not validated Strix performance paths. On WSL2, keep the PLE directory on the Linux ext4 filesystem rather than `/mnt/c` because the optimized pager uses `O_DIRECT`.
 
-- [cli](tools/cli/README.md)
-- [completion](tools/completion/README.md)
-- [server](tools/server/README.md)
-- [GBNF grammars](grammars/README.md)
+## Run with public production settings
 
-#### Development
+```bash
+MODEL_DIR="$PWD/../model" ./scripts/ciru/run-server.sh
+```
 
-- [How to build](docs/build.md)
-- [Running on Docker](docs/docker.md)
-- [Build on Android](docs/android.md)
-- [Multi-GPU usage](docs/multi-gpu.md)
-- [Performance troubleshooting](docs/development/token_generation_performance_tips.md)
-- [GGML tips & tricks](https://github.com/ggml-org/llama.cpp/wiki/GGML-Tips-&-Tricks)
-- [XCFramework](docs/xcframework.md)
-- [Completions](docs/completions.md)
-- [Models](docs/models.md)
-- [Release process](docs/release.md)
+The launcher binds to `127.0.0.1:8080`, enables normal prompt/prefill caching, uses a 262,144-token context, loads the mandatory PLE sidecar, and enables MTP depth 3 when the draft file is present. It deliberately does **not** use our benchmark-only cache disables, slot erases, fixed seed, fixed output cap, or forced deterministic sampling.
 
-## Contributing
+See [Running in production](docs/RUNNING.md) for the expanded command, recommended sampling, API examples, checksums, and safe network exposure.
 
-- Contributors can open PRs
-- Collaborators will be invited based on contributions
-- Maintainers can push to branches in the `llama.cpp` repo and merge PRs into the `master` branch
-- Any help with managing issues, PRs and projects is very appreciated!
-- Read the [CONTRIBUTING.md](CONTRIBUTING.md) for more information
+## H121 correctness fix
 
-## Acknowledgements
+H121 fixes the intermittent long-run MTP Q8_0 `GET_ROWS` HSA page fault found during sustained depth-3 generation. The reused Qwen4Exp M=1 token and hidden-state inputs are now retained as graph outputs so the graph allocator cannot recycle their storage between continuation steps:
 
-- [yhirose/cpp-httplib](https://github.com/yhirose/cpp-httplib) - Single-header HTTP server, used by `llama-server` - MIT license
-- [nothings/stb](https://github.com/nothings/stb) - Single-header image format decoder, used by multimodal subsystem - Public domain
-- [nlohmann/json](https://github.com/nlohmann/json) - Single-header JSON library, used by various tools/examples - MIT License
-- [mackron/miniaudio](https://github.com/mackron/miniaudio) - Single-header audio format decoder, used by multimodal subsystem - Public domain
-- [sheredom/subprocess.h](https://github.com/sheredom/subprocess.h) - Single-header process launching solution for C and C++ - Public domain
+```cpp
+ggml_set_output(inp->tokens);
+ggml_set_output(inp->h);
+```
+
+This adds no kernel, copy, synchronization, fallback, or model change. Post-fix validation completed a 6,009-token coding-generation stress run with no HSA, pager, nonfinite, or server failure, followed by the matched 8K+128 performance row above. The exact standalone patch is [patches/h121-mtp-persistent-inputs.patch](patches/h121-mtp-persistent-inputs.patch).
+
+## Hardware guidance
+
+- Validated: AMD Ryzen AI Max+ 395 / Radeon 8060S, 128 GiB unified memory, ROCm/TheRock 10-class stack, fast NVMe.
+- Storage: the complete target, MTP, and PLE package is about 126.6 GiB; allow at least 160 GiB free for the package, checks, and working space.
+- Memory: 128 GiB unified/system memory is the intended configuration. Prompt-cache and PLE-cache sizes are independently configurable.
+- Fast PLE prefill is Linux-only. Other backends may compile and use portable paths but are not represented by the published speed figures.
+
+## Provenance, licenses, and credit
+
+The runtime is based on [`ggml-org/llama.cpp@f5e85d43`](https://github.com/ggml-org/llama.cpp/commit/f5e85d43a048f3d5adefb4c5e29867d8077fba62) and retains the upstream MIT license. Model artifacts remain under the Qwen Community License 1.0. See [PROVENANCE.md](docs/PROVENANCE.md), [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md), and the Hugging Face model repository's `LICENSE`.
+
+Thanks to Qwen, ggml-org and the `llama.cpp` community, Ryan Monsurate for the Qwen MTP integration work adapted here, AMD's open-source ROCm ecosystem, and the contributors whose code is identified in the notices.
+
+CIRU is an independent community research project. AMD and Qwen marks belong to their respective owners; their appearance does not imply sponsorship or endorsement.

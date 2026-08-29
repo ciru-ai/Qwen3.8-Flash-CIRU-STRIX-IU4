@@ -107,6 +107,21 @@ LLAMA_API float * llama_get_embeddings_nextn(struct llama_context * ctx);
 // LLAMA_API float * llama_get_embeddings_ith(struct llama_context * ctx, int32_t i);
 LLAMA_API float * llama_get_embeddings_nextn_ith(struct llama_context * ctx, int32_t i);
 
+// Private Qwen4Exp MTP transaction API used by the speculative driver.  The
+// caller submits exactly n_steps one-token decode batches after begin().
+// end() synchronizes once and returns their greedy token ids.
+LLAMA_API bool llama_mtp_chain_begin(
+        struct llama_context * ctx,
+        uint32_t               n_steps);
+
+LLAMA_API bool llama_mtp_chain_end(
+        struct llama_context * ctx,
+        llama_token          * tokens,
+        uint32_t               capacity,
+        bool                 * device_resident);
+
+LLAMA_API void llama_mtp_chain_abort(struct llama_context * ctx);
+
 // Set whether the context outputs the input embeddings of a specific layer
 LLAMA_API void llama_set_embeddings_layer_inp(struct llama_context * ctx, uint32_t lid, bool value);
 

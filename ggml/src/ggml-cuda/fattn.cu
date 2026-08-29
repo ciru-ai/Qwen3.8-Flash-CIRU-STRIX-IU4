@@ -335,6 +335,50 @@ enum best_fattn_kernel {
     BEST_FATTN_KERNEL_MMA_F16 = 400,
 };
 
+static bool ggml_cuda_fattn_indexed_qsa_supported(const int device, const ggml_tensor * dst) {
+#ifndef FLASH_ATTN_AVAILABLE
+    GGML_UNUSED(device);
+    GGML_UNUSED(dst);
+    return false;
+#else
+    if (!ggml_flash_attn_ext_has_indexed_kv(dst)) {
+        return false;
+    }
+
+    const ggml_tensor * Q = dst->src[0];
+    const ggml_tensor * K = dst->src[1];
+    const ggml_tensor * V = dst->src[2];
+    const ggml_tensor * mask = dst->src[3];
+    const ggml_tensor * sinks = dst->src[4];
+    const ggml_tensor * cell_ids = dst->src[5];
+    const ggml_tensor * positions = dst->src[6];
+    if (!Q || !K || !V || !mask || sinks || !cell_ids || !positions) {
+        return false;
+    }
+
+    float max_bias = 0.0f;
+    float logit_softcap = 0.0f;
+    memcpy(&max_bias,      (const float *) dst->op_params + 1, sizeof(float));
+    memcpy(&logit_softcap, (const float *) dst->op_params + 2, sizeof(float));
+
+    const int cc = ggml_cuda_info().devices[device].cc;
+    const int indexed_layout = ggml_get_op_params_i32(dst, 4);
+    return GGML_CUDA_CC_IS_AMD(cc) && GGML_CUDA_CC_IS_RDNA(cc) &&
+        (indexed_layout & 0xff) == 4 && (indexed_layout >> 8) >= 0 &&
+        Q->type == GGML_TYPE_F32 && K->type == GGML_TYPE_F16 && V->type == GGML_TYPE_F16 &&
+        mask->type == GGML_TYPE_F16 && cell_ids->type == GGML_TYPE_I32 && positions->type == GGML_TYPE_I32 &&
+        Q->ne[0] == 256 && K->ne[0] == 256 && V->ne[0] == 256 && Q->ne[1] == 512 && Q->ne[3] == 1 &&
+        Q->ne[2] == 24 && K->ne[2] == 2 && V->ne[2] == 2 &&
+        Q->nb[0] == sizeof(float) && K->nb[0] == sizeof(half) && V->nb[0] == sizeof(half) &&
+        K->ne[1] == V->ne[1] && K->ne[3] == V->ne[3] &&
+        K->nb[1] % sizeof(half2) == 0 && V->nb[1] % sizeof(half2) == 0 &&
+        cell_ids->ne[0] == 2051 && cell_ids->ne[1] == Q->ne[1] &&
+        cell_ids->ne[2] == 1 && cell_ids->ne[3] == 1 && positions->ne[0] >= Q->ne[1] &&
+        ggml_is_contiguous(cell_ids) && ggml_is_contiguous(positions) &&
+        max_bias == 0.0f && logit_softcap == 0.0f;
+#endif
+}
+
 static bool ggml_cuda_fattn_kv_type_supported(ggml_type type) {
     switch (type) {
         case GGML_TYPE_F32:
@@ -542,6 +586,10 @@ size_t ggml_cuda_flash_attn_ext_get_alloc_size(int device, const ggml_tensor * d
     GGML_ASSERT(K != nullptr);
     GGML_ASSERT(V != nullptr);
 
+    if (ggml_cuda_fattn_indexed_qsa_supported(device, dst)) {
+        return ggml_nbytes(dst);
+    }
+
     const best_fattn_kernel kernel = ggml_cuda_get_best_fattn_kernel(device, dst);
 
     bool need_f16_K = false;
@@ -569,6 +617,44 @@ size_t ggml_cuda_flash_attn_ext_get_alloc_size(int device, const ggml_tensor * d
 
 void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     ggml_cuda_set_device(ctx.device);
+    const bool h102_indexed_qsa = ggml_cuda_fattn_indexed_qsa_supported(ggml_cuda_get_device(), dst);
+    if (h102_indexed_qsa) {
+        static bool h102_indexed_qsa_reported = false;
+        if (!h102_indexed_qsa_reported) {
+            fprintf(stderr, "H109C exact-cell grouped-union F16 QSA tile active: M=%lld, selected=2051, Q24/KV2, ncols1=4, ncols2=4\n",
+                    (long long) dst->src[0]->ne[1]);
+            h102_indexed_qsa_reported = true;
+        }
+        ggml_cuda_flash_attn_ext_tile_group4_qsa(ctx, dst);
+        return;
+    }
+    if (ggml_flash_attn_ext_has_indexed_kv(dst) && dst->src[5]->ne[0] == 2051) {
+        static bool h102_indexed_qsa_reject_reported = false;
+        if (!h102_indexed_qsa_reject_reported) {
+            const ggml_tensor * q = dst->src[0];
+            const ggml_tensor * k = dst->src[1];
+            const ggml_tensor * v = dst->src[2];
+            const ggml_tensor * m = dst->src[3];
+            const ggml_tensor * i = dst->src[5];
+            const ggml_tensor * p = dst->src[6];
+            fprintf(stderr,
+                    "H102 indexed F16 QSA tile rejected: cc=%d ratio=%d sinks=%d "
+                    "Q(t=%d ne=%lld,%lld,%lld,%lld nb=%zu,%zu,%zu,%zu) "
+                    "K(t=%d ne=%lld,%lld,%lld,%lld nb=%zu,%zu,%zu,%zu) "
+                    "V(t=%d ne=%lld,%lld,%lld,%lld nb=%zu,%zu,%zu,%zu) "
+                    "mask(t=%d ne=%lld,%lld,%lld,%lld) ids(ne=%lld,%lld,%lld,%lld cont=%d) "
+                    "pos(ne=%lld nb0=%zu cont=%d)\n",
+                    ggml_cuda_info().devices[ggml_cuda_get_device()].cc,
+                    ggml_get_op_params_i32(dst, 4), dst->src[4] != nullptr,
+                    q->type, (long long) q->ne[0], (long long) q->ne[1], (long long) q->ne[2], (long long) q->ne[3], q->nb[0], q->nb[1], q->nb[2], q->nb[3],
+                    k->type, (long long) k->ne[0], (long long) k->ne[1], (long long) k->ne[2], (long long) k->ne[3], k->nb[0], k->nb[1], k->nb[2], k->nb[3],
+                    v->type, (long long) v->ne[0], (long long) v->ne[1], (long long) v->ne[2], (long long) v->ne[3], v->nb[0], v->nb[1], v->nb[2], v->nb[3],
+                    m ? m->type : -1, m ? (long long) m->ne[0] : 0, m ? (long long) m->ne[1] : 0, m ? (long long) m->ne[2] : 0, m ? (long long) m->ne[3] : 0,
+                    (long long) i->ne[0], (long long) i->ne[1], (long long) i->ne[2], (long long) i->ne[3], ggml_is_contiguous(i),
+                    (long long) p->ne[0], p->nb[0], ggml_is_contiguous(p));
+            h102_indexed_qsa_reject_reported = true;
+        }
+    }
     switch (ggml_cuda_get_best_fattn_kernel(ggml_cuda_get_device(), dst)) {
         case BEST_FATTN_KERNEL_NONE:
             GGML_ABORT("fatal error");
@@ -585,5 +671,6 @@ void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context & ctx, ggml_tensor * dst
 }
 
 bool ggml_cuda_flash_attn_ext_supported(int device, const ggml_tensor * dst) {
-    return ggml_cuda_get_best_fattn_kernel(device, dst) != BEST_FATTN_KERNEL_NONE;
+    return ggml_cuda_fattn_indexed_qsa_supported(device, dst) ||
+        ggml_cuda_get_best_fattn_kernel(device, dst) != BEST_FATTN_KERNEL_NONE;
 }

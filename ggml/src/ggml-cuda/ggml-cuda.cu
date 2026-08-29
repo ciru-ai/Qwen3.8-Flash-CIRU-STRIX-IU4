@@ -60,6 +60,7 @@
 #include "ggml-cuda/gla.cuh"
 #include "ggml-cuda/gated_delta_net.cuh"
 #include "ggml-cuda/dsv4-hc.cuh"
+#include "ggml-cuda/e3-qr05.cuh"
 #include "ggml-cuda/set.cuh"
 #include "ggml-cuda/set-rows.cuh"
 #include "ggml-cuda/pad_reflect_1d.cuh"
@@ -1859,6 +1860,14 @@ static void ggml_cuda_mul_mat(ggml_backend_cuda_context & ctx, const ggml_tensor
         return;
     }
     if (ggml_cuda_should_use_mmvq(src0->type, cc, ne11)) {
+        if (GGML_CUDA_CC_IS_RDNA3_5(cc) && src0->type == GGML_TYPE_Q5_K && ne11 == 4) {
+            static bool h109a_q5k_m4_reported = false;
+            if (!h109a_q5k_m4_reported) {
+                std::fprintf(stderr, "H109A_H101_Q5K_M4_SHARED_X admitted on RDNA3.5\n");
+                std::fflush(stderr);
+                h109a_q5k_m4_reported = true;
+            }
+        }
         ggml_cuda_mul_mat_vec_q(ctx, src0, src1, nullptr, dst);
         return;
     }
@@ -2380,6 +2389,17 @@ static bool ggml_cuda_compute_forward(ggml_backend_cuda_context & ctx, struct gg
             break;
         case GGML_OP_DSV4_HC_POST:
             ggml_cuda_op_dsv4_hc_post(ctx, dst);
+            break;
+        case GGML_OP_E3_QR05:
+            ggml_cuda_e3_qr05_launch(
+                static_cast<const float *>(dst->src[0]->data),
+                static_cast<const std::uint8_t *>(dst->src[1]->data),
+                static_cast<unsigned>(ggml_nbytes(dst->src[1])),
+                static_cast<const std::int32_t *>(dst->src[2]->data),
+                static_cast<const float *>(dst->src[3]->data),
+                static_cast<float *>(dst->data),
+                static_cast<unsigned>(dst->src[0]->ne[1]),
+                static_cast<void *>(ctx.stream()));
             break;
         case GGML_OP_RWKV_WKV7:
             ggml_cuda_op_rwkv_wkv7(ctx, dst);
@@ -4975,6 +4995,30 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
                     case GGML_TYPE_IQ4_XS:
                     case GGML_TYPE_BF16:
                         return true;
+                    case GGML_TYPE_IU4_A640:
+                        // H14 admits only the decode/MMVQ shapes covered by
+                        // its full-vector and routed graph gates. In
+                        // particular, do not claim MMQ/prefill support: the
+                        // private qi=32 schedule exists only in mmvq.cu.
+                        if (b->type != GGML_TYPE_F32 || op->type != GGML_TYPE_F32 ||
+                            b->ne[0] != a->ne[0] || a->ne[3] != 1 || b->ne[3] != 1) {
+                            return false;
+                        }
+                        if (op->op == GGML_OP_MUL_MAT) {
+                            const bool admitted_real_shape =
+                                (a->ne[0] == 2560 && a->ne[1] == 1280) ||
+                                (a->ne[0] ==  640 && a->ne[1] == 2560);
+                            return admitted_real_shape && a->ne[2] == 1 &&
+                                   b->ne[1] == 1 && b->ne[2] == 1;
+                        }
+                        if (op->op == GGML_OP_MUL_MAT_ID) {
+                            const ggml_tensor * ids = op->src[2];
+                            return (a->ne[0] == 640 || a->ne[0] == 2560) &&
+                                   a->ne[1] == 4 && a->ne[2] == 12 &&
+                                   b->ne[1] == 10 && b->ne[2] == 2 &&
+                                   ids && ids->type == GGML_TYPE_I32 && ids->ne[0] == 10 && ids->ne[1] == 2;
+                        }
+                        return false;
                     default:
                         return false;
                 }
@@ -5259,6 +5303,42 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_SUM:
             return ggml_is_contiguous_rows(op->src[0]);
         case GGML_OP_TOP_K:
+#ifndef GGML_CUDA_USE_CUB
+            if (ggml_top_k_is_qsa_blocks(op)) {
+#ifdef GGML_USE_HIP
+                return op->src[0]->type == GGML_TYPE_F32 &&
+                       op->src[1] != nullptr &&
+                       op->src[1]->type == GGML_TYPE_I32 &&
+                       op->type == GGML_TYPE_I32 &&
+                       ggml_is_contiguous(op->src[0]) &&
+                       ggml_is_contiguous(op->src[1]) &&
+                       ggml_is_contiguous(op) &&
+                       op->src[0]->ne[0] <= 65536 &&
+                       ggml_nrows(op->src[0]) <= 512 &&
+                       ggml_get_op_params_i32(op, 2) <= 512 &&
+                       op->ne[0] == ggml_get_op_params_i32(op, 1)*ggml_get_op_params_i32(op, 2) +
+                                    ggml_get_op_params_i32(op, 1) - 1;
+#else
+                return op->src[0]->ne[0] <= 1024;
+#endif
+            }
+#ifdef GGML_USE_HIP
+            if (op->src[0]->ne[0] > 1024) {
+                return op->src[0]->type == GGML_TYPE_F32 &&
+                       op->type == GGML_TYPE_I32 &&
+                       op->src[0]->ne[1] == 512 &&
+                       ggml_nrows(op->src[0]) == 512 &&
+                       op->src[0]->ne[0] <= 8192 &&
+                       op->ne[0] == std::min<int64_t>(op->src[0]->ne[0], 2051) &&
+                       ggml_is_contiguous(op->src[0]) &&
+                       ggml_is_contiguous(op) &&
+                       op->ne[0]*sizeof(int32_t) <= ggml_cuda_info().devices[dev_ctx->device].smpb;
+            }
+#endif
+            return op->src[0]->ne[0] <= 1024;
+#else
+            return true;
+#endif
         case GGML_OP_ARGSORT:
 #ifndef GGML_CUDA_USE_CUB
             return op->src[0]->ne[0] <= 1024;
@@ -5297,6 +5377,33 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
             return op->src[0]->type == GGML_TYPE_F32 && op->src[1]->type == GGML_TYPE_F32 &&
                 op->src[2]->type == GGML_TYPE_F32 && op->src[3]->type == GGML_TYPE_F32 &&
                 op->type == GGML_TYPE_F32;
+        case GGML_OP_E3_QR05: {
+#ifdef GGML_USE_HIP
+            const int64_t n_tokens = op->src[0] ? op->src[0]->ne[1] : 0;
+            const size_t workspace_bytes = n_tokens == 1 ? 19680ull :
+                (n_tokens <= 8192 ? 54360ull : 19800ull) * n_tokens + 16ull * 1024;
+            return op->type == GGML_TYPE_F32 && n_tokens >= 1 &&
+                op->ne[0] == (int64_t) (workspace_bytes / sizeof(float)) &&
+                op->ne[1] == 1 && op->ne[2] == 1 && op->ne[3] == 1 &&
+                op->src[0] && op->src[0]->type == GGML_TYPE_F32 &&
+                op->src[0]->ne[0] == 2560 &&
+                op->src[0]->ne[2] == 1 && op->src[0]->ne[3] == 1 &&
+                ggml_is_contiguous(op->src[0]) &&
+                op->src[1] && op->src[1]->type == GGML_TYPE_I8 &&
+                ggml_nbytes(op->src[1]) == 1363148800ull &&
+                ggml_is_contiguous(op->src[1]) &&
+                op->src[2] && op->src[2]->type == GGML_TYPE_I32 &&
+                op->src[2]->ne[0] == 10 && op->src[2]->ne[1] == n_tokens &&
+                op->src[2]->ne[2] == 1 && op->src[2]->ne[3] == 1 &&
+                ggml_is_contiguous(op->src[2]) &&
+                op->src[3] && op->src[3]->type == GGML_TYPE_F32 &&
+                op->src[3]->ne[0] == 10 && op->src[3]->ne[1] == n_tokens &&
+                op->src[3]->ne[2] == 1 && op->src[3]->ne[3] == 1 &&
+                ggml_is_contiguous(op->src[3]);
+#else
+            return false;
+#endif
+        }
         case GGML_OP_FLASH_ATTN_EXT:
             return ggml_cuda_flash_attn_ext_supported(dev_ctx->device, op);
         case GGML_OP_CROSS_ENTROPY_LOSS:
@@ -5333,6 +5440,8 @@ static int64_t get_op_batch_size(const ggml_tensor * op) {
         case GGML_OP_ROPE:
         case GGML_OP_ROPE_BACK:
             return op->ne[2];
+        case GGML_OP_E3_QR05:
+            return op->src[0] ? op->src[0]->ne[1] : 0;
         default:
             return ggml_nrows(op);
     }

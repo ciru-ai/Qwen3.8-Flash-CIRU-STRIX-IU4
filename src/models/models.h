@@ -9,6 +9,7 @@
 #include <map>
 
 class llama_memory_hybrid_idx_context;
+class qwen4exp_ple_pager;
 
 //
 // base classes
@@ -2275,17 +2276,38 @@ struct llama_model_qwen35 : public llama_model_base {
 };
 
 
+struct qwen4exp_e3_bank_views;
+
 struct llama_model_qwen4exp : public llama_model_base {
-    llama_model_qwen4exp(const struct llama_model_params & params) : llama_model_base(params) {}
+    explicit llama_model_qwen4exp(const struct llama_model_params & params);
+    ~llama_model_qwen4exp() override;
 
     class llm_graph_input_qsa;
+
+    // The pager is a model-owned immutable data source/cache. Sequence history
+    // and row IDs remain graph-input/context owned.
+    std::string ple_sidecar_path;
+    std::unique_ptr<qwen4exp_ple_pager> ple_pager;
+
+    bool uses_ple_sidecar() const noexcept {
+        return ple_pager != nullptr;
+    }
+
+    // Metadata-only layer tensors borrowing the persistent allocation supplied
+    // in llama_model_params. Destruction never frees that allocation.
+    std::unique_ptr<qwen4exp_e3_bank_views> e3_qr05_views;
 
     void load_arch_hparams(llama_model_loader & ml) override;
     void load_arch_tensors(llama_model_loader & ml) override;
 
     struct graph : public llm_build_delta_net_base {
         graph(const llama_model & model, const llm_graph_params & params);
-    private:
+    protected:
+        // tag-dispatched ctor for graph_mtp: binds the members without building the trunk
+        struct no_build_t {};
+        graph(const llama_model & model, const llm_graph_params & params, no_build_t) :
+            llm_build_delta_net_base(params), model(model) {}
+
         // HC replaces every layer norm: residual is [n_embd, hc, n_tokens]
         ggml_tensor * build_hc_mix(
                     ggml_tensor * x,
@@ -2317,12 +2339,17 @@ struct llama_model_qwen4exp : public llama_model_base {
                     ggml_tensor * k_cur,
                     ggml_tensor * v_cur,
                     ggml_tensor * top_k,
+                    ggml_tensor * positions,
                           float   kq_scale,
                             int   il);
 
         // the QSA cache layout inputs do not depend on the layer, only on its compress ratio,
         // so the layers sharing a ratio share one input set
         std::map<uint32_t, llm_graph_input_qsa *> qsa_inps;
+
+        // H109C: physical base for the exact legacy-cell M512 indexed-FA arm.
+        // Negative means the p1 contiguous planner did not admit this graph.
+        int32_t qsa_indexed_cell_base = -1;
 
         // QSA: token indices this layer's queries may attend to, or nullptr for dense
         ggml_tensor * build_qsa_top_k(
@@ -2372,6 +2399,11 @@ struct llama_model_qwen4exp : public llama_model_base {
                             int   il);
 
         const llama_model & model;
+    };
+
+    // LLM_GRAPH_TYPE_DECODER_MTP draft head: one HC-wrapped dense-attention + MoE block
+    struct graph_mtp : public graph {
+        graph_mtp(const llama_model & model, const llm_graph_params & params);
     };
 
     std::unique_ptr<llm_graph_context> build_arch_graph(const llm_graph_params & params) const override;

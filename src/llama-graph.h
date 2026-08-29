@@ -108,6 +108,11 @@ public:
 
     virtual void set_input(const llama_ubatch * ubatch) = 0;
 
+    // The Qwen4Exp MTP continuation path supplies token + h directly from the
+    // preceding graph output.  Other graph inputs (position, cache indices,
+    // masks, sampler state) still use their ordinary setters.
+    virtual bool is_mtp_chain_payload() const { return false; }
+
     // return true if the resulting input tensors using the provided graph parameters would be
     //   the same as the previous input tensors that we have currently stored in the object
     virtual bool can_reuse(const llm_graph_params & params) {
@@ -145,6 +150,8 @@ public:
     virtual ~llm_graph_input_embd_h() = default;
 
     void set_input(const llama_ubatch * ubatch) override;
+
+    bool is_mtp_chain_payload() const override { return true; }
 
     bool can_reuse(const llm_graph_params & params) override;
 
@@ -896,6 +903,7 @@ public:
     virtual ~llm_graph_result() = default;
 
     ggml_tensor * get_inp_tokens()  const { return t_inp_tokens; }
+    ggml_tensor * get_inp_h()       const { return t_inp_h; }
     ggml_tensor * get_logits()      const { return t_logits; }
     ggml_tensor * get_embd()        const { return t_embd; }
     ggml_tensor * get_embd_pooled() const { return t_embd_pooled; }
@@ -910,7 +918,7 @@ public:
 
     void reset();
 
-    void set_inputs(const llama_ubatch * ubatch);
+    void set_inputs(const llama_ubatch * ubatch, bool skip_mtp_chain_payload = false);
     void set_outputs(const llm_graph_params & params);
 
     // try to update the existing graph result using the new graph parameters in order to reuse it
@@ -931,6 +939,7 @@ public:
     // important graph nodes
     ggml_tensor * t_inp_tokens  = nullptr;
     ggml_tensor * t_inp_embd    = nullptr; // [n_embd_inp, n_tokens]
+    ggml_tensor * t_inp_h       = nullptr; // [n_embd_out, n_tokens], MTP only
     ggml_tensor * t_logits      = nullptr;
     ggml_tensor * t_embd        = nullptr;
     ggml_tensor * t_embd_pooled = nullptr;
@@ -1115,7 +1124,9 @@ struct llm_graph_context {
              ggml_tensor * up_exps_s = nullptr,
              ggml_tensor * gate_exps_s = nullptr,
              ggml_tensor * down_exps_s = nullptr,
-             ggml_tensor * selected_experts_in = nullptr) const;
+             ggml_tensor * selected_experts_in = nullptr,
+             ggml_tensor * e3_qr05_bank = nullptr,
+             ggml_tensor * down_exps_tail = nullptr) const;
 
     ggml_tensor * build_moe_ffn(
              ggml_tensor * cur,
@@ -1141,7 +1152,9 @@ struct llm_graph_context {
              ggml_tensor * up_exps_s = nullptr,
              ggml_tensor * gate_exps_s = nullptr,
              ggml_tensor * down_exps_s = nullptr,
-             ggml_tensor * selected_experts_in = nullptr) const;
+             ggml_tensor * selected_experts_in = nullptr,
+             ggml_tensor * e3_qr05_bank = nullptr,
+             ggml_tensor * down_exps_tail = nullptr) const;
 
     //
     // inputs
@@ -1171,8 +1184,11 @@ struct llm_graph_context {
             ggml_tensor * kq_mask,
             ggml_tensor * sinks,   // [n_head_q]
             ggml_tensor * v_mla,   // [n_embd_head_v_mla, n_embd_head_v, n_head_v]
-                  float   kq_scale,
-                    int   il) const;
+               float   kq_scale,
+                 int   il,
+        ggml_tensor * indexed_kv = nullptr,
+        ggml_tensor * indexed_pos = nullptr,
+                 int   indexed_ratio = 0) const;
 
     llm_graph_input_attn_no_cache * build_attn_inp_no_cache() const;
 

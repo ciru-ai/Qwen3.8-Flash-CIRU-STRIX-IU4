@@ -60,6 +60,7 @@ extern "C" {
 
     struct llama_vocab;
     struct llama_model;
+    struct llama_e3_qr05_model;
     struct llama_context;
     struct llama_sampler;
 
@@ -340,6 +341,19 @@ extern "C" {
         // override key-value pairs of the model meta data
         const struct llama_model_kv_override * kv_overrides;
 
+        // Qwen4Exp exact-FP8 CIRUPLE1 manifest path or directory.
+        // NULL keeps the upstream resident/lazy PLE path.
+        const char * ple_sidecar;
+
+        // Decoded-row cache bytes for CIRUPLE1. Zero keeps the pager default.
+        uint64_t ple_cache_bytes;
+
+        // [EXPERIMENTAL] borrowed persistent E3.QR05 bank allocation for the
+        // fixed 48-layer Qwen4Exp mode. The caller owns this buffer and must
+        // keep it alive until after the model is freed. NULL selects the
+        // ordinary GGUF routed-expert tensors.
+        ggml_backend_buffer_t e3_qr05_bank;
+
         // Keep the booleans together to avoid misalignment during copy-by-value.
         bool vocab_only;      // only load the vocabulary, no weights
         bool check_tensors;   // validate model tensor data
@@ -528,6 +542,25 @@ extern "C" {
                              const char ** paths,
                                  size_t    n_paths,
               struct llama_model_params    params);
+
+    // Load the fixed Qwen4Exp E3.QR05 bank before the model and keep both in a
+    // single lifetime owner. bank_root must contain the 48 H37 numeric layer
+    // files and receipts. device must be one GPU/IGPU default buffer device;
+    // split mode is not supported. The handle destroys the model first and
+    // frees the one persistent expert allocation second.
+    LLAMA_API struct llama_e3_qr05_model * llama_e3_qr05_model_load_from_file(
+                             const char * path_model,
+                             const char * bank_root,
+                       ggml_backend_dev_t device,
+              struct llama_model_params   params);
+
+    // Borrow the model. Any context made from it must be freed before the
+    // enclosing E3 handle.
+    LLAMA_API struct llama_model * llama_e3_qr05_model_get(
+            struct llama_e3_qr05_model * owner);
+
+    LLAMA_API void llama_e3_qr05_model_free(
+            struct llama_e3_qr05_model * owner);
 
     LLAMA_API void llama_model_save_to_file(
             const struct llama_model * model,

@@ -236,6 +236,12 @@ static const struct ggml_type_traits_cpu type_traits_cpu[GGML_TYPE_COUNT] = {
         .vec_dot_type             = GGML_TYPE_Q8_0,
         .nrows                    = 1,
     },
+    [GGML_TYPE_IU4_A640] = {
+        .from_float               = quantize_row_iu4_a640,
+        .vec_dot                  = ggml_vec_dot_iu4_a640_q8_1,
+        .vec_dot_type             = GGML_TYPE_Q8_1,
+        .nrows                    = 1,
+    },
     [GGML_TYPE_Q4_0] = {
         .from_float               = quantize_row_q4_0,
         .vec_dot                  = ggml_vec_dot_q4_0_q8_0,
@@ -2076,6 +2082,10 @@ static void ggml_compute_forward(struct ggml_compute_params * params, struct ggm
             {
                 ggml_compute_forward_dsv4_hc_post(params, tensor);
             } break;
+        case GGML_OP_E3_QR05:
+            {
+                GGML_ABORT("GGML_OP_E3_QR05 is supported only by the HIP backend");
+            } break;
         case GGML_OP_MAP_CUSTOM1:
             {
                 ggml_compute_forward_map_custom1(params, tensor);
@@ -2261,6 +2271,10 @@ static int ggml_get_n_tasks(struct ggml_tensor * node, int n_threads) {
         case GGML_OP_DSV4_HC_POST:
             {
                 n_tasks = n_threads;
+            } break;
+        case GGML_OP_E3_QR05:
+            {
+                n_tasks = 1;
             } break;
         case GGML_OP_REPEAT:
         case GGML_OP_REPEAT_BACK:

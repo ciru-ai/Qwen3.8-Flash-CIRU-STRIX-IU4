@@ -2831,6 +2831,11 @@ void llama_kv_cache_context::set_input_v_idxs(ggml_tensor * dst, const llama_uba
     kv->set_input_v_idxs(dst, ubatch, sinfos[i_cur]);
 }
 
+const llama_kv_cache::slot_info & llama_kv_cache_context::get_slot_info() const {
+    GGML_ASSERT(i_cur < sinfos.size());
+    return sinfos[i_cur];
+}
+
 void llama_kv_cache_context::set_input_kq_mask(ggml_tensor * dst, const llama_ubatch * ubatch, bool causal_attn) const {
     kv->set_input_kq_mask(dst, ubatch, causal_attn);
 }

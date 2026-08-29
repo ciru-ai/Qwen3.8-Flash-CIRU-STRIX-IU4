@@ -467,6 +467,7 @@ enum llm_tensor {
     LLM_TENSOR_FFN_UP_EXP,
     LLM_TENSOR_FFN_NORM_EXPS,
     LLM_TENSOR_FFN_DOWN_EXPS, // merged experts
+    LLM_TENSOR_FFN_DOWN_EXPS_TAIL,
     LLM_TENSOR_FFN_GATE_EXPS,
     LLM_TENSOR_FFN_UP_EXPS,
     LLM_TENSOR_FFN_GATE_UP_EXPS,
@@ -686,6 +687,11 @@ enum llm_tensor {
     LLM_TENSOR_NEXTN_HNORM,
     LLM_TENSOR_NEXTN_SHARED_HEAD_HEAD,
     LLM_TENSOR_NEXTN_SHARED_HEAD_NORM,
+    // qwen4exp: the MTP head ends in its own hyper-connection mixer rather than a
+    // plain RMSNorm, mirroring the trunk's hc_head_* (which is its output norm)
+    LLM_TENSOR_NEXTN_HC_HEAD_NORM,
+    LLM_TENSOR_NEXTN_HC_HEAD_DOWN,
+    LLM_TENSOR_NEXTN_HC_HEAD_UP,
     LLM_TENSOR_MASKED_EMBD_CENTROIDS,
     LLM_TENSOR_MASKED_EMBD_ORDERING,
     LLM_TENSOR_FC,
