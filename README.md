@@ -75,7 +75,7 @@ Other operating systems and distro-specific dependencies are covered here:
 - [Windows](docs/BUILD_WINDOWS.md)
 - [macOS](docs/BUILD_MACOS.md)
 
-Windows CPU and macOS Metal are compatibility builds, not validated Strix performance paths. On WSL2, keep the PLE directory on the Linux ext4 filesystem rather than `/mnt/c` because the optimized pager uses `O_DIRECT`.
+Native Windows CPU and macOS Metal are compatibility builds, not validated Strix performance paths. On Windows, use the WSL2 + ROCDXG route (see [BUILD_WINDOWS.md](docs/BUILD_WINDOWS.md)): it is the only path that reaches the gfx1151 HIP runtime, and it was verified end to end on Windows 11 25H2 / WSL 2.7.12 / Ubuntu 26.04 / ROCm 10.0. Keep the PLE directory on the WSL Linux ext4 filesystem rather than `/mnt/c` because the optimized pager uses `O_DIRECT`. Machines with a large GPU carve-out (dxdiag showing ~96 GiB dedicated) should set `CONTEXT_SIZE=131072`; the 262,144-token profile OOMs when loading the MTP draft on that pool size.
 
 ## Run with public production settings
 
