@@ -78,7 +78,7 @@ From inside the distro as root:
 ```bash
 cd /tmp
 wget -q https://repo.radeon.com/amdgpu-install/31.50/ubuntu/resolute/amdgpu-install_31.50.315000-1_all.deb
-apt-get install -y ./amdgpu-install.deb
+apt-get install -y ./amdgpu-install_31.50.315000-1_all.deb
 amdgpu-install --usecase=rocm --no-dkms -y
 ```
 
@@ -126,8 +126,8 @@ Expected: `/dev/dxg` exists and rocminfo lists `Agent 2: gfx1151` with a
 ## 3. Build the runtime
 
 ```bash
-git clone --branch v1.1 https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
-cd Qwen3.8-Flash-CIRU-STRIX-IU4
+git clone --branch v1.1 https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git /opt/runtime
+cd /opt/runtime
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
 ```
 
@@ -220,7 +220,7 @@ Two complementary fixes, both verified on WSL 2.7.12:
 1. `vmIdleTimeout=-1` in `.wslconfig` (see above) keeps the VM itself alive. A positive value is not enough: only `-1` disables the idle shutoff.
 2. A **self-keeper unit** keeps a systemd unit alive across client disconnects. It works by running `wsl.exe` from inside the distro, so there is always an attached client.
 
-Create `/etc/systemd/system/wsl-session-keeper.service`:
+Create `/etc/systemd/system/wsl-session-keeper.service`. Replace `-d Ubuntu-24.04` with your distro name from `wsl -l -v`:
 
 ```ini
 [Unit]
@@ -231,7 +231,7 @@ After=network-online.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart=/mnt/c/Windows/System32/wsl.exe -d qwen-runtime -u root -- sh -c "sleep infinity"
+ExecStart=/mnt/c/Windows/System32/wsl.exe -d Ubuntu-24.04 -u root -- sh -c "sleep infinity"
 
 [Install]
 WantedBy=multi-user.target

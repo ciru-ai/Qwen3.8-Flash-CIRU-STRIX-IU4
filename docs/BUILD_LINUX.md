@@ -92,7 +92,7 @@ are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
    ```bash
    wget -q https://repo.radeon.com/amdgpu-install/31.50/ubuntu/resolute/amdgpu-install_31.50.315000-1_all.deb
-   apt-get install -y ./amdgpu-install.deb
+   apt-get install -y ./amdgpu-install_31.50.315000-1_all.deb
    amdgpu-install --usecase=rocm --no-dkms -y
    ```
 
