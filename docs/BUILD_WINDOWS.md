@@ -22,6 +22,23 @@ Verified environment for the WSL2 path:
 | ROCDXG | rocdxg-roct 1.2.2 (librocdxg) |
 | GPU pool seen by ROCm | 117,076,066 KB (~111.7 GiB) |
 
+A scripted version of every section below ships with this repository as
+[`ci/setup-strix-halo-windows.ps1`](../ci/setup-strix-halo-windows.ps1).
+It runs the phases in order, gates on preflight (installed RAM, WSL
+version, distro, systemd, `/dev/dxg`, disk space, ROCm pool size), sizes
+`CONTEXT_SIZE` from the measured pool, and prints each manual step (BIOS
+carve-out, reboot, driver, HF login) before the phase that depends on it:
+
+```powershell
+# read-only check of the host first:
+.\ci\setup-strix-halo-windows.ps1 -Phase preflight
+# then, elevated, from a clean Windows install through running server:
+.\ci\setup-strix-halo-windows.ps1 -Phase all -Distro Ubuntu-24.04
+```
+
+Individual phases (`wsl`, `rocm`, `build`, `model`, `service`,
+`portproxy`) can be re-run independently; long downloads resume.
+
 ## 1. Install WSL2 and a distro
 
 From an elevated PowerShell:
