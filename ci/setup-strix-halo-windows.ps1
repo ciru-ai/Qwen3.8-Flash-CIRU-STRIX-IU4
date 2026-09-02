@@ -177,7 +177,7 @@ function Invoke-Preflight {
         Write-Ok "Distro '$Distro' registered"
         $systemd = Invoke-WslText 'systemctl is-system-running 2>/dev/null || echo unknown'
         if ($systemd -match 'running|degraded|starting') { Write-Ok "systemd active ($systemd)" }
-        else { Write-Bad "systemd not enabled in '$Distro': add [boot] systemd=true to /etc/wsl.conf, wsl --shutdown, retry"; $fail = $true }
+        else { Write-Bad "systemd not enabled in '$Distro': /etc/wsl.conf needs [boot] + systemd=true (2 lines), then wsl --shutdown and retry"; $fail = $true }
 
         $dxg = Invoke-WslText 'test -e /dev/dxg && echo yes || echo no'
         if ($dxg -eq 'yes') { Write-Ok '/dev/dxg present (GPU passthrough)' }

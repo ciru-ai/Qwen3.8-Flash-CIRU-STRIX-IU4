@@ -180,8 +180,15 @@ roughly 35 minutes.
 
 ## 5. Run as a supervised service
 
-The units need systemd in the distro: `/etc/wsl.conf` must contain
-`[boot] systemd=true` (Ubuntu WSL images ship this; the installer's `wsl`
+The units need systemd in the distro: `/etc/wsl.conf` must contain the
+two-line stanza
+
+```ini
+[boot]
+systemd=true
+```
+
+(Ubuntu WSL images ship this; the installer's `wsl`
 phase verifies and writes it). Reload WSL (`wsl --shutdown`, then reopen a
 session) if you had to add it.
 
