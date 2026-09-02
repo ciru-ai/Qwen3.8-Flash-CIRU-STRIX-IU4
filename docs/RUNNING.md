@@ -61,6 +61,7 @@ multiple pool sizes (all optional):
 
 | Variable | Default | Purpose |
 |---|---|---|
+| `MODEL_DIR` | `../model` (repo-relative) | Model directory containing the GGUF + `ple/` + `mtp/` |
 | `HOST` | `127.0.0.1` | Bind address |
 | `PORT` | `8080` | Bind port |
 | `CONTEXT_SIZE` | `262144` | Context window |
@@ -68,6 +69,13 @@ multiple pool sizes (all optional):
 | `PLE_CACHE_MIB` | `4096` | Decoded PLE-page cache size |
 | `PROMPT_CACHE_MIB` | `8192` | RAM prompt cache size |
 | `DRAFT_DEVICE` | `ROCm0` | Draft model device |
+
+`MODEL_DIR` is the variable the Windows systemd unit sets
+(`Environment=MODEL_DIR=`) in BUILD_WINDOWS.md; the rest scale to pool size.
+Companion variables honored by the same script: `BATCH_SIZE`, `UBATCH_SIZE`,
+`PARALLEL_SLOTS`, `THREADS`, `BATCH_THREADS`, `CTX_CHECKPOINTS`,
+`CHECKPOINT_MIN_STEP`, `DRAFT_THREADS`, `DRAFT_BATCH_THREADS`, `MTP_DEPTH`,
+`SLOT_DIR`.
 
 **Windows/WSL2 note:** on Strix Halo machines with a large GPU carve-out
 (dxdiag reporting ~96 GiB dedicated, ROCm pool ~111.7 GiB), the default

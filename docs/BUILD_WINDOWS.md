@@ -180,6 +180,11 @@ roughly 35 minutes.
 
 ## 5. Run as a supervised service
 
+The units need systemd in the distro: `/etc/wsl.conf` must contain
+`[boot] systemd=true` (Ubuntu WSL images ship this; the installer's `wsl`
+phase verifies and writes it). Reload WSL (`wsl --shutdown`, then reopen a
+session) if you had to add it.
+
 A systemd unit is more reliable than a `[boot] command` under WSL 2.7
 (observed: the boot command can re-fire on session starts and race the
 server). Create `/etc/systemd/system/qwen-ciru-server.service`:
