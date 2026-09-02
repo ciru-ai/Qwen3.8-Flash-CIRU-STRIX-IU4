@@ -83,7 +83,7 @@ that reaches the Strix Halo GPU. It was verified end to end on Windows 11
 `--no-dkms`), and `rocdxg-roct` 1.2.2; measured results and a full recipe
 are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
-1. Install WSL2 and Ubuntu (26.04 verified, 24.04 also works). A reboot is
+1. Install WSL2 and Ubuntu (26.04 or 24.04). A reboot is
    required after `wsl --install --no-distribution`. A large Strix Halo GPU
    carve-out leaves only ~31.6 GiB visible to Windows; cap the VM with a
    `.wslconfig` (`memory=28GB`).
@@ -117,10 +117,12 @@ Do **not** place `ple/ple.payload.bin` under `/mnt/c`, `/mnt/d`, or another
 DrvFS mount. The optimized Linux pager opens the payload using `O_DIRECT`;
 the filesystem must support it.
 
-Two WSL 2.6+ (2.7.12 verified) lifecycle notes, both covered in
-[BUILD_WINDOWS.md](BUILD_WINDOWS.md): the VM is shut down and systemd units
-are torn down roughly 15 s after the last `wsl.exe` client detaches
-(confirmed regression, [microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416)).
+Two WSL 2.6+ (2.7.12) lifecycle notes, both covered in
+[BUILD_WINDOWS.md](BUILD_WINDOWS.md): when the last `wsl.exe` client
+detaches, WSL tears the session down - without `vmIdleTimeout=-1` the VM
+powers off, and even with it set, systemd units are stopped roughly 15 s
+after detach (confirmed regression,
+[microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416)).
 Fix with `vmIdleTimeout=-1` in `.wslconfig` plus a systemd "self-keeper"
 unit whose `ExecStart` runs `wsl.exe` against the distro itself, keeping a
 client session permanently attached. A systemd unit is also more reliable

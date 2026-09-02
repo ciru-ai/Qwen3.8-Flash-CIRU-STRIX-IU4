@@ -70,21 +70,21 @@ multiple pool sizes (all optional):
 | `PROMPT_CACHE_MIB` | `8192` | RAM prompt cache size |
 | `DRAFT_DEVICE` | `ROCm0` | Draft model device |
 
-`MODEL_DIR` is the variable the Windows systemd unit sets
-(`Environment=MODEL_DIR=`) in BUILD_WINDOWS.md; the rest scale to pool size.
-Companion variables honored by the same script: `BATCH_SIZE`, `UBATCH_SIZE`,
-`PARALLEL_SLOTS`, `THREADS`, `BATCH_THREADS`, `CTX_CHECKPOINTS`,
-`CHECKPOINT_MIN_STEP`, `DRAFT_THREADS`, `DRAFT_BATCH_THREADS`, `MTP_DEPTH`,
-`SLOT_DIR`.
+`MODEL_DIR` is what the Windows systemd unit sets in BUILD_WINDOWS.md; the
+context and cache variables scale with pool size. Companion variables
+honored by the same script: `BATCH_SIZE`, `UBATCH_SIZE`, `PARALLEL_SLOTS`,
+`THREADS`, `BATCH_THREADS`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP`,
+`DRAFT_THREADS`, `DRAFT_BATCH_THREADS`, `MTP_DEPTH`, `SLOT_DIR`.
 
 **Windows/WSL2 note:** on Strix Halo machines with a large GPU carve-out
 (dxdiag reporting ~96 GiB dedicated, ROCm pool ~111.7 GiB), the default
 `CONTEXT_SIZE=262144` fails to load: the MTP draft allocation runs the pool
 out of memory after the target model loads. Set `CONTEXT_SIZE=131072`
-(~28.1 GiB total KV) -- measured working on that pool. Also, WSL 2.6+ shuts
-the VM down and tears down systemd units ~15 s after the last `wsl.exe`
-client detaches (microsoft/WSL#13416); set `vmIdleTimeout=-1` in `.wslconfig`
-and install the self-keeper unit, all described in
+(~28.1 GiB total KV) -- measured working on that pool. Also, WSL 2.6+ tears
+the session down when the last `wsl.exe` client detaches: the VM powers off
+unless `vmIdleTimeout=-1` is set, and even then systemd units are stopped
+~15 s after detach (microsoft/WSL#13416). Set `vmIdleTimeout=-1` in
+`.wslconfig` and install the self-keeper unit, all described in
 [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
 ## Production cache behavior

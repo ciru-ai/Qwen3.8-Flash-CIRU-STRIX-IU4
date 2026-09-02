@@ -48,24 +48,27 @@ wsl --install --no-distribution
 ```
 
 A reboot is required before the first distro can start. Then install Ubuntu
-26.04 (the version verified for this guide):
+26.04 (the version this guide uses):
 
 ```powershell
 wsl --install -d Ubuntu-26.04
 ```
 
-If the Store download stalls (observed), install the msstore package instead
-and register it with `wsl --import`, or use winget:
+If the Store download stalls (observed), install the msstore package with
+winget and register its rootfs directly (the Store package is not registered
+by winget alone; `wsl --import` accepts the tarball as-is):
 
 ```powershell
 winget install --id 9PDXGNCFSCZV --source msstore
+$rootfs = (Get-ChildItem 'C:\Program Files\WindowsApps\*Ubuntu*\install.tar.gz' | Select-Object -First 1).FullName
+wsl --import Ubuntu-26.04 "$env:LOCALAPPDATA\wsl\Ubuntu-26.04" $rootfs --version 2
 ```
 
 Regardless of the route, keep the model and build **inside the WSL Linux
 filesystem** (ext4). Do not place `ple/ple.payload.bin` under `/mnt/c`: the
 pager opens it with `O_DIRECT`, which DrvFS does not support. The PLE payload
-alone is 52.4 GB, plus ~74 GB GGUF and ~4 GB MTP draft, so plan for at least
-160 GiB free.
+alone is 52.4 GB, plus a 79.4 GB GGUF and a 4.1 GB MTP draft (~127 GiB
+total), so keep at least 170 GiB free - the installer's preflight gate.
 
 ### .wslconfig
 
@@ -87,7 +90,7 @@ Note: even with the VM kept alive, WSL 2.6.1+ (confirmed regression
 [microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416), still
 open) tears down systemd units when the last `wsl.exe` client detaches,
 roughly 15 seconds after you close your last shell. Use the self-keeper unit
-in [Keepalive](#5-keepalive) so a client session always exists.
+in [Keepalive](#keepalive) so a client session always exists.
 
 ## 2. Install ROCm 10 and ROCDXG inside WSL
 
@@ -238,14 +241,13 @@ cudaMalloc failed: out of memory
 
 F16 target KV at 262,144 tokens alone is ~37.5 GiB plus 18.8 GiB for the
 Q8_0 draft KV. Use `CONTEXT_SIZE=131072` (KV drops to ~28.1 GiB total) on
-such machines; the full profile needs the complete 128 GiB pool reported by
-rocminfo.
+such machines; the 262,144 default does not fit a carve-out pool.
 
 ### Keepalive
 
-WSL 2.6.1+ has a confirmed regression ([microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416), still open): when the last `wsl.exe` client disconnects, the VM is shut down and systemd units are torn down roughly 15 seconds later, even with `vmIdleTimeout` set to a large positive value. Without a workaround the server dies whenever you close your shell, and is not running when a client reconnects.
+WSL 2.6.1+ has a confirmed regression ([microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416), still open): when the last `wsl.exe` client disconnects, WSL tears the session down - without `vmIdleTimeout=-1` the VM powers off, and even with it set, systemd units are stopped roughly 15 seconds after the last client detaches. Without a workaround the server dies whenever you close your shell, and is not running when a client reconnects.
 
-Two complementary fixes, both verified on WSL 2.7.12:
+Two complementary fixes:
 
 1. `vmIdleTimeout=-1` in `.wslconfig` (see above) keeps the VM itself alive. A positive value is not enough: only `-1` disables the idle shutoff.
 2. A **self-keeper unit** keeps a systemd unit alive across client disconnects. It works by running `wsl.exe` from inside the distro, so there is always an attached client.
@@ -292,7 +294,7 @@ netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8080 conne
 netsh advfirewall firewall add rule name="Qwen CIRU 8080" dir=in action=allow protocol=TCP localport=8080
 ```
 
-Do not rely on `networkingMode=mirrored` for this: on the verified host,
+Do not rely on `networkingMode=mirrored` for this: on this host,
 mirrored mode broke Windows-to-WSL loopback access to the server.
 
 ### Reboot persistence
@@ -303,12 +305,16 @@ once) closes both gaps. It must run as the distro owner (distros are
 registered per-user), with S4U so no password is stored:
 
 ```powershell
+$keeper = Join-Path $env:USERPROFILE 'qwen-boot-keeper.ps1'
 $a = New-ScheduledTaskAction -Execute powershell.exe `
-  -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File %USERPROFILE%\qwen-boot-keeper.ps1'
+  -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$keeper`""
 $t = New-ScheduledTaskTrigger -AtStartup
 $p = New-ScheduledTaskPrincipal -UserId <user> -LogonType S4U -RunLevel Highest
 Register-ScheduledTask -TaskName 'Qwen CIRU boot' -Action $a -Trigger $t -Principal $p
 ```
+
+`%USERPROFILE%` is not expanded inside PowerShell - build the path as above,
+or accept the `-File` path the installer script generates.
 
 `qwen-boot-keeper.ps1` boots the distro (systemd then starts the units) and
 re-points the portproxy at the fresh NAT IP. `-Phase portproxy` of the
@@ -342,4 +348,4 @@ back empty.
 | VM `poweroff` / unit death ~15 s after closing the shell | WSL 2.6+ regression (microsoft/WSL#13416); set `vmIdleTimeout=-1` and install the self-keeper unit (Keepalive above) |
 | Server exits when a boot command re-fires | use the systemd unit, not `[boot] command` |
 | `wsl --install -d Ubuntu-26.04` stalls for many minutes | Store backend hang; use `winget install --id 9PDXGNCFSCZV --source msstore` or any msstore Ubuntu package, then `wsl --import` |
-| Build succeeds but server OOMs at load on a large carve-out | see `CONTEXT_SIZE` guidance; 131072 is verified on ~96 GiB carve-outs |
+| Build succeeds but server OOMs at load on a large carve-out | see `CONTEXT_SIZE` guidance; use 131072 on ~96 GiB carve-outs |
