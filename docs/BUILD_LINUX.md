@@ -83,10 +83,10 @@ that reaches the Strix Halo GPU. It was verified end to end on Windows 11
 `--no-dkms`), and `rocdxg-roct` 1.2.2; measured results and a full recipe
 are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
-1. Install WSL2 and Ubuntu (24.04 or 26.04). A reboot is required after
-   `wsl --install --no-distribution`. A large Strix Halo GPU carve-out leaves
-   only ~31.6 GiB visible to Windows; cap the VM with a `.wslconfig`
-   (`memory=28GB`).
+1. Install WSL2 and Ubuntu (26.04 verified, 24.04 also works). A reboot is
+   required after `wsl --install --no-distribution`. A large Strix Halo GPU
+   carve-out leaves only ~31.6 GiB visible to Windows; cap the VM with a
+   `.wslconfig` (`memory=28GB`).
 2. Inside the distro, install ROCm 10 with the Windows-driver-matching
    installer and **no kernel driver** (WSL has no amdgpu module):
 

@@ -24,7 +24,7 @@ rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151), 128 GB unified.
 param(
     [ValidateSet('preflight', 'wsl', 'rocm', 'build', 'model', 'service', 'portproxy', 'all')]
     [string]$Phase = 'preflight',
-    [string]$Distro = 'Ubuntu-24.04',
+    [string]$Distro = 'Ubuntu-26.04',
     [string]$RepoTag = 'v1.1',
     [string]$RepoRoot = '/opt/runtime',
     [string]$ModelDir = '/models/Qwen3.8-Flash-CIRU-STRIX-IU4',
@@ -354,7 +354,7 @@ Restart=always
 RestartSec=10
 Environment=LD_LIBRARY_PATH=$RepoRoot/build-gfx1151/bin
 Environment=MODEL_DIR=$ModelDir
-Environment=HOST=127.0.0.1
+Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
 WorkingDirectory=$RepoRoot
 ExecStart=$RepoRoot/scripts/ciru/run-server.sh
@@ -401,7 +401,38 @@ function Invoke-PortproxyPhase {
     if ($rule -notmatch 'Qwen CIRU 8080') {
         & netsh.exe advfirewall firewall add rule name='Qwen CIRU 8080' dir=in action=allow protocol=TCP localport=8080 | Out-Null
     }
-    Write-Ok "portproxy 0.0.0.0:8080 -> ${ip}:8080 (re-sync after each boot: the NAT IP can change)"
+
+    # Boot task: after a Windows reboot nothing starts the WSL VM until a
+    # shell opens, and the NAT IP changes. This task boots the distro at
+    # startup and re-points the portproxy at the fresh IP. It must run as
+    # the current user (distros are registered per-user), not SYSTEM.
+    $keeper = Join-Path $env:USERPROFILE 'qwen-boot-keeper.ps1'
+    $q = [char]39
+    $keeperBody = @"
+param([string]`${Distro} = ${q}$Distro${q}, [int]`${Port} = 8080)
+`${ErrorActionPreference} = ${q}SilentlyContinue${q}
+& wsl.exe -d `${Distro} -u root -- true | Out-Null
+`${ip} = ${q}${q}
+for (`$i = 0; `$i -lt 40; `$i++) {
+    `${ip} = ((& wsl.exe -d `${Distro} -- hostname -I 2>`$null | Out-String) -replace "`0", '').Trim()
+    if (`$ip) { break }
+    Start-Sleep -Seconds 3
+}
+if (-not `$ip) { exit 1 }
+`$ip = (`$ip -split ' ')[0]
+& netsh.exe interface portproxy delete v4tov4 listenaddress=0.0.0.0 listenport=`$Port | Out-Null
+& netsh.exe interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=`$Port connectaddress=`$ip connectport=`$Port
+if (`$LASTEXITCODE -ne 0) { exit 1 }
+"@
+    Set-Content -Path $keeper -Value $keeperBody -Encoding ASCII
+    $a = New-ScheduledTaskAction -Execute 'C:\Windows\System32\WindowsPowerShell\v1.0\powershell.exe' -Argument "-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File `"$keeper`""
+    $t = New-ScheduledTaskTrigger -AtStartup
+    $t.Delay = 'PT10S'
+    $p = New-ScheduledTaskPrincipal -UserId $env:USERNAME -LogonType S4U -RunLevel Highest
+    $s = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -StartWhenAvailable -ExecutionTimeLimit (New-TimeSpan -Minutes 10)
+    Register-ScheduledTask -TaskName 'Qwen CIRU boot' -Action $a -Trigger $t -Principal $p -Settings $s -Force -Description 'Boot the WSL VM and re-sync the 8080 portproxy at startup' | Out-Null
+    Start-ScheduledTask -TaskName 'Qwen CIRU boot'
+    Write-Ok "portproxy 0.0.0.0:8080 -> ${ip}:8080; boot task 'Qwen CIRU boot' registered (re-syncs after every reboot)"
 }
 
 switch ($Phase) {

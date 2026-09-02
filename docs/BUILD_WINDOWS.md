@@ -33,7 +33,7 @@ carve-out, reboot, driver, HF login) before the phase that depends on it:
 # read-only check of the host first:
 .\ci\setup-strix-halo-windows.ps1 -Phase preflight
 # then, elevated, from a clean Windows install through running server:
-.\ci\setup-strix-halo-windows.ps1 -Phase all -Distro Ubuntu-24.04
+.\ci\setup-strix-halo-windows.ps1 -Phase all -Distro Ubuntu-26.04
 ```
 
 Individual phases (`wsl`, `rocm`, `build`, `model`, `service`,
@@ -47,10 +47,11 @@ From an elevated PowerShell:
 wsl --install --no-distribution
 ```
 
-A reboot is required before the first distro can start. Then install Ubuntu:
+A reboot is required before the first distro can start. Then install Ubuntu
+26.04 (the version verified for this guide):
 
 ```powershell
-wsl --install -d Ubuntu-24.04
+wsl --install -d Ubuntu-26.04
 ```
 
 If the Store download stalls (observed), install the msstore package instead
@@ -195,7 +196,7 @@ Restart=always
 RestartSec=10
 Environment=LD_LIBRARY_PATH=/opt/runtime/build-gfx1151/bin
 Environment=MODEL_DIR=/models/Qwen3.8-Flash-CIRU-STRIX-IU4
-Environment=HOST=127.0.0.1
+Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=131072
 WorkingDirectory=/opt/runtime
 ExecStart=/opt/runtime/scripts/ciru/run-server.sh
@@ -237,7 +238,7 @@ Two complementary fixes, both verified on WSL 2.7.12:
 1. `vmIdleTimeout=-1` in `.wslconfig` (see above) keeps the VM itself alive. A positive value is not enough: only `-1` disables the idle shutoff.
 2. A **self-keeper unit** keeps a systemd unit alive across client disconnects. It works by running `wsl.exe` from inside the distro, so there is always an attached client.
 
-Create `/etc/systemd/system/wsl-session-keeper.service`. Replace `-d Ubuntu-24.04` with your distro name from `wsl -l -v`:
+Create `/etc/systemd/system/wsl-session-keeper.service`. Replace `-d Ubuntu-26.04` with your distro name from `wsl -l -v`:
 
 ```ini
 [Unit]
@@ -248,7 +249,7 @@ After=network-online.target
 Type=simple
 Restart=always
 RestartSec=5
-ExecStart=/mnt/c/Windows/System32/wsl.exe -d Ubuntu-24.04 -u root -- sh -c "sleep infinity"
+ExecStart=/mnt/c/Windows/System32/wsl.exe -d Ubuntu-26.04 -u root -- sh -c "sleep infinity"
 
 [Install]
 WantedBy=multi-user.target
@@ -268,18 +269,42 @@ With both fixes in place, the VM stays up and the server unit keeps running afte
 
 ## 6. Optional: expose the server on the LAN
 
-The server binds loopback by default. WSL2 is NAT'd, so binding `0.0.0.0`
-inside the guest is not reachable from the LAN by itself; add a portproxy on
-Windows (elevated) pointing at the current WSL IP (`wsl hostname -I`):
+The server binds loopback by default. Use `Environment=HOST=0.0.0.0` in the
+unit (as in the example above) when LAN access is wanted; keep `127.0.0.1`
+for loopback-only use. WSL2 is NAT'd, so binding `0.0.0.0` inside the guest
+is not reachable from the LAN by itself; add a portproxy on Windows
+(elevated) pointing at the current WSL IP (`wsl hostname -I`):
 
 ```powershell
 netsh interface portproxy add v4tov4 listenaddress=0.0.0.0 listenport=8080 connectaddress=<WSL_IP> connectport=8080
 netsh advfirewall firewall add rule name="Qwen CIRU 8080" dir=in action=allow protocol=TCP localport=8080
 ```
 
-The VM's NAT IP can change across reboots; re-sync the proxy after each
-boot. Do not rely on `networkingMode=mirrored` for this: on the verified
-host, mirrored mode broke Windows-to-WSL loopback access to the server.
+Do not rely on `networkingMode=mirrored` for this: on the verified host,
+mirrored mode broke Windows-to-WSL loopback access to the server.
+
+### Reboot persistence
+
+After a Windows reboot nothing starts the WSL VM until the first interactive
+shell opens, and the VM's NAT IP can change. One scheduled task (elevated,
+once) closes both gaps. It must run as the distro owner (distros are
+registered per-user), with S4U so no password is stored:
+
+```powershell
+$a = New-ScheduledTaskAction -Execute powershell.exe `
+  -Argument '-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File %USERPROFILE%\qwen-boot-keeper.ps1'
+$t = New-ScheduledTaskTrigger -AtStartup
+$p = New-ScheduledTaskPrincipal -UserId <user> -LogonType S4U -RunLevel Highest
+Register-ScheduledTask -TaskName 'Qwen CIRU boot' -Action $a -Trigger $t -Principal $p
+```
+
+`qwen-boot-keeper.ps1` boots the distro (systemd then starts the units) and
+re-points the portproxy at the fresh NAT IP. `-Phase portproxy` of the
+installer script writes this keeper and registers/starts the task for you.
+After each reboot: the task boots the VM, systemd starts both enabled units,
+the keeper holds the session, and the server answers again once the model has
+loaded (~10-12 minutes). Interactive auto-login is not required by this
+chain; use it only if other Startup-folder items must run unattended.
 
 ## 7. Smoke test
 
@@ -304,5 +329,5 @@ back empty.
 | `cudaMalloc failed: out of memory` at startup on a large carve-out | `CONTEXT_SIZE=262144` does not fit ~95.8 GiB carve-out; use 131072 |
 | VM `poweroff` / unit death ~15 s after closing the shell | WSL 2.6+ regression (microsoft/WSL#13416); set `vmIdleTimeout=-1` and install the self-keeper unit (Keepalive above) |
 | Server exits when a boot command re-fires | use the systemd unit, not `[boot] command` |
-| `wsl --install -d Ubuntu-24.04` stalls for many minutes | Store backend hang; use `winget install --id 9PDXGNCFSCZV --source msstore` or any msstore Ubuntu package, then `wsl --import` |
+| `wsl --install -d Ubuntu-26.04` stalls for many minutes | Store backend hang; use `winget install --id 9PDXGNCFSCZV --source msstore` or any msstore Ubuntu package, then `wsl --import` |
 | Build succeeds but server OOMs at load on a large carve-out | see `CONTEXT_SIZE` guidance; 131072 is verified on ~96 GiB carve-outs |
