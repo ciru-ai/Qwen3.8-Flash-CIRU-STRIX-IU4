@@ -17,7 +17,7 @@ Verified environment for the WSL2 path:
 |---|---|
 | Windows | 11 Pro 25H2 (build 26200) |
 | WSL | 2.7.12 (kernel 6.18.33.2) |
-| Distro | Ubuntu 26.04.1 LTS ("resolute"); 24.04 also supported by the same steps |
+| Distro | Ubuntu 26.04.1 LTS ("resolute") - verified; 26+ recommended, 24.04 probably works |
 | ROCm | 10.0.0 (amdgpu-install 31.50, `--no-dkms`) |
 | ROCDXG | rocdxg-roct 1.2.2 (librocdxg) |
 | GPU pool seen by ROCm | 117,076,066 KB (~111.7 GiB) |
@@ -48,7 +48,8 @@ wsl --install --no-distribution
 ```
 
 A reboot is required before the first distro can start. Then install Ubuntu
-26.04 (the version this guide uses):
+26.04. Stay on Ubuntu: 26+ is recommended, 26.04.1 is the verified release,
+and 24.04 probably works; other distros are not supported:
 
 ```powershell
 wsl --install -d Ubuntu-26.04
@@ -85,6 +86,10 @@ vmIdleTimeout=-1
 
 `vmIdleTimeout=-1` disables the VM idle shutoff. A large positive value
 does NOT work around the WSL 2.6+ idle regression; it must be `-1`.
+
+Keep the cap a few GiB below the Windows-visible total: while the model
+loads (10-12 minutes) the VM climbs toward its cap, and Windows will kill
+foreground apps if there is no room left.
 
 Note: even with the VM kept alive, WSL 2.6.1+ (confirmed regression
 [microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416), still
@@ -252,7 +257,9 @@ Two complementary fixes:
 1. `vmIdleTimeout=-1` in `.wslconfig` (see above) keeps the VM itself alive. A positive value is not enough: only `-1` disables the idle shutoff.
 2. A **self-keeper unit** keeps a systemd unit alive across client disconnects. It works by running `wsl.exe` from inside the distro, so there is always an attached client.
 
-Create `/etc/systemd/system/wsl-session-keeper.service`. Replace `-d Ubuntu-26.04` with your distro name from `wsl -l -v`:
+Create `/etc/systemd/system/wsl-session-keeper.service`. If your Ubuntu
+distro is registered under a different name, replace `-d Ubuntu-26.04` with
+the name from `wsl -l -v`:
 
 ```ini
 [Unit]
@@ -313,8 +320,7 @@ $p = New-ScheduledTaskPrincipal -UserId <user> -LogonType S4U -RunLevel Highest
 Register-ScheduledTask -TaskName 'Qwen CIRU boot' -Action $a -Trigger $t -Principal $p
 ```
 
-`%USERPROFILE%` is not expanded inside PowerShell - build the path as above,
-or accept the `-File` path the installer script generates.
+`%USERPROFILE%` is not expanded inside PowerShell - build the path as above.
 
 `qwen-boot-keeper.ps1` boots the distro (systemd then starts the units) and
 re-points the portproxy at the fresh NAT IP. `-Phase portproxy` of the

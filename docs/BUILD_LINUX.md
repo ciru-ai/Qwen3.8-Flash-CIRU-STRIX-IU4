@@ -83,7 +83,8 @@ that reaches the Strix Halo GPU. It was verified end to end on Windows 11
 `--no-dkms`), and `rocdxg-roct` 1.2.2; measured results and a full recipe
 are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
-1. Install WSL2 and Ubuntu (26.04 or 24.04). A reboot is
+1. Install WSL2 and Ubuntu (26+ recommended, 26.04.1 verified; 24.04
+   probably works; other distros are not supported). A reboot is
    required after `wsl --install --no-distribution`. A large Strix Halo GPU
    carve-out leaves only ~31.6 GiB visible to Windows; cap the VM with a
    `.wslconfig` (`memory=28GB`).

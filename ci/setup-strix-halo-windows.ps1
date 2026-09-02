@@ -17,7 +17,7 @@ manual step that must happen before the next phase is allowed.
   -Phase portproxy   section 6: LAN exposure                     [admin]
   -Phase all         preflight through service, stopping at gates
 
-Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu, ROCm 10.0,
+Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, ROCm 10.0,
 rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151), 128 GB unified.
 #>
 [CmdletBinding()]
@@ -107,8 +107,8 @@ function Get-GpuPoolGiB {
     return $best / 1MB   # KB to GiB
 }
 
-# CONTEXT_SIZE from the measured pool. 131072 is the value verified on a
-# ~111.7 GiB pool; the 262144 release profile needs the full 128 GiB pool.
+# CONTEXT_SIZE from the measured pool. 131072 is the value that runs on a
+# ~111.7 GiB pool; the 262144 release profile does not fit a carve-out pool.
 function Get-AutoContext([double]$poolGiB) {
     if ($poolGiB -ge 110) { return 131072 }
     if ($poolGiB -ge 80)  { return 65536 }
@@ -133,7 +133,7 @@ function Write-ManualChecklist {
     Write-Host 'Manual prerequisites (verify before or between phases):' -ForegroundColor Yellow
     Write-Manual 'BIOS: raise the GPU memory carve-out (UMA framebuffer) toward 96 GB on 128 GB machines. The verified profile is 96 GiB GPU / 32 GiB OS. A smaller carve-out works but shrinks the ROCm pool, and CONTEXT_SIZE is sized from it.'
     Write-Manual 'Reboot after the WSL engine install, before starting any distro.'
-    Write-Manual ("Keep at least {0} GiB free on the drive holding the WSL vhdx (model ~136 GB plus build)." -f $MinDiskGiB)
+    Write-Manual ("Keep at least {0} GiB free on the drive holding the WSL vhdx (model ~136 GiB plus build)." -f $MinDiskGiB)
     Write-Manual 'Install the current AMD Radeon Software driver on Windows; the GPU reaches WSL through /dev/dxg.'
     Write-Manual 'If the model repository requires a Hugging Face login, run: wsl -d <distro> -- bash -lc "/opt/hf-venv/bin/hf auth login"'
     Write-Host ''
@@ -175,6 +175,15 @@ function Invoke-Preflight {
         Write-Manual "Distro '$Distro' not registered: -Phase wsl installs it."
     } else {
         Write-Ok "Distro '$Distro' registered"
+        # Only Ubuntu is supported: 26+ recommended (26.04.1 verified),
+        # 24.04 probably works. Other distros fail in the ROCm/ROCDXG phase.
+        # No $ in the probe: PowerShell 5.1 mangles variable expansion when
+        # passing arguments to native exes. grep/cut keeps it literal.
+        $osId = Invoke-WslText 'grep -m1 ^ID= /etc/os-release | cut -d= -f2'
+        if ($osId -ne 'ubuntu') {
+            Write-Bad "Distro '$Distro' is '$osId', not ubuntu: only Ubuntu is supported (26+ recommended, 26.04.1 verified, 24.04 probably works). Re-register with -Distro Ubuntu-26.04."
+            $fail = $true
+        }
         $systemd = Invoke-WslText 'systemctl is-system-running 2>/dev/null || echo unknown'
         if ($systemd -match 'running|degraded|starting') { Write-Ok "systemd active ($systemd)" }
         else { Write-Bad "systemd not enabled in '$Distro': /etc/wsl.conf needs [boot] + systemd=true (2 lines), then wsl --shutdown and retry"; $fail = $true }
@@ -228,6 +237,10 @@ function Invoke-WslPhase {
 
     if ((Get-DistroNames) -notcontains $Distro) {
         Write-Host "Installing distro $Distro..."
+        if ($Distro -notmatch '(?i)ubuntu') {
+            Write-Bad "Only Ubuntu is supported (-Distro Ubuntu-26.04; 26+ recommended, 26.04.1 verified, 24.04 probably works)."
+            exit 1
+        }
         & wsl.exe --install -d $Distro --no-launch
         if ($LASTEXITCODE -ne 0 -or (Get-DistroNames) -notcontains $Distro) {
             Write-Host 'Store route failed or stalled: falling back to the msstore package + wsl --import.'
