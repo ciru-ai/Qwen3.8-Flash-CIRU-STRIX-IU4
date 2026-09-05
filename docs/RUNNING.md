@@ -55,6 +55,39 @@ export ROCBLAS_USE_HIPBLASLT=1
 
 `GGML_QWEN4EXP_PLE_STRICT_SHA=0` avoids hashing the 52.4 GB payload at every launch. Run `sha256sum -c checksums.sha256` after download or transfer before using that setting.
 
+### Environment overrides
+
+`run-server.sh` honors a set of environment variables so one launcher serves
+multiple pool sizes (all optional):
+
+| Variable | Default | Purpose |
+|---|---|---|
+| `MODEL_DIR` | `../model` (repo-relative) | Model directory containing the GGUF + `ple/` + `mtp/` |
+| `HOST` | `127.0.0.1` | Bind address |
+| `PORT` | `8080` | Bind port |
+| `CONTEXT_SIZE` | `262144` | Context window |
+| `ENABLE_MTP` | `1` | Set `0` to run without the MTP draft |
+| `PLE_CACHE_MIB` | `4096` | Decoded PLE-page cache size |
+| `PROMPT_CACHE_MIB` | `8192` | RAM prompt cache size |
+| `DRAFT_DEVICE` | `ROCm0` | Draft model device |
+
+`MODEL_DIR` is what the Windows systemd unit sets in BUILD_WINDOWS.md; the
+context and cache variables scale with pool size. Companion variables
+honored by the same script: `BATCH_SIZE`, `UBATCH_SIZE`, `PARALLEL_SLOTS`,
+`THREADS`, `BATCH_THREADS`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP`,
+`DRAFT_THREADS`, `DRAFT_BATCH_THREADS`, `MTP_DEPTH`, `SLOT_DIR`.
+
+**Windows/WSL2 note:** on Strix Halo machines with a large GPU carve-out
+(dxdiag reporting ~96 GiB dedicated, ROCm pool ~111.7 GiB), the default
+`CONTEXT_SIZE=262144` fails to load: the MTP draft allocation runs the pool
+out of memory after the target model loads. Set `CONTEXT_SIZE=131072`
+(~28.1 GiB total KV) -- measured working on that pool. Also, WSL 2.6+ tears
+the session down when the last `wsl.exe` client detaches: the VM powers off
+unless `vmIdleTimeout=-1` is set, and even then systemd units are stopped
+~15 s after detach (microsoft/WSL#13416). Set `vmIdleTimeout=-1` in
+`.wslconfig` and install the self-keeper unit, all described in
+[BUILD_WINDOWS.md](BUILD_WINDOWS.md).
+
 ## Production cache behavior
 
 The public profile intentionally differs from the measurement harness:

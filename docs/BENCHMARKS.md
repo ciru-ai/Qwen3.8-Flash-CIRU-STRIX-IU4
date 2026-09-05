@@ -61,6 +61,32 @@ These rows used the same weights and the pre-fix H111 runtime. H121 only correct
 
 The server is configured for 262,144 tokens, but the measured ladder ends at 131,072; this release does not claim a completed 262K benchmark row.
 
+## Windows (WSL2 + ROCDXG) verification
+
+The following rows were measured on a production Windows 11 host in August 2026: Windows 11 Pro 25H2 (build 26200), WSL 2.7.12 (kernel 6.18.33.2), Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50, `--no-dkms`), `rocdxg-roct` 1.2.2, and `CONTEXT_SIZE=131072`. All rows used the same released weights and the public server profile (MTP depth 3, F16 target KV, Q8_0 draft KV, 4 GiB PLE cache, batch 2,048, microbatch 512, one slot) with uncached prompts and 128 generated tokens. The WSL2/ROCDXG path is experimental; treat these as verification numbers, not leaderboard claims.
+
+| Prompt tokens | Prefill tok/s | Generation tok/s | TTFP | Wall | MTP acceptance |
+|---:|---:|---:|---:|---:|---:|
+| 564 | 86.8 | 21.4 | 6.50 s | 12.6 s | 64/188 (34.0%) |
+| 2,100 | 380.1 | 19.7 | 5.53 s | 12.0 s | 59/199 (29.6%) |
+| 8,244 | 456.9 | 21.3 | 18.04 s | 24.1 s | 67/179 (37.4%) |
+| 16,436 | 371.5 | 17.7 | 44.24 s | 51.5 s | 61/197 (31.0%) |
+| 32,820 | 291.0 | 14.4 | 112.78 s | 121.7 s | 56/213 (26.3%) |
+
+Notes:
+
+- The host's large GPU carve-out leaves a ~95.8 GiB GPU pool; the full
+  262,144-token profile OOMs when loading the MTP draft on such machines.
+  `CONTEXT_SIZE=131072` (28.1 GiB total KV) was used for this ladder.
+- Generation held 20-21 tok/s up to 16K context and stayed usable at 32K,
+  within ~35% of the native-Linux 30.8 tok/s headline despite the DXG
+  translation layer.
+- Prefill was prompt-cache-cold; the first request's context-load time is
+  included in TTFP. See [BUILD_WINDOWS.md](BUILD_WINDOWS.md) for the full
+  recipe and lifecycle notes (WSL 2.6+ idle regression and the
+  `vmIdleTimeout=-1` + self-keeper fix, CONTEXT_SIZE guidance for
+  carve-out machines).
+
 ## BF16 and Q5 comparison panel
 
 This small diagnostic panel compared 64 full-vocabulary next-token distributions across four domains, with no MTP, F16 KV, and positions 48–63.

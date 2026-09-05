@@ -130,20 +130,57 @@ The measured build used a pinned TheRock toolchain in a Nix environment with exp
 
 ## WSL2 / ROCDXG
 
-The WSL2 path is experimental for this release.
+The WSL2 path is experimental for this release but is the only Windows path
+that reaches the Strix Halo GPU. It was verified end to end on Windows 11
+25H2 with WSL 2.7.12, Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50,
+`--no-dkms`), and `rocdxg-roct` 1.2.2; measured results and a full recipe
+are in [BUILD_WINDOWS.md](BUILD_WINDOWS.md).
 
-1. Install the AMD Windows driver and the matching ROCDXG user-space stack inside Ubuntu WSL.
-2. Confirm the device and architecture:
+1. Install WSL2 and Ubuntu (26+ recommended, 26.04.1 verified; 24.04
+   probably works; other distros are not supported). A reboot is
+   required after `wsl --install --no-distribution`. A large Strix Halo GPU
+   carve-out leaves only ~31.6 GiB visible to Windows; cap the VM with a
+   `.wslconfig` (`memory=28GB`).
+2. Inside the distro, install ROCm 10 with the Windows-driver-matching
+   installer and **no kernel driver** (WSL has no amdgpu module):
 
    ```bash
+   wget -q https://repo.radeon.com/amdgpu-install/31.50/ubuntu/resolute/amdgpu-install_31.50.315000-1_all.deb
+   apt-get install -y ./amdgpu-install_31.50.315000-1_all.deb
+   amdgpu-install --usecase=rocm --no-dkms -y
+   ```
+
+   The cmake build additionally needs `amdrocm-runtime-dev10.0` (provides
+   `hip-lang-config.cmake`) and `amdrocm-blas10.0-gfx1151` +
+   `amdrocm-blas-dev10.0` (provides `hipblasConfig.cmake`). Do not install
+   the distro's `libhipblas-dev` (7.1.x); it lacks the ROCm 10 cmake configs.
+3. Install the ROCDXG runtime bridge, then confirm the device:
+
+   ```bash
+   wget -q https://github.com/ROCm/librocdxg/releases/download/v1.2.2/rocdxg-roct_1.2.2_amd64.deb
+   apt-get install -y ./rocdxg-roct_1.2.2_amd64.deb
    test -e /dev/dxg
    rocminfo | grep -m1 gfx1151
    ```
 
-3. Clone and build with the same `build-linux-amd.sh` script.
-4. Download the model under the WSL Linux filesystem, for example `~/models/Qwen3.8-Flash-CIRU-STRIX-IU4`.
+4. Clone and build with the same `build-linux-amd.sh` script.
+5. Download the model under the WSL Linux filesystem, for example
+   `~/models/Qwen3.8-Flash-CIRU-STRIX-IU4`.
 
-Do **not** place `ple/ple.payload.bin` under `/mnt/c`, `/mnt/d`, or another DrvFS mount. The optimized Linux pager opens the payload using `O_DIRECT`; the filesystem must support it.
+Do **not** place `ple/ple.payload.bin` under `/mnt/c`, `/mnt/d`, or another
+DrvFS mount. The optimized Linux pager opens the payload using `O_DIRECT`;
+the filesystem must support it.
+
+Two WSL 2.6+ (2.7.12) lifecycle notes, both covered in
+[BUILD_WINDOWS.md](BUILD_WINDOWS.md): when the last `wsl.exe` client
+detaches, WSL tears the session down - without `vmIdleTimeout=-1` the VM
+powers off, and even with it set, systemd units are stopped roughly 15 s
+after detach (confirmed regression,
+[microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416)).
+Fix with `vmIdleTimeout=-1` in `.wslconfig` plus a systemd "self-keeper"
+unit whose `ExecStart` runs `wsl.exe` against the distro itself, keeping a
+client session permanently attached. A systemd unit is also more reliable
+than a `[boot] command`, which can re-fire on session starts.
 
 ## CPU-only compatibility build
 
