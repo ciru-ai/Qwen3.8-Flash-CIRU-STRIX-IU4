@@ -18,10 +18,11 @@ The primary GGUF and the complete `ple/` directory are mandatory. The MTP draft 
 From the runtime repository:
 
 ```bash
-MODEL_DIR=/absolute/path/to/model ./scripts/ciru/run-server.sh
+BUILD_DIR="$PWD/build-gfx1151-sdk" \
+  MODEL_DIR=/absolute/path/to/model ./scripts/ciru/run-server.sh
 ```
 
-The script expands to this release profile:
+The setup helper uses `build-gfx1151-sdk/`; for a manual SDK build, select `build-gfx1151/` instead. Keep the SDK directory used at build time in place. The script expands to this release profile (shown with the manual build directory):
 
 ```bash
 export GGML_CUDA_Q41_MOE_FORCE_J=32

@@ -152,4 +152,5 @@ a.out.*
 # AGENTS
 
 AGENTS.local.md
+.venv-rocm/
 .pi/SYSTEM.md

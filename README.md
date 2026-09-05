@@ -63,11 +63,13 @@ The target GGUF and every file under `ple/` are mandatory. The MTP file is optio
 The validated fast path is Linux x86-64, AMD ROCm, and `gfx1151` on a Ryzen AI Max+ 395 / Radeon 8060S:
 
 ```bash
-git clone --branch v1.1 \
+git clone --branch v1.1.1 \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
 cd Qwen3.8-Flash-CIRU-STRIX-IU4
-ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
+./scripts/ciru/setup-linux-amd.sh --install-host-deps
 ```
+
+On Ubuntu/Debian, this installs host build tools and a private, pinned ROCm 10.0.0 SDK with gfx1151 libraries, then builds into `build-gfx1151-sdk/`. It does not install GPU drivers or start a model. Keep `.venv-rocm/` for runtime libraries. Version `v1.1.1` adds these installation helpers to the version 1.1 runtime correctness fix. For an existing complete SDK, use `ROCM_ROOT=/path/to/sdk ./scripts/ciru/build-linux-amd.sh` instead. Full instructions and the Ubuntu 26 AMDDeviceLibs/hipBLAS troubleshooting guide are linked below.
 
 Other operating systems and distro-specific dependencies are covered here:
 
@@ -80,7 +82,8 @@ Windows CPU and macOS Metal are compatibility builds, not validated Strix perfor
 ## Run with public production settings
 
 ```bash
-MODEL_DIR="$PWD/../model" ./scripts/ciru/run-server.sh
+BUILD_DIR="$PWD/build-gfx1151-sdk" \
+  MODEL_DIR="$PWD/../model" ./scripts/ciru/run-server.sh
 ```
 
 The launcher binds to `127.0.0.1:8080`, enables normal prompt/prefill caching, uses a 262,144-token context, loads the mandatory PLE sidecar, and enables MTP depth 3 when the draft file is present. It deliberately does **not** use our benchmark-only cache disables, slot erases, fixed seed, fixed output cap, or forced deterministic sampling.
