@@ -1,5 +1,19 @@
 # Release provenance
 
+## v2.0 source in Git
+
+The [GitHub `v2.0` tag](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0) points to [`3e21240ec793`](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/commit/3e21240ec7935b18fd39e1f07fd80f8d905ba968), a direct child of `v1.1.1` (`764ee491d4bc765cb8414d9bb17c24a5b364e097`). [Compare v1.1.1 to v2.0](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/compare/v1.1.1...v2.0).
+
+All **3,537 tracked file contents, executable modes and symlink targets** at that tag match the original published `ciru-runtime-v2.0-source.tar.gz`, after removing its enclosing directory. The original archive SHA-256 is:
+
+```text
+938bd98629fc25014973082eef5a3ea4d45dd5acb6732b608e05e0ecde08f044  ciru-runtime-v2.0-source.tar.gz
+```
+
+The original archive is available from the [GitHub release](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v2.0) and [Hugging Face](https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4/resolve/v2.0/runtime/v2.0/ciru-runtime-v2.0-source.tar.gz). GitHub's automatically generated source archives may have different packaging and hashes; the checksum above identifies the named original asset. The tag records the existing release; publishing it does not introduce new runtime code or weights.
+
+Documentation clarifications are subsequent commits on `main`. The GitHub tag, original Hugging Face `v2.0` revision and source archive retain their original release contents. Use the [current running instructions](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/main/docs/RUNNING.md) for the profile and draft-depth guidance.
+
 ## Model lineage
 
 | Component | Source | Frozen revision |

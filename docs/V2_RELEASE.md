@@ -1,5 +1,9 @@
 # Runtime v2.0 qualification
 
+The original released source is now available as the [GitHub `v2.0` tag](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0), with a [direct diff from v1.1.1](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/compare/v1.1.1...v2.0). [Source identity](PROVENANCE.md#v20-source-in-git) records its exact match to the published archive.
+
+The released MTP profile requires the exported environment as well as draft flags. Its maximum depth 6 is workload-dependent; low acceptance can make a shallower draft faster. The controlled 42.3 tok/s coding result does not establish an optimal depth for other workloads, and the MTP-off sweep below does not compare draft depths. See [profile verification and depth selection](RUNNING.md#confirm-the-mtp-profile-and-choose-a-draft-depth).
+
 ## Three-way comparison
 
 The three-way context sweep ran on **Sozo: Ryzen AI MAX+ 395 / Radeon 8060S, gfx1151, 128 GiB shared memory, NixOS**, with one model workload at a time. Ciru handled the new CIRU BF16 captures and the clean Ubuntu build/GPU smoke. The comparisons preserve each arm's recorded execution settings; they are package comparisons, not a controlled kernel-only experiment.

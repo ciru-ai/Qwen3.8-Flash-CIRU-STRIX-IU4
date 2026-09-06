@@ -5,7 +5,7 @@
 ```bash
 python -m pip install -U "huggingface_hub[cli]"
 hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --local-dir ./model
+  --revision v2.0 --local-dir ./model
 cd model
 sha256sum -c checksums.sha256
 cd ..
@@ -61,6 +61,29 @@ unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE C
 
 `GGML_QWEN4EXP_PLE_STRICT_SHA=0` avoids hashing the 52.4 GB payload at every launch. Run `sha256sum -c checksums.sha256` after download or transfer before using that setting.
 
+## Confirm the MTP profile and choose a draft depth
+
+`scripts/ciru/run-server.sh` loads and exports `profiles/strix-halo-production.env`, including `CIRU_MTP_SHORTLIST=32768` and `CIRU_MTP_TOPK10=1`. Building v2.0 and passing `--spec-draft-n-max 6` directly to `llama-server` does not enable these environment-controlled optimizations. For a direct launch, use the complete environment and command above.
+
+With MTP enabled, confirm this line appears in the startup log:
+
+```text
+CIRU MTP shortlist enabled: 32768 / 248320 vocabulary rows; full target verification retained
+```
+
+The shortlist restricts draft output projection; target verification still uses the full vocabulary. An absent line means the run has not confirmed the released shortlist configuration.
+
+**Maximum depth 6 is the released default, not a guarantee of the best speed on every prompt.** A deeper draft can waste work when later tokens are rejected. Depth 3 may be faster for a particular interactive workload with low acceptance. To select it while retaining the rest of the v2.0 profile, restart the server with:
+
+```bash
+MTP_DEPTH=3 BUILD_DIR="$PWD/build-gfx1151-sdk" \
+  MODEL_DIR=/absolute/path/to/model ./scripts/ciru/run-server.sh
+```
+
+The headline 42.28–42.31 tok/s was measured on a non-thinking coding probe with 57 prompt tokens, 520 generated tokens, greedy sampling, one slot, 16K configured context and the performance CPU governor. It does not establish that six is optimal for short chat, long contexts or batched serving. No adaptive depth selection is enabled. The MTP-off context sweep cannot establish an optimal MTP depth.
+
+For a useful comparison, retain the exact source/build identity, launch command and exported profile, shortlist startup line, request JSON and effective sampling settings (including min-p), thinking mode, actual prompt/output counts, cache state, drafted/accepted counts and timing definition. Report generation rate separately from time to first token and end-to-end latency. A single sampled completion is directional evidence; acceptance percentage alone does not determine speed or show that one runtime is generally faster. Compare depths within v2.0 with all other settings held fixed; when comparing versions, record each version's supported profile explicitly.
+
 ## Production cache behavior
 
 The public profile intentionally differs from the measurement harness:
@@ -110,14 +133,16 @@ curl http://127.0.0.1:8080/v1/chat/completions \
   }'
 ```
 
-These follow the upstream Qwen recommendations. Tune sampling for your application; do not treat benchmark decoding as a general serving preset.
+These follow the [upstream Qwen recommendations](https://huggingface.co/Qwen/Qwen3.8-Flash-Next/blob/f5d08274bafd880402bd16f5e3e6c514136ec06c/README.md#best-practices). The v2.0 launcher explicitly selects `min_p=0`; v1.1 could inherit llama.cpp's `0.05` when no override or GGUF min-p key was present. Zero disables this additional filter; `0.05` can remove candidates below 5% of the most probable remaining token's probability. This can affect sampled output even when top-k and top-p are also enabled.
+
+Keeping zero follows the model author's preset. We have not established a quality advantage over `0.05` in a controlled A/B generation test, and the greedy speed results do not resolve that question. Use `MIN_P=0.05` with the launcher to select the previous inherited value; request-level settings may override server defaults. Tune sampling for your application; do not treat benchmark decoding as a general serving preset.
 
 ## Running without MTP
 
 The target and PLE sidecar can run without the MTP draft. Remove all `--spec-*` flags, or set `ENABLE_MTP=0` when using the launcher:
 
 ```bash
-BUILD_DIR="$PWD/build-gfx1151-sdk" BUILD_DIR="$PWD/build-gfx1151-sdk" ENABLE_MTP=0 MODEL_DIR=/absolute/path/to/model \
+BUILD_DIR="$PWD/build-gfx1151-sdk" ENABLE_MTP=0 MODEL_DIR=/absolute/path/to/model \
   ./scripts/ciru/run-server.sh
 ```
 

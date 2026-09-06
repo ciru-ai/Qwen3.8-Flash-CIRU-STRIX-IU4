@@ -15,7 +15,7 @@
 
 Only the first row is represented by the published speed numbers.
 
-Historical v1.1.1 Historical v1.1.1 Ubuntu build validation on 2026-09-05 used CMake 4.2.3, GNU 15.2.0, Python 3.14, and AMD's stable ROCm 10.0.0 SDK in a clean Ubuntu 26.04 container with no GPU devices. All three binaries compiled, the server's shared libraries resolved, and `--version`/`--help` returned successfully with the PLE and MTP options present. The expected no-GPU diagnostic in that container is not an inference test.
+Historical v1.1.1 Ubuntu build validation on 2026-09-05 used CMake 4.2.3, GNU 15.2.0, Python 3.14, and AMD's stable ROCm 10.0.0 SDK in a clean Ubuntu 26.04 container with no GPU devices. All three binaries compiled, the server's shared libraries resolved, and `--version`/`--help` returned successfully with the PLE and MTP options present. The expected no-GPU diagnostic in that container is not an inference test.
 
 ## Prerequisites
 
