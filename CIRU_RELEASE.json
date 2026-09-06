@@ -1,0 +1,154 @@
+{
+  "version": "2.0",
+  "weights_changed": false,
+  "runtime_candidate": "qwen38-ciru-rocm10-20260905-rc2",
+  "base_public_commit": "764ee491d4bc765cb8414d9bb17c24a5b364e097",
+  "core_base_commit": "baba5e0617ac40aa88b9ba96f4b90e584caec64e",
+  "core_patch_sha256": "e4dd31d385dbe6e640be47cd185877d89cd3696272e80e2e38a58d6364377b3a",
+  "tested_runtime_hashes": {
+    "bin/libgcc_s.so.1": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+    "bin/libggml-base.so.0.22.0": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+    "bin/libggml-cpu.so.0.22.0": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+    "bin/libggml-hip.so.0.22.0": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+    "bin/libggml.so.0.22.0": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+    "bin/libgomp.so.1": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+    "bin/libllama-bench-impl.so": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+    "bin/libllama-cli-impl.so": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+    "bin/libllama-common.so.0.3.0": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+    "bin/libllama-server-impl.so": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+    "bin/libllama.so.0.3.0": "c29bec577633c8c0c0f0b08a2103b69135aff035aedd49eb70799310aef9576b",
+    "bin/libmtmd.so.0.3.0": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+    "bin/libstdc++.so.6": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+    "bin/llama-bench": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+    "bin/llama-cli": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+    "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+  },
+  "all_retained_lane_fixes_included": true,
+  "included_fixes": [
+    {
+      "fix": "H109C attention descriptor stride repair",
+      "included": "Inherited unified Next",
+      "source": [
+        "ggml/src/ggml-cuda/fattn-tile.cuh"
+      ],
+      "evidence": "Six-source unified build identity; all 14 attention-header dependent objects verified in current HIP link"
+    },
+    {
+      "fix": "Long QSA TOP_K GPU admission",
+      "included": "Inherited and enabled: GGML_QSA_LONG_TOPK=1",
+      "source": [
+        "ggml/src/ggml-cuda/ggml-cuda.cu",
+        "ggml/src/ggml-cuda/top-k.cu"
+      ],
+      "evidence": "Qualified 35 selector cases / 17,920 rows; retained TOP_K recompiled unchanged during graph integration"
+    },
+    {
+      "fix": "Canonical restored-KV fast-path admission",
+      "included": "Inherited and enabled: GGML_QSA_RESTORE_FAST=1",
+      "source": [
+        "src/llama-memory-hybrid-idx.cpp"
+      ],
+      "evidence": "Verified unified object in current libllama link; served recovery activation itself remains unproven"
+    },
+    {
+      "fix": "Benchmark PLE and context argument plumbing",
+      "included": "Inherited unified benchmark binary",
+      "source": [
+        "tools/llama-bench/llama-bench.cpp"
+      ],
+      "evidence": "Same benchmark binary as retained shared ancestor"
+    },
+    {
+      "fix": "Seven-column Q5_K weight reuse",
+      "included": "Inherited unified HIP implementation",
+      "source": [
+        "ggml/src/ggml-cuda/mmvq.cu"
+      ],
+      "evidence": "Source matches tested e0a39ef3...; verified unified mmvq object; historical 9/9 byte-identical GPU cases"
+    },
+    {
+      "fix": "GPU MTP top-10 selector and support-probe repair",
+      "included": "Inherited top10-v2, enabled: CIRU_MTP_TOPK10=1",
+      "source": [
+        "ggml/src/ggml-cuda/ggml-cuda.cu",
+        "ggml/src/ggml-cuda/top-k.cu",
+        "ggml/src/ggml-cuda/top-k.cuh"
+      ],
+      "evidence": "189 direct cases / 1,323 rows and real sampler support/execution qualified; exact retained source preserved"
+    },
+    {
+      "fix": "Dynamic 32,768-row MTP output shortlist",
+      "included": "Inherited draft-shortlist, enabled: CIRU_MTP_SHORTLIST=32768",
+      "source": [
+        "common/speculative.cpp",
+        "src/ciru-mtp-shortlist.h",
+        "src/models/qwen4exp.cpp"
+      ],
+      "evidence": "Original libllama-common unchanged; same source and retained model object. Target verification preserved"
+    },
+    {
+      "fix": "Decode-entry and internal-microbatch fences",
+      "included": "Added to direct shared shortlist ancestor",
+      "source": [
+        "src/llama-context.cpp"
+      ],
+      "evidence": "22 production-shape numerical captures plus actual MTP and balanced 520-token serving; final tokens match; review proposals improve"
+    },
+    {
+      "fix": "Fresh HIP graph recapture and no redundant first update",
+      "included": "Added, fresh instantiation default; legacy update option cleared by launcher",
+      "source": [
+        "ggml/src/ggml-cuda/ggml-cuda.cu"
+      ],
+      "evidence": "Same-policy MTP outputs/counters match; graph-only balanced serving; causal correlated profile. Retained for runtime-work reduction with modest TG"
+    },
+    {
+      "fix": "Set launcher working directory to its bundle",
+      "included": "Packaging fix in RC2",
+      "source": [
+        "run.sh"
+      ],
+      "evidence": "Ciru version startup blocked on home/cirudata stat; same binary passed immediately with bundle cwd. Launcher now selects that cwd before exec."
+    }
+  ],
+  "scope": "Core code identical to RC2; portable setup helpers retained from v1.1.1. Published source build is separately Ubuntu24.04 build/GPU-smoke checked. Performance and fidelity refer to retained NixOS RC2 binaries.",
+  "model_artifacts": [
+    {
+      "rfilename": "Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+      "size": 79397818720,
+      "lfs": {
+        "size": 79397818720,
+        "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0",
+        "pointer_size": 136
+      }
+    },
+    {
+      "rfilename": "mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+      "size": 4135893248,
+      "lfs": {
+        "size": 4135893248,
+        "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642",
+        "pointer_size": 135
+      }
+    },
+    {
+      "rfilename": "ple/ple.manifest.json",
+      "size": 115213,
+      "lfs": null
+    },
+    {
+      "rfilename": "ple/ple.payload.bin",
+      "size": 52429053952,
+      "lfs": {
+        "size": 52429053952,
+        "sha256": "687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2",
+        "pointer_size": 136
+      }
+    },
+    {
+      "rfilename": "ple/ple.scale.bf16",
+      "size": 2,
+      "lfs": null
+    }
+  ]
+}

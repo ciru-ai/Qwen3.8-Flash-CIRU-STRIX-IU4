@@ -29,6 +29,11 @@ export GGML_CUDA_Q41_MOE_FORCE_J=32
 export GGML_QWEN4EXP_PLE_WORKERS=16
 export GGML_QWEN4EXP_PLE_STRICT_SHA=0
 export ROCBLAS_USE_HIPBLASLT=1
+export GGML_QSA_LONG_TOPK=1
+export GGML_QSA_RESTORE_FAST=1
+export CIRU_MTP_TOPK10=1
+export CIRU_MTP_SHORTLIST=32768
+unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE CIRU_MTP_GPU_CONF_MIN CIRU_MOE_EXPERT_REUSE CIRU_MTP_TRACE CIRU_MTP_CONF_TRACE LD_PRELOAD
 
 ./build-gfx1151/bin/llama-server \
   --model /absolute/path/to/model/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf \
@@ -43,13 +48,14 @@ export ROCBLAS_USE_HIPBLASLT=1
   --cont-batching \
   --cache-prompt --cache-ram 8192 --cache-idle-slots \
   --ctx-checkpoints 32 --checkpoint-min-step 8192 \
+  --temp 1.0 --top-p 0.95 --top-k 20 --min-p 0 \
   --metrics --slots \
   --spec-type draft-mtp \
   --spec-draft-model /absolute/path/to/model/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf \
   --spec-draft-ngl all --spec-draft-device ROCm0 \
   --spec-draft-type-k q8_0 --spec-draft-type-v q8_0 \
   --spec-draft-threads 8 --spec-draft-threads-batch 8 \
-  --spec-draft-n-max 3 --spec-draft-n-min 0 \
+  --spec-draft-n-max 6 --spec-draft-n-min 0 \
   --spec-draft-p-min 0.0 --spec-draft-p-split 0.10
 ```
 
@@ -111,7 +117,7 @@ These follow the upstream Qwen recommendations. Tune sampling for your applicati
 The target and PLE sidecar can run without the MTP draft. Remove all `--spec-*` flags, or set `ENABLE_MTP=0` when using the launcher:
 
 ```bash
-ENABLE_MTP=0 MODEL_DIR=/absolute/path/to/model \
+BUILD_DIR="$PWD/build-gfx1151-sdk" BUILD_DIR="$PWD/build-gfx1151-sdk" ENABLE_MTP=0 MODEL_DIR=/absolute/path/to/model \
   ./scripts/ciru/run-server.sh
 ```
 

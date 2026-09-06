@@ -676,8 +676,13 @@ static __global__ void mul_mat_vec_q(
         // x block quant index when casting the quants to int
         const int kqs = vdr * (tid % (qi/vdr));
 
-        if constexpr (type == GGML_TYPE_Q5_K && ncols_dst == 4 && rows_per_cuda_block == 1 && !has_fusion) {
-            // H101 MTP target verification: all four columns consume the same
+#if defined(RDNA3_5)
+        constexpr bool q5k_shared_x_cols = ncols_dst == 4 || ncols_dst == 7;
+#else
+        constexpr bool q5k_shared_x_cols = ncols_dst == 4;
+#endif
+        if constexpr (type == GGML_TYPE_Q5_K && q5k_shared_x_cols && rows_per_cuda_block == 1 && !has_fusion) {
+            // MTP target verification: all columns consume the same
             // Q5_K block. Decode that input-side state once, then retain the
             // established Q8 loads, DP4A order, accumulation order and output.
             const q5_K_mmvq_x_state x = load_q5_K_mmvq_x_state(vx, kbx_offset + kbx, kqs);

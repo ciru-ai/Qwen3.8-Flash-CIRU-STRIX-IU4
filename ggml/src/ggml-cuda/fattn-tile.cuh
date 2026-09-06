@@ -1,6 +1,8 @@
 #include "common.cuh"
 #include "fattn-common.cuh"
 
+static constexpr int qsa_grouped_descriptor_stride = 4*2051 + 1;
+
 // nbatch_fa == number of KQ rows to process per iteration
 // nbatch_K == number of K columns to load in parallel for KQ calculation
 
@@ -991,7 +993,7 @@ static __global__ void flash_attn_tile(
 
     const int col_Q_0 = blockIdx.x * ncols1; // Index of the first Q column for this CUDA block to work on.
     const int * cell_ids = indexed_kv && !grouped_qsa ? cell_ids_all + int64_t(col_Q_0)*ne11 : nullptr;
-    const uint64_t * qsa_desc = grouped_qsa ? qsa_desc_all + int64_t(blockIdx.x)*2050 : nullptr;
+    const uint64_t * qsa_desc = grouped_qsa ? qsa_desc_all + int64_t(blockIdx.x)*qsa_grouped_descriptor_stride : nullptr;
 
     const int sequence = blockIdx.z / (ne02/ncols2);
     const int head0 = blockIdx.z*ncols2 - sequence*ne02; // == blockIdx.z % (ne02/ncols2)
@@ -1338,7 +1340,7 @@ static __global__ void h109c_qsa_compact_membership(
     if (threadIdx.x != 0) {
         return;
     }
-    constexpr int descriptor_stride = 2050;
+    constexpr int descriptor_stride = qsa_grouped_descriptor_stride;
     const int group = blockIdx.x;
     const uint32_t * in = membership + int64_t(group)*n_blocks;
     uint64_t * out = descriptors + int64_t(group)*descriptor_stride;
@@ -1459,7 +1461,7 @@ static void ggml_cuda_flash_attn_ext_tile_group4_qsa(
     constexpr bool use_logit_softcap = false;
     constexpr bool indexed_kv = true;
     constexpr bool grouped_qsa = true;
-    constexpr int descriptor_stride = 2050;
+    constexpr int descriptor_stride = qsa_grouped_descriptor_stride;
     constexpr size_t nbytes_shared = 0;
 
     const int groups = Q->ne[1]/ncols1;
@@ -1468,7 +1470,7 @@ static void ggml_cuda_flash_attn_ext_tile_group4_qsa(
     const int cell_base = indexed_layout >> 8;
     GGML_ASSERT(indexed_ratio == 4 && cell_base >= 0 && cell_base < K->ne[1]);
     const int n_physical_blocks = (int(K->ne[1]) - cell_base + indexed_ratio - 1)/indexed_ratio;
-    GGML_ASSERT(n_physical_blocks <= descriptor_stride - 2);
+    GGML_ASSERT(descriptor_stride > 4*cell_ids->ne[0]);
 
     ggml_cuda_pool_alloc<uint64_t> descriptor_alloc(ctx.pool(), int64_t(groups)*descriptor_stride);
     uint64_t * descriptors = descriptor_alloc.get();

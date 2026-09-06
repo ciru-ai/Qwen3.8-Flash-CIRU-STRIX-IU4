@@ -5,6 +5,7 @@
 | Environment | Status | Notes |
 |---|---|---|
 | NixOS x86-64 + TheRock ROCm + gfx1151 | **Validated** | Release performance path |
+| Ubuntu 24.04 container + isolated ROCm 10.0.0 | **v2.0 build and GPU-smoke validated** | Clean build, ELF checks, 64-token MTP completion; NixOS host GPU driver |
 | Ubuntu 26.04 + isolated TheRock ROCm 10.0.0 SDK | **Build-validated** | Clean container, all three binaries; GPU inference remains unvalidated on this distro |
 | Other Ubuntu/Debian + ROCm | Unvalidated | Requires a complete, matching SDK with gfx1151 support |
 | Fedora/RHEL + ROCm | Source-compatible, unvalidated | Use the distro's supported ROCm packages |
@@ -14,7 +15,7 @@
 
 Only the first row is represented by the published speed numbers.
 
-Ubuntu build validation on 2026-09-05 used CMake 4.2.3, GNU 15.2.0, Python 3.14, and AMD's stable ROCm 10.0.0 SDK in a clean Ubuntu 26.04 container with no GPU devices. All three binaries compiled, the server's shared libraries resolved, and `--version`/`--help` returned successfully with the PLE and MTP options present. The expected no-GPU diagnostic in that container is not an inference test.
+Historical v1.1.1 Historical v1.1.1 Ubuntu build validation on 2026-09-05 used CMake 4.2.3, GNU 15.2.0, Python 3.14, and AMD's stable ROCm 10.0.0 SDK in a clean Ubuntu 26.04 container with no GPU devices. All three binaries compiled, the server's shared libraries resolved, and `--version`/`--help` returned successfully with the PLE and MTP options present. The expected no-GPU diagnostic in that container is not an inference test.
 
 ## Prerequisites
 
@@ -81,14 +82,11 @@ BUILD_DIR="$PWD/build-gfx1151-sdk" \
 
 ## Build the gfx1151 release runtime
 
-If you already have a complete ROCm/TheRock SDK, use the lower-level build script. Version `v1.1.1` includes the version 1.1 cache fix and these installation helpers; the original `v1.1` tag does not contain the new setup/preflight changes.
+If you already have a complete ROCm/TheRock SDK, use the lower-level build script from this extracted v2.0 source directory. The v1.1.1 SDK setup fixes are retained.
 
-```bash
-git clone --branch v1.1.1 \
-  https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
-cd Qwen3.8-Flash-CIRU-STRIX-IU4
+~~~bash
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
-```
+~~~
 
 The build script sets `ROCM_PATH` and `HIP_PATH` to the selected root, pins the HIP/hipBLAS/rocBLAS CMake packages there, uses AMD clang directly, and records SDK library directories in the build's runtime search paths. `hipcc` is not a valid `CMAKE_HIP_COMPILER` for CMake's native HIP language.
 

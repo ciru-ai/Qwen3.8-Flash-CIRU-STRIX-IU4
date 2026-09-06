@@ -51,6 +51,10 @@ args=(
     --cache-idle-slots
     --ctx-checkpoints "${CTX_CHECKPOINTS:-32}"
     --checkpoint-min-step "${CHECKPOINT_MIN_STEP:-8192}"
+    --temp "${TEMPERATURE:-1.0}"
+    --top-p "${TOP_P:-0.95}"
+    --top-k "${TOP_K:-20}"
+    --min-p "${MIN_P:-0.0}"
     --metrics
     --slots
 )
@@ -69,11 +73,14 @@ if [[ "${ENABLE_MTP:-1}" != "0" ]]; then
         --spec-draft-type-v q8_0
         --spec-draft-threads "${DRAFT_THREADS:-8}"
         --spec-draft-threads-batch "${DRAFT_BATCH_THREADS:-8}"
-        --spec-draft-n-max "${MTP_DEPTH:-3}"
+        --spec-draft-n-max "${MTP_DEPTH:-6}"
         --spec-draft-n-min 0
         --spec-draft-p-min 0.0
         --spec-draft-p-split 0.10
     )
 fi
 
+unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE CIRU_MTP_GPU_CONF_MIN CIRU_MOE_EXPERT_REUSE CIRU_MTP_TRACE CIRU_MTP_CONF_TRACE LD_PRELOAD
+# Backend discovery must not scan an unrelated working directory.
+cd -- "${repo_root}"
 exec "${server_bin}" "${args[@]}" "$@"

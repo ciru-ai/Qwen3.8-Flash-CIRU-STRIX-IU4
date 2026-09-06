@@ -1769,6 +1769,11 @@ static bool needs_raw_logits(const llama_ubatch & ubatch, const std::map<llama_s
 }
 
 int llama_context::decode(const llama_batch & batch_inp) {
+    // Complete prior output-free work before changing shared batch storage.
+    if (n_queued_tokens > 0) {
+        synchronize();
+    }
+
     // MTP hook batches carry both token (next-token id) and embd (h_nextn row),
     // so accept either present rather than requiring exactly one.
     GGML_ASSERT(batch_inp.token || batch_inp.embd);
@@ -2103,6 +2108,10 @@ int llama_context::decode(const llama_batch & batch_inp) {
 
         n_outputs_prev += n_outputs;
         n_tokens_prev  += ubatch.n_tokens;
+        // Keep the final microbatch asynchronous and preserve batch accounting.
+        if (n_tokens_prev < n_tokens_all) {
+            ggml_backend_sched_synchronize(sched.get());
+        }
     } while (mctx->next());
 
     // set to total number of outputs in the batch, for use in llama_get_logits_ith

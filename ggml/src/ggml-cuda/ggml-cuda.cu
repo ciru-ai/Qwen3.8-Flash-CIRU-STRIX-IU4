@@ -2647,6 +2647,22 @@ static bool ggml_cuda_graph_update_required(ggml_backend_cuda_context * cuda_ctx
 static void ggml_cuda_graph_update_executable(ggml_backend_cuda_context * cuda_ctx, const void * graph_key) {
     ggml_cuda_graph * graph = cuda_ctx->cuda_graph(graph_key);
 
+#ifdef GGML_USE_HIP
+    static const bool use_hip_graph_exec_update = [] {
+        const char * value = getenv("GGML_HIP_GRAPH_EXEC_UPDATE");
+        const bool enabled = value != nullptr && strcmp(value, "1") == 0;
+        GGML_LOG_INFO("HIP graph recapture policy: %s\n", enabled ? "exec update" : "fresh instantiation");
+        return enabled;
+    }();
+    if (!use_hip_graph_exec_update) {
+        // Recapture already has current parameters; avoid costly HIP topology updates.
+        CUDA_CHECK(cudaGraphExecDestroy(graph->instance));
+        graph->instance = nullptr;
+        CUDA_CHECK(cudaGraphInstantiate(&graph->instance, graph->graph, NULL, NULL, 0));
+        return;
+    }
+#endif
+
 #if CUDART_VERSION >= 12000
     cudaGraphExecUpdateResultInfo result_info;
     cudaError_t stat = cudaGraphExecUpdate(graph->instance, graph->graph, &result_info);
@@ -4234,8 +4250,7 @@ static void ggml_cuda_graph_evaluate_and_capture(ggml_backend_cuda_context * cud
         ggml_cuda_graph * graph = cuda_ctx->cuda_graph(graph_key);
         if (graph->instance == nullptr) { // Create executable graph from captured graph.
             CUDA_CHECK(cudaGraphInstantiate(&graph->instance, graph->graph, NULL, NULL, 0));
-        }
-        if (cuda_graph_update_required) { // Update graph executable
+        } else if (cuda_graph_update_required) { // Update an existing executable only.
             ggml_cuda_graph_update_executable(cuda_ctx, graph_key);
         }
         // Launch graph
@@ -5303,6 +5318,9 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
         case GGML_OP_SUM:
             return ggml_is_contiguous_rows(op->src[0]);
         case GGML_OP_TOP_K:
+            if (ggml_cuda_supports_mtp_top_k(op)) {
+                return true;
+            }
 #ifndef GGML_CUDA_USE_CUB
             if (ggml_top_k_is_qsa_blocks(op)) {
 #ifdef GGML_USE_HIP
@@ -5324,11 +5342,22 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
             }
 #ifdef GGML_USE_HIP
             if (op->src[0]->ne[0] > 1024) {
+                const char * long_topk = std::getenv("GGML_QSA_LONG_TOPK");
+                const int64_t max_cols = long_topk && std::strcmp(long_topk, "1") == 0 ? 262144 : 8192;
+                if (std::getenv("GGML_QSA_TRACE")) {
+                    static int64_t last_cols = -1;
+                    if (last_cols != op->src[0]->ne[0]) {
+                        fprintf(stderr, "QSA_TOPK_ADMISSION cols=%lld rows=%lld max_cols=%lld\n",
+                                (long long) op->src[0]->ne[0], (long long) ggml_nrows(op->src[0]),
+                                (long long) max_cols);
+                        last_cols = op->src[0]->ne[0];
+                    }
+                }
                 return op->src[0]->type == GGML_TYPE_F32 &&
                        op->type == GGML_TYPE_I32 &&
                        op->src[0]->ne[1] == 512 &&
                        ggml_nrows(op->src[0]) == 512 &&
-                       op->src[0]->ne[0] <= 8192 &&
+                       op->src[0]->ne[0] <= max_cols &&
                        op->ne[0] == std::min<int64_t>(op->src[0]->ne[0], 2051) &&
                        ggml_is_contiguous(op->src[0]) &&
                        ggml_is_contiguous(op) &&

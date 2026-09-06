@@ -321,6 +321,9 @@ static std::vector<int> parse_int_range(const std::string & s, bool allow_negati
 
 struct cmd_params {
     std::vector<std::string>         model;
+    std::string                      ple_sidecar;
+    size_t                           ple_cache_mib;
+    uint32_t                         context_size;
     std::vector<std::string>         hf_repo;
     std::vector<std::string>         hf_file;
     std::string                      hf_token;
@@ -365,6 +368,9 @@ struct cmd_params {
 
 static const cmd_params cmd_params_defaults = {
     /* model                */ { "models/7B/ggml-model-q4_0.gguf" },
+    /* ple_sidecar          */ "",
+    /* ple_cache_mib        */ 0,
+    /* context_size         */ 0,
     /* hf_repo              */ {},
     /* hf_file              */ {},
     /* hf_token             */ "",
@@ -430,6 +436,9 @@ static void print_usage(int /* argc */, char ** argv) {
     printf("\n");
     printf("test parameters:\n");
     printf("  -m, --model <filename>                            (default: %s)\n", join(cmd_params_defaults.model, ",").c_str());
+    printf("  --ple-sidecar <path>                              CIRUPLE1 sidecar directory (default: unused)\n");
+    printf("  --ple-cache-mib <n>                               CIRUPLE1 decoded-row cache in MiB (default: %zu)\n", cmd_params_defaults.ple_cache_mib);
+    printf("  -c, --ctx-size <n>                                minimum context allocation (default: exact test size)\n");
     printf("  -hf, -hfr, --hf-repo <user>/<model>[:quant]       Hugging Face model repository; quant is optional, case-insensitive\n");
     printf("                                                    default to Q4_K_M, or falls back to the first file in the repo if Q4_K_M doesn't exist.\n");
     printf("                                                    example: ggml-org/GLM-4.7-Flash-GGUF:Q4_K_M\n");
@@ -521,6 +530,8 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
     params.progress             = cmd_params_defaults.progress;
     params.no_warmup            = cmd_params_defaults.no_warmup;
     params.offline              = cmd_params_defaults.offline;
+    params.ple_cache_mib        = cmd_params_defaults.ple_cache_mib;
+    params.context_size         = cmd_params_defaults.context_size;
 
     if (const char * env = getenv("HF_TOKEN")) {
         params.hf_token = env;
@@ -543,6 +554,24 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
                 }
                 auto p = string_split<std::string>(argv[i], split_delim);
                 params.model.insert(params.model.end(), p.begin(), p.end());
+            } else if (arg == "--ple-sidecar") {
+                if (++i >= argc) {
+                    invalid_param = true;
+                    break;
+                }
+                params.ple_sidecar = argv[i];
+            } else if (arg == "--ple-cache-mib") {
+                if (++i >= argc) {
+                    invalid_param = true;
+                    break;
+                }
+                params.ple_cache_mib = std::stoull(argv[i]);
+            } else if (arg == "-c" || arg == "--ctx-size") {
+                if (++i >= argc) {
+                    invalid_param = true;
+                    break;
+                }
+                params.context_size = std::stoul(argv[i]);
             } else if (arg == "-hf" || arg == "-hfr" || arg == "--hf-repo") {
                 if (++i >= argc) {
                     invalid_param = true;
@@ -1188,6 +1217,9 @@ static cmd_params parse_cmd_params(int argc, char ** argv) {
 
 struct cmd_params_instance {
     std::string        model;
+    std::string        ple_sidecar;
+    size_t             ple_cache_bytes;
+    uint32_t           context_size;
     int                n_prompt;
     int                n_gen;
     int                n_depth;
@@ -1219,6 +1251,8 @@ struct cmd_params_instance {
         llama_model_params mparams = llama_model_default_params();
 
         mparams.n_gpu_layers = n_gpu_layers;
+        mparams.ple_sidecar  = ple_sidecar.empty() ? nullptr : ple_sidecar.c_str();
+        mparams.ple_cache_bytes = ple_cache_bytes;
         if (!devices.empty()) {
             mparams.devices = const_cast<ggml_backend_dev_t *>(devices.data());
         }
@@ -1268,7 +1302,8 @@ struct cmd_params_instance {
     }
 
     bool equal_mparams(const cmd_params_instance & other) const {
-        return model == other.model && n_gpu_layers == other.n_gpu_layers && n_cpu_moe == other.n_cpu_moe &&
+        return model == other.model && ple_sidecar == other.ple_sidecar && ple_cache_bytes == other.ple_cache_bytes &&
+               n_gpu_layers == other.n_gpu_layers && n_cpu_moe == other.n_cpu_moe &&
                split_mode == other.split_mode &&
                main_gpu == other.main_gpu && tensor_split == other.tensor_split &&
                load_mode == other.load_mode && devices == other.devices && no_host == other.no_host &&
@@ -1278,7 +1313,7 @@ struct cmd_params_instance {
     llama_context_params to_llama_cparams() const {
         llama_context_params cparams = llama_context_default_params();
 
-        cparams.n_ctx           = n_prompt + n_gen + n_depth;
+        cparams.n_ctx           = std::max<uint32_t>(context_size, n_prompt + n_gen + n_depth);
         cparams.n_batch         = n_batch;
         cparams.n_ubatch        = n_ubatch;
         cparams.type_k          = type_k;
@@ -1329,6 +1364,9 @@ static std::vector<cmd_params_instance> get_cmd_params_instances(const cmd_param
             }
             cmd_params_instance instance = {
                 /* .model                 = */ m,
+                /* .ple_sidecar           = */ params.ple_sidecar,
+                /* .ple_cache_bytes       = */ params.ple_cache_mib * 1024ULL * 1024ULL,
+                /* .context_size          = */ params.context_size,
                 /* .n_prompt              = */ n_prompt,
                 /* .n_gen                 = */ 0,
                 /* .n_depth               = */ nd,
@@ -1365,6 +1403,9 @@ static std::vector<cmd_params_instance> get_cmd_params_instances(const cmd_param
             }
             cmd_params_instance instance = {
                 /* .model                 = */ m,
+                /* .ple_sidecar           = */ params.ple_sidecar,
+                /* .ple_cache_bytes       = */ params.ple_cache_mib * 1024ULL * 1024ULL,
+                /* .context_size          = */ params.context_size,
                 /* .n_prompt              = */ 0,
                 /* .n_gen                 = */ n_gen,
                 /* .n_depth               = */ nd,
@@ -1401,6 +1442,9 @@ static std::vector<cmd_params_instance> get_cmd_params_instances(const cmd_param
             }
             cmd_params_instance instance = {
                 /* .model                 = */ m,
+                /* .ple_sidecar           = */ params.ple_sidecar,
+                /* .ple_cache_bytes       = */ params.ple_cache_mib * 1024ULL * 1024ULL,
+                /* .context_size          = */ params.context_size,
                 /* .n_prompt              = */ n_pg.first,
                 /* .n_gen                 = */ n_pg.second,
                 /* .n_depth               = */ nd,

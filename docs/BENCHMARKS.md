@@ -1,3 +1,7 @@
+# Historical benchmark record (pre-v2.0)
+
+These results are retained for provenance and are not a fresh v2.0 qualification. Current results: [V2_RELEASE.md](V2_RELEASE.md).
+
 # Benchmarks and methodology
 
 All results below were produced on a Ryzen AI Max+ 395 / Radeon 8060S (`gfx1151`) system with 128 GiB unified memory and the CIRU Qwen3.8 runtime. The released weights are text-only.

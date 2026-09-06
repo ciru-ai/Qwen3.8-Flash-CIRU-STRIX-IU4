@@ -1,3 +1,6 @@
+#include <climits>
+#include <cstdlib>
+
 #include "argsort.cuh"
 #include "top-k.cuh"
 
@@ -301,6 +304,137 @@ static void h111_top_k_identity_launch(
 
 #endif // defined(GGML_USE_HIP)
 
+#if defined(GGML_USE_HIP)
+// The vocabulary is split into 1024-value tiles.  Keeping ten winners per
+// tile is sufficient to recover the global top ten through smaller reduction passes.
+// Equal scores use token order; the TOP_K operation does not prescribe tie order.
+static __device__ __forceinline__ bool mtp_top10_better(float av, int ai, float bv, int bi) {
+    return av > bv || (av == bv && ai < bi);
+}
+
+template<int items, bool merge, bool mapped = false>
+static __global__ void mtp_top10_f32_i32(
+        const float * src, const int * src_ids, float * values, int * indices,
+        const int ncols, const int ntiles) {
+    constexpr int threads = 256;
+    constexpr int warp = ggml_cuda_get_physical_warp_size();
+    constexpr int nwarps = threads / warp;
+    const int row = blockIdx.y;
+    const int start = merge ? 0 : int(blockIdx.x) * threads * items;
+    const float * row_src = src + int64_t(row) * ncols;
+    const int * row_ids = (merge || mapped) ? src_ids + int64_t(row) * ncols : nullptr;
+
+    float local_values[items];
+    int local_ids[items];
+#pragma unroll
+    for (int i = 0; i < items; ++i) {
+        const int col = start + threadIdx.x + i * threads;
+        local_values[i] = col < ncols ? row_src[col] : -INFINITY;
+        local_ids[i] = col < ncols ? ((merge || mapped) ? row_ids[col] : col) : INT_MAX;
+    }
+
+    __shared__ float warp_values[nwarps];
+    __shared__ int warp_ids[nwarps];
+    __shared__ int selected;
+    const int out = merge ? row * 10 : (row * ntiles + int(blockIdx.x)) * 10;
+
+#pragma unroll
+    for (int rank = 0; rank < 10; ++rank) {
+        float best = -INFINITY;
+        int best_id = INT_MAX;
+#pragma unroll
+        for (int i = 0; i < items; ++i) {
+            if (mtp_top10_better(local_values[i], local_ids[i], best, best_id)) {
+                best = local_values[i];
+                best_id = local_ids[i];
+            }
+        }
+#pragma unroll
+        for (int offset = warp / 2; offset > 0; offset >>= 1) {
+            const float other = __shfl_xor_sync(0xffffffffu, best, offset, warp);
+            const int other_id = __shfl_xor_sync(0xffffffffu, best_id, offset, warp);
+            if (mtp_top10_better(other, other_id, best, best_id)) {
+                best = other;
+                best_id = other_id;
+            }
+        }
+        if (threadIdx.x % warp == 0) {
+            warp_values[threadIdx.x / warp] = best;
+            warp_ids[threadIdx.x / warp] = best_id;
+        }
+        __syncthreads();
+        if (threadIdx.x == 0) {
+            best = -INFINITY;
+            best_id = INT_MAX;
+#pragma unroll
+            for (int i = 0; i < nwarps; ++i) {
+                if (mtp_top10_better(warp_values[i], warp_ids[i], best, best_id)) {
+                    best = warp_values[i];
+                    best_id = warp_ids[i];
+                }
+            }
+            indices[out + rank] = best_id;
+            if constexpr (!merge) {
+                values[out + rank] = best;
+            }
+            selected = best_id;
+        }
+        __syncthreads();
+#pragma unroll
+        for (int i = 0; i < items; ++i) {
+            if (local_ids[i] == selected) {
+                local_values[i] = -INFINITY;
+                local_ids[i] = INT_MAX;
+            }
+        }
+    }
+}
+
+static void mtp_top10_launch(ggml_cuda_pool & pool, const float * src, int * dst,
+        int ncols, int nrows, cudaStream_t stream) {
+    const int ntiles = (ncols + 1023) / 1024;
+    GGML_ASSERT(ncols >= 10 && ncols <= 1048576);
+    ggml_cuda_pool_alloc<float> values(pool, int64_t(nrows) * ntiles * 10);
+    ggml_cuda_pool_alloc<int> indices(pool, int64_t(nrows) * ntiles * 10);
+    mtp_top10_f32_i32<4, false><<<dim3(ntiles, nrows), dim3(256), 0, stream>>>(
+        src, nullptr, values.get(), indices.get(), ncols, ntiles);
+    CUDA_CHECK(cudaGetLastError());
+    if (ntiles * 10 <= 4096) {
+        mtp_top10_f32_i32<16, true><<<dim3(1, nrows), dim3(256), 0, stream>>>(
+            values.get(), indices.get(), nullptr, dst, ntiles * 10, 1);
+        CUDA_CHECK(cudaGetLastError());
+    } else {
+        const int reduced_tiles = (ntiles * 10 + 1023) / 1024;
+        ggml_cuda_pool_alloc<float> reduced_values(pool, int64_t(nrows) * reduced_tiles * 10);
+        ggml_cuda_pool_alloc<int> reduced_indices(pool, int64_t(nrows) * reduced_tiles * 10);
+        mtp_top10_f32_i32<4, false, true><<<dim3(reduced_tiles, nrows), dim3(256), 0, stream>>>(
+            values.get(), indices.get(), reduced_values.get(), reduced_indices.get(), ntiles * 10, reduced_tiles);
+        CUDA_CHECK(cudaGetLastError());
+        mtp_top10_f32_i32<16, true><<<dim3(1, nrows), dim3(256), 0, stream>>>(
+            reduced_values.get(), reduced_indices.get(), nullptr, dst, reduced_tiles * 10, 1);
+        CUDA_CHECK(cudaGetLastError());
+    }
+}
+
+#endif
+
+bool ggml_cuda_supports_mtp_top_k(const ggml_tensor * dst) {
+#if defined(GGML_USE_HIP)
+    static const bool enabled = [] {
+        const char * value = std::getenv("CIRU_MTP_TOPK10");
+        return value && value[0] == '1';
+    }();
+    const ggml_tensor * src = dst->src[0];
+    return enabled && !ggml_top_k_is_qsa_blocks(dst) && src->type == GGML_TYPE_F32 &&
+        dst->type == GGML_TYPE_I32 && (src->ne[0] >= 10 && src->ne[0] <= 1048576) && dst->ne[0] == 10 &&
+        ggml_nrows(src) >= 1 && ggml_nrows(src) <= 16 && ggml_nrows(dst) == ggml_nrows(src) &&
+        ggml_is_contiguous(src) && ggml_is_contiguous(dst);
+#else
+    GGML_UNUSED(dst);
+    return false;
+#endif
+}
+
 void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     const ggml_tensor * src0   = dst->src[0];
     const float *       src0_d = (const float *) src0->data;
@@ -316,6 +450,16 @@ void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     const int64_t    nrows = ggml_nrows(src0);
     const int64_t    k     = dst->ne[0];
     ggml_cuda_pool & pool  = ctx.pool();
+#if defined(GGML_USE_HIP)
+    if (ggml_cuda_supports_mtp_top_k(dst)) {
+        if (std::getenv("CIRU_MTP_TOPK_TRACE")) {
+            GGML_LOG_INFO("CIRU_MTP_TOPK10 GPU cols=%lld rows=%lld\n", (long long) ncols, (long long) nrows);
+        }
+        mtp_top10_launch(pool, src0_d, dst_d, ncols, nrows, stream);
+        return;
+    }
+#endif
+
 #if defined(GGML_USE_HIP)
     if (ggml_top_k_is_qsa_blocks(dst)) {
         const ggml_tensor * positions = dst->src[1];
@@ -344,7 +488,7 @@ void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
             h109c_reported = true;
         }
         GGML_ASSERT(src0->ne[1] == 512 && nrows == 512);
-        GGML_ASSERT(ncols <= 8192 && k == std::min<int64_t>(ncols, 2051));
+        GGML_ASSERT(ncols <= 262144 && k == std::min<int64_t>(ncols, 2051));
         GGML_ASSERT(ggml_is_contiguous(dst));
         if (ncols == k) {
             h111_top_k_identity_launch(dst_d, ncols, nrows, stream);

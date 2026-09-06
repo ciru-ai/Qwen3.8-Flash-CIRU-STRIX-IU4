@@ -8,6 +8,96 @@
 #include <algorithm>
 #include <cinttypes>
 #include <stdexcept>
+#include <map>
+#include <mutex>
+#include <numeric>
+#include <limits>
+#include "../ciru-mtp-shortlist.h"
+
+namespace {
+struct ciru_shortlist_state {
+    std::vector<int32_t> ids;
+    std::vector<int64_t> ids64;
+};
+std::mutex ciru_shortlist_mutex;
+std::map<const llama_model *, std::shared_ptr<ciru_shortlist_state>> ciru_shortlists;
+
+std::shared_ptr<ciru_shortlist_state> ciru_shortlist_for(const llama_model * model) {
+    std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+    auto & state = ciru_shortlists[model];
+    if (!state) {
+        state = std::make_shared<ciru_shortlist_state>();
+        const int count = ciru_mtp_shortlist_size();
+        state->ids.resize(count);
+        state->ids64.resize(count);
+        std::iota(state->ids.begin(), state->ids.end(), 0);
+        std::iota(state->ids64.begin(), state->ids64.end(), 0);
+    }
+    return state;
+}
+
+class ciru_shortlist_input : public llm_graph_input_i {
+public:
+    ggml_tensor * ids = nullptr;
+    ggml_tensor * ids64 = nullptr;
+    std::shared_ptr<ciru_shortlist_state> state;
+
+    void set_input(const llama_ubatch *) override {
+        std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+        ggml_backend_tensor_set(ids, state->ids.data(), 0, state->ids.size() * sizeof(int32_t));
+        ggml_backend_tensor_set(ids64, state->ids64.data(), 0, state->ids64.size() * sizeof(int64_t));
+    }
+    bool can_reuse(const llm_graph_params &) override { return true; }
+};
+}
+
+int ciru_mtp_shortlist_size(void) {
+    static const int count = [] {
+        const char * value = std::getenv("CIRU_MTP_SHORTLIST");
+        if (!value) return 0;
+        const int result = std::atoi(value);
+        GGML_ASSERT(result >= 1024 && result <= 248320);
+        return result;
+    }();
+    return count;
+}
+
+void ciru_mtp_shortlist_update(const llama_model * draft, const float * target_logits, int n_vocab, llama_token last) {
+    const int count = ciru_mtp_shortlist_size();
+    if (!count) return;
+    GGML_ASSERT(n_vocab == 248320 && target_logits != nullptr && count <= n_vocab);
+    auto state = ciru_shortlist_for(draft);
+    std::vector<int32_t> order(n_vocab);
+    std::iota(order.begin(), order.end(), 0);
+    const int common_count = count / 2;
+    // Half common low-rank vocabulary IDs, half context-conditioned candidates.
+    // Selection is performed from the current accepted-prefix target logits,
+    // independently of evaluation answers or future generated tokens.
+    const auto cmp = [&](int a, int b) {
+        return target_logits[a] > target_logits[b] || (target_logits[a] == target_logits[b] && a < b);
+    };
+    if (count < n_vocab) std::nth_element(order.begin(), order.begin()+count, order.end(), cmp);
+    std::sort(order.begin(), order.begin()+count, cmp);
+    std::vector<int32_t> selected;
+    std::vector<bool> seen(n_vocab, false);
+    const auto add = [&](int id) {
+        if (id >= 0 && id < n_vocab && !seen[id] && int(selected.size()) < count) {
+            seen[id] = true;
+            selected.push_back(id);
+        }
+    };
+    add(last);
+    for (int id=0; id<common_count; ++id) add(id);
+    for (int i=0; i<count; ++i) add(order[i]);
+    GGML_ASSERT(int(selected.size()) == count);
+    // Sorting IDs improves weight access order; it does not change membership.
+    std::sort(selected.begin(), selected.end());
+    std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+    state->ids = std::move(selected);
+    std::copy(state->ids.begin(), state->ids.end(), state->ids64.begin());
+}
+
+
 
 llama_model_qwen4exp::llama_model_qwen4exp(const llama_model_params & model_params) :
         llama_model_base(model_params) {
@@ -755,7 +845,30 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
     ggml_tensor * head_s = layer.nextn.shared_head_head ? layer.nextn.shared_head_head_s : model.output_s;
     GGML_ASSERT(head_w && "QWEN4EXP MTP: missing LM head (nextn.shared_head_head or model.output)");
 
-    cur = build_lora_mm(head_w, cur, head_s);
+    const int shortlist_count = ciru_mtp_shortlist_size();
+    if (shortlist_count > 0 && cur->ne[1] == 1) {
+        GGML_ASSERT(head_w->type == GGML_TYPE_Q8_0 && head_w->ne[0] == 2560 && head_w->ne[1] == 248320);
+        GGML_ASSERT(head_s == nullptr && "shortlist prototype requires the original unscaled Q8 head");
+        auto input = std::make_unique<ciru_shortlist_input>();
+        input->state = ciru_shortlist_for(&model);
+        input->ids = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, shortlist_count, 1);
+        input->ids64 = ggml_new_tensor_1d(ctx0, GGML_TYPE_I64, shortlist_count);
+        ggml_set_input(input->ids);
+        ggml_set_input(input->ids64);
+        cb(input->ids, "mtp_shortlist_ids", -1);
+        cb(input->ids64, "mtp_shortlist_ids64", -1);
+        auto * rows = ggml_reshape_3d(ctx0, head_w, head_w->ne[0], 1, head_w->ne[1]);
+        auto * activation = ggml_reshape_3d(ctx0, cur, cur->ne[0], 1, 1);
+        auto * small = ggml_mul_mat_id(ctx0, rows, activation, input->ids);
+        small = ggml_reshape_2d(ctx0, small, 1, shortlist_count);
+        auto * full = ggml_fill(ctx0, ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, 1, head_w->ne[1]),
+                               -std::numeric_limits<float>::infinity());
+        cur = ggml_set_rows(ctx0, full, small, input->ids64);
+        cur = ggml_reshape_2d(ctx0, cur, head_w->ne[1], 1);
+        res->add_input(std::move(input));
+    } else {
+        cur = build_lora_mm(head_w, cur, head_s);
+    }
     cb(cur, "result_output", -1);
     res->t_logits = cur;
 

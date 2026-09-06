@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
 #include <cstring>
 #include <iterator>
 #include <stdexcept>
@@ -416,7 +417,7 @@ llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_blocks(
         const llama_kv_cache::slot_info & sinfo,
         uint32_t ratio) {
     llama_qsa_block_plan plan;
-    if (!qsa_blocks_fast || !mem_idx_blocks || ratio != 4 || !ubatch.pos ||
+    if (!mem_idx_blocks || ratio != 4 || !ubatch.pos ||
             ubatch.n_tokens != 512 || ubatch.n_tokens % ratio != 0 ||
             sinfo.n_stream() != 1 || sinfo.size() != ubatch.n_tokens || !sinfo.is_contiguous()) {
         return plan;
@@ -439,6 +440,48 @@ llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_blocks(
     for (uint32_t i = 0; i < ubatch.n_tokens; ++i) {
         if ((int64_t) sinfo.idxs[0][i] != base64 + p0 + i) {
             return plan;
+        }
+    }
+
+    if (!qsa_blocks_fast) {
+        const char * recover = std::getenv("GGML_QSA_RESTORE_FAST");
+        if (!recover || std::strcmp(recover, "1") != 0 || !ubatch.seq_id || !ubatch.n_seq_id) {
+            return plan;
+        }
+        const llama_seq_id seq_id = ubatch.seq_id[0][0];
+        for (uint32_t i = 0; i < ubatch.n_tokens; ++i) {
+            if (ubatch.n_seq_id[i] != 1 || ubatch.seq_id[i][0] != seq_id) {
+                return plan;
+            }
+        }
+        const auto & cells = get_mem_idx()->get_cells(seq_id);
+        const auto & attn_cells = get_mem_attn()->get_cells(seq_id);
+        if (cells.get_has_shift() || attn_cells.get_has_shift() ||
+                cells.get_used() != attn_cells.get_used() ||
+                cells.used_min() != attn_cells.used_min() ||
+                cells.used_max_p1() != attn_cells.used_max_p1()) {
+            return plan;
+        }
+        const uint32_t first = cells.used_min();
+        const uint32_t end = cells.used_max_p1();
+        if (first != base64 || end < base64 + p0 || cells.get_used() != end - first) {
+            return plan;
+        }
+        for (uint32_t i = first; i < end; ++i) {
+            if (cells.is_empty(i) || attn_cells.is_empty(i) ||
+                    cells.seq_count(i) != 1 || attn_cells.seq_count(i) != 1 ||
+                    !cells.seq_has(i, seq_id) || !attn_cells.seq_has(i, seq_id) ||
+                    cells.pos_get(i) != int64_t(i) - base64 ||
+                    attn_cells.pos_get(i) != cells.pos_get(i)) {
+                return plan;
+            }
+        }
+        // H109C rebuilds pooled keys from raw KV; no derived cache is reused.
+        qsa_blocks_fast = true;
+        qsa_blocks_cell_base = (int32_t) base64;
+        if (std::getenv("GGML_QSA_TRACE")) {
+            LLAMA_LOG_INFO("QSA_RECOVER seq=%d base=%lld cells=%u p0=%d\n",
+                    seq_id, (long long) base64, end - first, p0);
         }
     }
 
