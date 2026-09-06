@@ -515,6 +515,79 @@ llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_blocks(
     return plan;
 }
 
+// A single, contiguous text-position stream needs no sequence-set grouping.
+// Validate every occupied cell before using this path: cache copies, shared
+// prefixes, fragmentation and repeated M-RoPE positions retain the general path.
+static bool llama_qsa_set_canonical_stream(
+        const llama_kv_cells & cells,
+        llama_seq_id seq_id,
+        const llama_ubatch & ubatch,
+        int64_t stream,
+        int64_t n_tps,
+        int64_t n_kv,
+        int64_t n_blocks,
+        int64_t ratio,
+        bool blk_bias,
+        int32_t * cell_blk,
+        int32_t * blk_cells,
+        int32_t * blk_pos,
+        int64_t pos_stride,
+        float * bias) {
+    const uint32_t first = cells.used_min();
+    const uint32_t end = cells.used_max_p1();
+    if (end <= first || end > n_kv || cells.get_used() != end - first) {
+        return false;
+    }
+    for (int64_t ii = 0; ii < n_tps; ++ii) {
+        if (ubatch.seq_id[stream*n_tps + ii][0] != seq_id) {
+            return false;
+        }
+    }
+    for (uint32_t j = first; j < end; ++j) {
+        if (cells.pos_get(j) != int64_t(j - first) || !cells.seq_has(j, seq_id)) {
+            return false;
+        }
+    }
+
+    const int64_t n_full = (end - first)/ratio;
+    const bool have_dead = n_full < n_blocks;
+    const int32_t dead_bid = have_dead ? n_full : n_blocks - 1;
+    std::fill(cell_blk, cell_blk + n_kv, dead_bid);
+    // blk_cells and blk_pos have already been zeroed, as in the general path.
+    for (int64_t b = 0; b < n_full; ++b) {
+        for (int64_t k = 0; k < ratio; ++k) {
+            const int32_t j = first + b*ratio + k;
+            cell_blk[j] = b;
+            blk_cells[b*ratio + k] = j;
+        }
+        for (int64_t sec = 0; sec < 4; ++sec) {
+            blk_pos[sec*pos_stride + b] = b*ratio;
+        }
+    }
+    for (int64_t ii = 0; ii < n_tps; ++ii) {
+        const int64_t q = ubatch.pos[stream*n_tps + ii];
+        const int64_t tail_start = (q + 1)/ratio*ratio;
+        if (blk_bias) {
+            float * row = bias + ii*n_blocks;
+            for (int64_t b = 0; b < n_full; ++b) {
+                row[b] = b*ratio >= tail_start ? 1e9f : 0.0f;
+            }
+            std::fill(row + n_full, row + n_blocks, -INFINITY);
+            if (have_dead) {
+                row[dead_bid] = 1e9f;
+            }
+        } else {
+            float * row = bias + ii*n_kv;
+            std::fill(row, row + n_kv, -INFINITY);
+            const int64_t visible = std::min<int64_t>(end - first, q + 1);
+            for (int64_t p = 0; p < visible; ++p) {
+                row[first + p] = p >= tail_start ? 1e9f : (p < n_full*ratio ? 0.0f : -INFINITY);
+            }
+        }
+    }
+    return true;
+}
+
 void llama_memory_hybrid_idx::set_input_qsa(
         ggml_tensor * cell_blk,
         ggml_tensor * blk_cells,
@@ -549,9 +622,9 @@ void llama_memory_hybrid_idx::set_input_qsa(
 
     // TODO: this runs per ubatch and is O(n_kv) per stream, about 865 us at 33k context. the cost
     //       is the per-cell scan rather than these allocations, so hoisting them buys nothing
-    std::vector<int32_t>  blk_of(n_kv);
-    std::vector<int32_t>  cell_grp(n_kv);
-    std::vector<int32_t>  grp_head(n_blocks);
+    std::vector<int32_t>  blk_of;
+    std::vector<int32_t>  cell_grp;
+    std::vector<int32_t>  grp_head;
     std::vector<int32_t>  grp_next;
     std::vector<int32_t>  grp_first;
     std::vector<int32_t>  grp_slot0;
@@ -589,6 +662,16 @@ void llama_memory_hybrid_idx::set_input_qsa(
         }
 
         const bool one_seq = n_seq_present <= 1;
+
+        if (n_seq_present == 1 && llama_qsa_set_canonical_stream(
+                cells, seq_of_stream, *ubatch, s, n_tps, n_kv, n_blocks, r, blk_bias,
+                cur_cell_blk, cur_blk_cells, dst_blk_pos + s*n_blocks, n_blocks*n_ns,
+                dst_bias + s*n_tps*(blk_bias ? n_blocks : n_kv))) {
+            continue;
+        }
+        blk_of.resize(n_kv);
+        cell_grp.resize(n_kv);
+        grp_head.resize(n_blocks);
 
         // a cell no block covers needs its own -inf, which a per-block bias cannot carry
         // every cache path keeps the position below the cell window, so this stays false
