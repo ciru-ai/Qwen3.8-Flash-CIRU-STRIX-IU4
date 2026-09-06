@@ -148,6 +148,26 @@ BUILD_DIR="$PWD/build-gfx1151-sdk" ENABLE_MTP=0 MODEL_DIR=/absolute/path/to/mode
 
 This reduces disk and memory pressure but gives up the published speculative-decoding profile.
 
+## Parallel requests and unified KV cache
+
+**The v2.0 MTP shortlist supports exactly one slot.** Setting `PARALLEL_SLOTS=2` while leaving MTP enabled hits a runtime assertion, with either split or unified KV. This is separate from upstream reports about HIP host buffers or unified-cache state. The launcher on `main` now rejects that configuration before loading the model and explains the target-only option; the original `v2.0` tag and archive are unchanged.
+
+For two slots, disable MTP explicitly. This command also works with the original v2.0 launcher:
+
+```bash
+ENABLE_MTP=0 PARALLEL_SLOTS=2 CONTEXT_SIZE=524288 \
+  BUILD_DIR="$PWD/build-gfx1151-sdk" MODEL_DIR=/absolute/path/to/model \
+  ./scripts/ciru/run-server.sh --no-kv-unified
+```
+
+With separate KV caches, `524288` is the **total** context allocation: two slots receive `262144` tokens each. It is not 512K per agent. Check `/slots` for the actual per-slot limit. Unified KV shares the pool; this runtime still caps each slot at the model's 262144-token training context.
+
+On 2026-09-06, the released CIRU/ROCm 10 build completed 16 target-only requests across two fresh loads: eight with separate KV and eight with unified KV, both at `-c 524288 -np 2`. These mixed short prompts, a 6659-token reference fixture, overlapping requests, queued requests, streamed responses and prefix caching. All returned their own requested marker, with no foreign markers, transport failures or GPU errors. This is a bounded concurrency smoke test, **not validation of filled 512K contexts or every agent workload**. Separate KV is the configuration above; unified KV was not shown to be broken by this test.
+
+The fragmented unified-KV/SWA fix [upstream #23981](https://github.com/ggml-org/llama.cpp/pull/23981) is already in the v2.0 ancestry. A different HIP integrated-GPU corruption report, [#25992](https://github.com/ggml-org/llama.cpp/issues/25992), points to proposed [#25863](https://github.com/ggml-org/llama.cpp/pull/25863). That proposed patch is **not included in the released build**. Our local backport passed the small-model concurrency checks, but changed the greedy MTP coding continuation and did not pass the release regression gate. It is being held; this documentation update does not claim that HIP issue is fixed.
+
+For an upstream bug report, include the exact issue/PR URL, runtime commit/build, launch command and environment, startup log, request payloads, and whether it reproduces with `ENABLE_MTP=0` and each KV mode. [Validation details](PARALLEL_VALIDATION.md).
+
 ## Network exposure
 
 The launcher binds to loopback. Do not change it to `0.0.0.0` on an untrusted network without authentication, TLS, request limits, and a reverse proxy. Exposing `/metrics` and `/slots` also exposes operational information.

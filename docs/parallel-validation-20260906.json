@@ -1,0 +1,378 @@
+{
+  "schema": "ciru.parallel-validation.v1",
+  "date": "2026-09-06",
+  "release_commit": "3e21240ec7935b18fd39e1f07fd80f8d905ba968",
+  "os": "NixOS",
+  "hardware": "AMD Ryzen AI Max+ 395 / Radeon 8060S gfx1151, 128 GiB shared memory",
+  "rocm": "10.0.0",
+  "scope": "Bounded local-custom regression diagnostics; no full quality, filled-context or agent suite",
+  "published_change": "Launcher rejects multi-slot MTP early; documentation explains target-only serving. No inference kernel change or weight change.",
+  "released_ciru_two_slot": {
+    "context_total": 524288,
+    "per_slot_context_reported": 262144,
+    "slots": 2,
+    "mtp": false,
+    "target_kv": "F16",
+    "flash_attention": "on",
+    "batch": 2048,
+    "ubatch": 512,
+    "threads": 8,
+    "ple_cache_mib": 4096,
+    "cache_ram_mib": 8192,
+    "cache_idle_slots": true,
+    "cache_prompt": true,
+    "temperature": 0,
+    "top_k": 1,
+    "top_p": 1,
+    "min_p": 0,
+    "seed": 123,
+    "enable_thinking": false,
+    "max_tokens": 80,
+    "schedule_per_mode": "Two rounds of one sequential short request, then three overlapping requests (long, short streamed, short nonstreamed)",
+    "modes": [
+      {
+        "case": "baseline-split",
+        "requests": 8,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      },
+      {
+        "case": "baseline-unified",
+        "requests": 8,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      }
+    ],
+    "requests": [
+      {
+        "mode": "baseline-split",
+        "id": "0-A",
+        "expected": "CIRU_0_A",
+        "text": "CIRU_0_A",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "0-B",
+        "expected": "CIRU_0_B",
+        "text": "CIRU_0_B",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 6690,
+          "total_tokens": 6697,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "0-C",
+        "expected": "CIRU_0_C",
+        "text": "CIRU_0_C",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": null,
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "0-D",
+        "expected": "CIRU_0_D",
+        "text": "CIRU_0_D",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "1-A",
+        "expected": "CIRU_1_A",
+        "text": "CIRU_1_A",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "1-B",
+        "expected": "CIRU_1_B",
+        "text": "CIRU_1_B",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 6690,
+          "total_tokens": 6697,
+          "prompt_tokens_details": {
+            "cached_tokens": 6174
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "1-C",
+        "expected": "CIRU_1_C",
+        "text": "CIRU_1_C",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": null,
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-split",
+        "id": "1-D",
+        "expected": "CIRU_1_D",
+        "text": "CIRU_1_D",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "0-A",
+        "expected": "CIRU_0_A",
+        "text": "CIRU_0_A",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "0-B",
+        "expected": "CIRU_0_B",
+        "text": "CIRU_0_B",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 6690,
+          "total_tokens": 6697,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "0-C",
+        "expected": "CIRU_0_C",
+        "text": "CIRU_0_C",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": null,
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "0-D",
+        "expected": "CIRU_0_D",
+        "text": "CIRU_0_D",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "1-A",
+        "expected": "CIRU_1_A",
+        "text": "CIRU_1_A",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "1-B",
+        "expected": "CIRU_1_B",
+        "text": "CIRU_1_B",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 6690,
+          "total_tokens": 6697,
+          "prompt_tokens_details": {
+            "cached_tokens": 6174
+          }
+        },
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "1-C",
+        "expected": "CIRU_1_C",
+        "text": "CIRU_1_C",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": null,
+        "valid_transport": true
+      },
+      {
+        "mode": "baseline-unified",
+        "id": "1-D",
+        "expected": "CIRU_1_D",
+        "text": "CIRU_1_D",
+        "own_marker": true,
+        "foreign_markers": [],
+        "finish": "stop",
+        "usage": {
+          "completion_tokens": 7,
+          "prompt_tokens": 26,
+          "total_tokens": 33,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          }
+        },
+        "valid_transport": true
+      }
+    ]
+  },
+  "hip_backport": {
+    "upstream_pr": "https://github.com/ggml-org/llama.cpp/pull/25863",
+    "upstream_head": "ce82541acbaf5c532c0727d6ccb6de2b0b0c948d",
+    "disposition": "HOLD; not promoted or included in this update",
+    "delta": "Only ggml-cuda.cu translation unit and resulting HIP library; other 15 runtime binaries unchanged",
+    "baseline_hip_sha256": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+    "candidate_hip_sha256": "06a361407c9351ccb9b1267888be0fa516028f3289e16b35c9a28363ec42784e",
+    "small_qwen35_4b_two_slot": [
+      {
+        "case": "baseline-split",
+        "requests": 16,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      },
+      {
+        "case": "candidate-split",
+        "requests": 16,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      },
+      {
+        "case": "candidate-unified",
+        "requests": 16,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      },
+      {
+        "case": "baseline-unified",
+        "requests": 16,
+        "failures": 0,
+        "gpu_errors": [],
+        "long_fixture_tokens": 6659
+      }
+    ],
+    "baseline_corruption_reproduced": false,
+    "capability_probe": "Candidate blocks direct ROCm_Host compute on HIP iGPU and retains pinned allocation; NO_PINNED also checked",
+    "mtp_regression": {
+      "context": 262144,
+      "slots": 1,
+      "depth": 6,
+      "shortlist": 32768,
+      "prompt_tokens": 57,
+      "output_tokens": 520,
+      "decoding": "greedy",
+      "schedule": [
+        "A1",
+        "C1",
+        "C2",
+        "A2"
+      ],
+      "exact_output_gate_passed": false,
+      "first_difference_zero_based": 146,
+      "output_hashes": {
+        "A1": "5115118aef25826d9d904cd30f47a28fc9aeac842457b17ff906deba653fb731",
+        "C1": "9ab0d85817808899d05f49c3761eb62a727a2b7f180fe697fc500d067d32a329",
+        "C2": "9ab0d85817808899d05f49c3761eb62a727a2b7f180fe697fc500d067d32a329",
+        "A2": "5115118aef25826d9d904cd30f47a28fc9aeac842457b17ff906deba653fb731"
+      },
+      "target_only_followup": "Both arms match baseline MTP for the first 200 tokens. Candidate MTP differs from its own target-only output at token index 146. Shared-prefix single-token probes in both arms choose token 34736 (insertion), whereas candidate MTP chose token 264 (a).",
+      "embedding_placement_rescue": "Explicit device-buffer token embeddings did not restore the baseline continuation; first difference at index 60. Not adopted.",
+      "interpretation": "Unresolved numerical or execution difference; not evidence of a measured task-quality regression, and insufficient to qualify a drop-in MTP hotfix. No speed claim across different continuations."
+    }
+  },
+  "retained_evidence": "Original requests/responses, output token IDs, logs, launch environments, library mappings, model hashes, official JSONL/SQLite performance rows and hash ledgers retained locally. Compact public record omits host filesystem paths."
+}

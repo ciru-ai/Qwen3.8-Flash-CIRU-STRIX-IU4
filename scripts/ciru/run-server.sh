@@ -10,6 +10,27 @@ draft="${model_dir}/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf"
 ple_dir="${model_dir}/ple"
 slot_dir="${SLOT_DIR:-${repo_root}/slot-state}"
 
+# The released shortlist has one shared row map and requires exactly one slot.
+# Include trailing CLI overrides so --parallel/-np cannot bypass this check.
+parallel_slots="${PARALLEL_SLOTS:-1}"
+extra_args=("$@")
+for ((i = 0; i < ${#extra_args[@]}; i++)); do
+    case "${extra_args[i]}" in
+        --parallel|-np)
+            parallel_slots="${extra_args[i+1]:-}"
+            ((i += 1))
+            ;;
+        --parallel=*) parallel_slots="${extra_args[i]#*=}" ;;
+        -np=*) parallel_slots="${extra_args[i]#*=}" ;;
+    esac
+done
+if [[ "${ENABLE_MTP:-1}" != "0" && "${parallel_slots}" != "1" ]]; then
+    echo "The CIRU MTP shortlist requires exactly one slot (--parallel 1)." >&2
+    echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
+    echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
+    exit 2
+fi
+
 for required in "${server_bin}" "${model}" "${ple_dir}/ple.payload.bin" "${ple_dir}/ple.manifest.json" "${ple_dir}/ple.scale.bf16"; do
     if [[ ! -e "${required}" ]]; then
         echo "Required release file is missing: ${required}" >&2
