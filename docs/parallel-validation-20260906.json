@@ -374,5 +374,29 @@
       "interpretation": "Unresolved numerical or execution difference; not evidence of a measured task-quality regression, and insufficient to qualify a drop-in MTP hotfix. No speed claim across different continuations."
     }
   },
-  "retained_evidence": "Original requests/responses, output token IDs, logs, launch environments, library mappings, model hashes, official JSONL/SQLite performance rows and hash ledgers retained locally. Compact public record omits host filesystem paths."
+  "retained_evidence": "Original requests/responses, output token IDs, logs, launch environments, library mappings, model hashes, official JSONL/SQLite performance rows and hash ledgers retained locally. Compact public record omits host filesystem paths.",
+  "community_followup": {
+    "date": "2026-09-06",
+    "release": "3e21240ec7935b18fd39e1f07fd80f8d905ba968",
+    "issue": "https://github.com/ggml-org/llama.cpp/issues/27994",
+    "fix_pr": "https://github.com/ggml-org/llama.cpp/pull/27941",
+    "upstream_merged_at": "2026-09-01T10:22:04Z",
+    "upstream_merge_commit": "36b10154383b60eb15baac2c7a40d2a5f784faa7",
+    "relevant_fix_in_release": false,
+    "evidence": [
+      "Released set_input_qsa still pools cells by p/ratio and p%ratio without separating sequence sets.",
+      "seq_get_all accessor and sequence-aware grouping from PR27941 absent.",
+      "Hybrid indexer update constructor also lacks the ctx_idx init_update added by PR27941.",
+      "Current main source file byte-identical to original v2.0 for this component."
+    ],
+    "released_source_sha256": "b1ece015ee4bf75fef3350037f04a3cea421ac070f93e247e210340947e03f5c",
+    "community_assertion_log": {
+      "discussion": 5,
+      "n_slots": 2,
+      "n_ctx_slot": 100096,
+      "kv_unified": false,
+      "assertion": "n_seq == 1 && shortlist prototype requires one MTP slot"
+    },
+    "conclusion": "QSA multi-sequence unified-cache fix missing; launcher guard only addresses unsupported multi-slot MTP. Prior marker smoke cannot establish QSA retrieval correctness. Use explicit split KV with MTP disabled for two slots pending backport validation."
+  }
 }

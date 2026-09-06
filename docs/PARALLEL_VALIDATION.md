@@ -2,6 +2,14 @@
 
 The released v2.0 runtime passed a bounded two-slot, target-only smoke on the actual CIRU model with both separate and unified KV caches. The confirmed configuration problem is that the released MTP shortlist requires one slot. `main` now catches that configuration before model load; it does not include a new HIP kernel patch.
 
+## Follow-up: the exact community issue is identified
+
+The links supplied after the smoke test identify [#27994](https://github.com/ggml-org/llama.cpp/issues/27994), fixed upstream by [#27941](https://github.com/ggml-org/llama.cpp/pull/27941), merged 2026-09-01 as `36b10154383b60eb15baac2c7a40d2a5f784faa7`. Source comparison confirms that the relevant sequence-aware QSA block mapping and indexer-update fix are absent from CIRU v2.0. The released mapping still uses position-only buckets. This is a model-runtime issue, separate from the HIP host-buffer candidate investigated below.
+
+The passing short marker responses do not validate recall from a conversation's earlier context after another request joins. They must not be treated as clearance of #27994. For two-slot operation, use `ENABLE_MTP=0 PARALLEL_SLOTS=2` with explicit `--no-kv-unified` pending integration and validation of the QSA fix. The launcher guard catches unsupported multi-slot MTP before model load; it does not implement that missing runtime fix.
+
+The community's v2 discussion also supplies an actual assertion log: `n_slots = 2`, `n_ctx_slot = 100096`, `kv_unified = false`, followed by the one-slot shortlist assertion. This confirms the separate unsupported MTP configuration.
+
 [Structured results and identities](parallel-validation-20260906.json) · [Copyable two-slot command](RUNNING.md#parallel-requests-and-unified-kv-cache)
 
 | Test | Result | Scope |
