@@ -1,0 +1,12 @@
+{"baseline_us":17.4297,"candidate_us":7.473999999999999,"case":0,"nkv":8448,"queries":1,"tail":0,"time_change_percent":-57.11917015209671}
+{"baseline_us":20.285,"candidate_us":12.4183,"case":1,"nkv":8448,"queries":7,"tail":0,"time_change_percent":-38.78087256593542}
+{"baseline_us":297.3478,"candidate_us":233.0411,"case":2,"nkv":8448,"queries":512,"tail":0,"time_change_percent":-21.62676165756061}
+{"baseline_us":17.1582,"candidate_us":7.0722,"case":3,"nkv":8448,"queries":1,"tail":3,"time_change_percent":-58.78238976116377}
+{"baseline_us":20.9323,"candidate_us":9.6301,"case":4,"nkv":8448,"queries":7,"tail":3,"time_change_percent":-53.99406658608944}
+{"baseline_us":300.8714,"candidate_us":225.82260000000002,"case":5,"nkv":8448,"queries":512,"tail":3,"time_change_percent":-24.943813203913688}
+{"baseline_us":134.3711,"candidate_us":56.8797,"case":6,"nkv":65792,"queries":1,"tail":0,"time_change_percent":-57.66969236688544}
+{"baseline_us":158.5053,"candidate_us":98.0358,"case":7,"nkv":65792,"queries":7,"tail":0,"time_change_percent":-38.14982842845003}
+{"baseline_us":2256.9606,"candidate_us":1704.9872,"case":8,"nkv":65792,"queries":512,"tail":0,"time_change_percent":-24.456492505894868}
+{"baseline_us":135.0113,"candidate_us":59.6759,"case":9,"nkv":65792,"queries":1,"tail":3,"time_change_percent":-55.799329389465925}
+{"baseline_us":159.7847,"candidate_us":97.6883,"case":10,"nkv":65792,"queries":7,"tail":3,"time_change_percent":-38.86254441132348}
+{"baseline_us":2468.9361,"candidate_us":1787.5169999999998,"case":11,"nkv":65792,"queries":512,"tail":3,"time_change_percent":-27.59970580040528}

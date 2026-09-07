@@ -1,0 +1,126 @@
+{
+  "status": "PASS_FOR_DOCUMENTED_BUILD_SMOKE_SCOPE",
+  "reviewer": "clean_release_build agent; independent replay of saved evidence only",
+  "reviewed_utc": "2026-09-07T23:07:27.545195+00:00",
+  "checks": {
+    "request_identical_to_retained520_request": true,
+    "one_slot_actual262144_allocation": true,
+    "520_raw_tokens_equal_baseline_and_fixture": true,
+    "raw_token_digest_matches_baseline": true,
+    "raw_sse_matches_saved_chunks": true,
+    "final_sse_matches_saved_final": true,
+    "nonempty_content_matches_saved_text": true,
+    "native_counts_equal_reference": true,
+    "uncached57_prompt_and520_output": true,
+    "harness_reported_no_error": true,
+    "one_served_task": true,
+    "shortlist_and_mtp6_active": true,
+    "no_runtime_abort_diagnostic": true,
+    "original_verifier_failure_preserved": true,
+    "gpu_kernel_execution_present": true,
+    "single_expected_gpu_identity": true,
+    "image_rootfs_layers_and_config_equal_build_image": true,
+    "container_uses_reviewed_image": true,
+    "container_exited_cleanly": true,
+    "all15_binary_hashes_equal_build": true,
+    "model_receipts_match_prior_pinned_identity": true,
+    "one_store_record_matches_measurement": true,
+    "independent_store_chain_verifies": true,
+    "recorded_cleanup_matches_intake": true
+  },
+  "checks_passed": 24,
+  "new_inference_runs": 0,
+  "remote_actions": 0,
+  "tokens": 520,
+  "prompt_tokens": 57,
+  "context_allocation": 262144,
+  "slots": 1,
+  "mtp_depth": 6,
+  "draft_n": 674,
+  "draft_n_accepted": 400,
+  "token_sha256": "5115118aef25826d9d904cd30f47a28fc9aeac842457b17ff906deba653fb731",
+  "original_verifier_failure": {
+    "status": "FAIL",
+    "error": "gfx1151 identification not found",
+    "context_allocation": 262144,
+    "scope": "One unretried build/inference smoke attempt; inspect preserved artifacts."
+  },
+  "adjudication": "Literal gfx1151 was absent from the default verbosity 3 inference log. The saved run nevertheless completed exact 520 target tokens with exact 674/400 MTP counts and records an RDNA3.5 kernel admission. The same binary enumerated ROCm0 as Radeon 8060S; the sole GPU KFD node reports 110501. This supports the reviewed pass without another inference attempt.",
+  "image_identity": {
+    "build_engine_reported_id": "sha256:b350ab303808ff94c3ab5054d5f41600ae19be4d377af449fa805c6841864a16",
+    "smoke_engine_reported_id": "sha256:3fb497f70e4e1af783631e33e9f6849e297fd2c66bbdf543983bc1b0d7a88c63",
+    "rootfs_equal": true,
+    "config_equal": true,
+    "build_descriptor": {
+      "digest": "sha256:b350ab303808ff94c3ab5054d5f41600ae19be4d377af449fa805c6841864a16",
+      "mediaType": "application/vnd.oci.image.manifest.v1+json",
+      "size": 752
+    },
+    "rootfs": {
+      "Type": "layers",
+      "Layers": [
+        "sha256:98effb2dfe85d4c431f97d90482075f19e5fc3a57c2dd423d8bdfd4813620043",
+        "sha256:da8accd8a29423a807da2b10cec494ddef311bbedce418e322be3554575d27c3"
+      ]
+    },
+    "note": "Dunamis exposes an OCI manifest descriptor while Ciru exposes a classic image/config ID. IDs differ, but complete RootFS and Config objects are identical."
+  },
+  "binary_hashes_checked": 15,
+  "model_identity_scope": "Compared saved size/mtime receipts with earlier pinned SHA identity records; did not rehash model files during this local review.",
+  "scope_limits": [
+    "One short matched coding completion in Ubuntu 24.04 userspace on NixOS host driver.",
+    "No native Ubuntu kernel/driver certification.",
+    "262144 allocation with 57 populated prompt tokens, not full populated-context coverage.",
+    "No matched Ubuntu throughput comparison or multi-slot/concurrency validation.",
+    "Broader QSA correctness and performance qualification remain separate evidence."
+  ],
+  "store_verification": {
+    "db": "/home/crown/Documents/ChatGPT/Qwen3.8flash/qsa-fix-20260906/release-qualification-20260907/ciru-evidence/ubuntu24-gpu-smoke/store/results.sqlite3",
+    "ledger": "/home/crown/Documents/ChatGPT/Qwen3.8flash/qsa-fix-20260906/release-qualification-20260907/ciru-evidence/ubuntu24-gpu-smoke/store/results.ledger.jsonl",
+    "ledger_rows": 1,
+    "ok": true,
+    "problems": [],
+    "rows": 1
+  },
+  "artifact_sha256": {
+    "REVIEWED-RESULT.json": "cc6a460152050bad49bc16596d841b59713b8d0c77f4157eba84ecdfa3473eac",
+    "result.json": "e4aa69971ebe309581ccf4db28fdd45376fe01ad3f3cb9f821b9031ddb88c0bf",
+    "request.json": "3f7a21b3b16fba55a3e5bf74cb9eea87fc66ec2005dc0488755495aec10472be",
+    "protocol.lock.json": "d25dc82f6d82230fbfa876d9c5da2c0478c19f094098bb4ef4b9361d907178e3",
+    "measurement.json": "a9cd2546eae777279cf441df240eb8abc6fad5d2dd0d6212e1c9714dcc10016c",
+    "token-comparison.json": "98803a5704d64873abf169e219ff1b0d1c59da39eba81cfd1d8df61d69d1389c",
+    "native-mtp-counts.json": "3a01007b7b6de10f7330ba13eaa061f107f0d5e716f0498035a2ff11e1d2d10d",
+    "final-response.json": "5604729d75a9e778679bc1f5f1c1afa5206d9e79791fb38304a89837664d1416",
+    "response-chunks.json": "44a74c5a9cdaad3f7a75a217182deec3278b7a2eb879279a8a0ab96c23fe30cc",
+    "server.log": "c1c801ddc95ce81432dcee309cc253887742e349c5a0962d9e3db609ea089528",
+    "device-enumeration.log": "4f7caa68b08714207937ddc33b4ac1bfb33523b48aadaae5af17fc0a95af7353",
+    "kfd-device-identity.json": "8d98f091c7c1561ed3e8c82293c0a956b9954be5c967fe6cfbf8a016c4e8036e",
+    "verified-binary-sha256.json": "e57873d4d014729a2bf1f345fa5dbbc4448a5d41aded634031981d427c014c1c",
+    "image.json": "30a2abb78997f9ca90e87d6eb0336aced5e9fd738717b029b147b18c0132eb28",
+    "container-final.json": "2047855443a0417fff14aaa7af09b1d5dbdba1200e4fe38d38bcc95c3653870f",
+    "review-cleanup.json": "7c9cdb8e770b29f675fc5600f4342234bb0c4e15c16499218caa368ef91c743f"
+  },
+  "raw_sse_sha256": "58866fbd5eebfac1fd52732d121fcffd24ff227c8ab03a33a177b5ac44ddd84d",
+  "build_recipe_review": {
+    "status": "PASS",
+    "document": "qsa-fix-20260906/runtime/docs/BUILD_LINUX.md",
+    "documented_cpu_options_match_tested_final_cache": true,
+    "cpu_options_checked": {
+      "GGML_NATIVE": "OFF",
+      "GGML_SSE42": "ON",
+      "GGML_AVX": "ON",
+      "GGML_AVX2": "ON",
+      "GGML_F16C": "ON",
+      "GGML_FMA": "ON",
+      "GGML_BMI2": "ON",
+      "GGML_AVX_VNNI": "OFF",
+      "GGML_AVX512": "OFF",
+      "GGML_AVX512_VBMI": "OFF",
+      "GGML_AVX512_VNNI": "OFF",
+      "GGML_AVX512_BF16": "OFF"
+    },
+    "build_scripts_changed": false,
+    "custom_path_note": "Use -B with the same actual BUILD_DIR path; exporting BUILD_DIR does not override a literal -B argument. Pass ROCM_VENV to the setup helper.",
+    "new_build_performed": false
+  }
+}

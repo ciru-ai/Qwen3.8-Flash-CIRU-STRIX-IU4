@@ -1,0 +1,1492 @@
+[
+  {
+    "cases": [
+      {
+        "mode": "split",
+        "paired_foreign_content": {
+          "max_abs_logit": 0.0,
+          "mean_kl": 2.2947923963901747e-26,
+          "pass": true,
+          "rms_logit": 0.0,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "qsa_captures": [
+          {
+            "file": "paired-B-topk-0.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-1.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-2.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-3.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-4.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-5.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-6.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-7.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-8.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-9.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-10.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-11.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-12.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-13.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-14.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-15.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-16.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-17.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-18.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-19.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-20.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-21.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-22.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-23.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-24.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-25.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-26.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-27.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-28.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-29.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-30.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-31.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          }
+        ],
+        "state_bytes": 325953004,
+        "state_roundtrip_equal": true
+      },
+      {
+        "mode": "unified",
+        "paired_foreign_content": {
+          "max_abs_logit": 5.985767364501953,
+          "mean_kl": 0.0002957073550235262,
+          "pass": false,
+          "rms_logit": 0.39951097348215336,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "qsa_captures": [
+          {
+            "file": "paired-B-topk-0.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-1.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-2.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-3.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-4.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-5.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-6.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-7.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-8.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-9.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-10.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-11.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-12.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-13.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-14.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-15.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-16.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-17.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-18.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-19.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-20.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-21.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-22.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-23.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-24.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-25.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-26.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-27.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-28.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-29.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-30.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-31.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          }
+        ],
+        "state_bytes": 325952996,
+        "state_roundtrip_equal": true
+      }
+    ],
+    "context_total": 524288,
+    "label": "baseline",
+    "prefix_a": 6144,
+    "prefix_b": 4096,
+    "scope": "Correctness diagnostic with synchronized QSA callback; not a performance benchmark",
+    "slots": 2,
+    "teacher_forced_suffix": 16
+  },
+  {
+    "cases": [
+      {
+        "mode": "split",
+        "paired_foreign_content": {
+          "max_abs_logit": 0.0,
+          "mean_kl": 2.2947923963901747e-26,
+          "pass": true,
+          "rms_logit": 0.0,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "qsa_captures": [
+          {
+            "file": "paired-B-topk-0.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-1.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-2.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-3.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-4.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-5.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-6.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-7.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-8.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-9.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-10.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-11.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-12.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-13.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-14.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-B-topk-15.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-16.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-17.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-18.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-19.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-20.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-21.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-22.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-23.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-24.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-25.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-26.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-27.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-28.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-29.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-30.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          },
+          {
+            "file": "paired-C-topk-31.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              1,
+              1,
+              2
+            ]
+          }
+        ],
+        "state_bytes": 325953004,
+        "state_roundtrip_equal": true
+      },
+      {
+        "mode": "unified",
+        "paired_foreign_content": {
+          "max_abs_logit": 0.0,
+          "mean_kl": -5.1281521638035755e-25,
+          "pass": true,
+          "rms_logit": 0.0,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "qsa_captures": [
+          {
+            "file": "paired-B-topk-0.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-1.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-2.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-3.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-4.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-5.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-6.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-7.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-8.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-9.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-10.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-11.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-12.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-13.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-14.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-B-topk-15.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-B",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-16.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-17.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-18.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-19.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-20.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-21.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-22.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-23.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-24.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-25.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-26.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-27.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-28.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-29.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-30.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "paired-C-topk-31.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "paired-C",
+            "shape": [
+              2051,
+              2,
+              1,
+              1
+            ]
+          }
+        ],
+        "state_bytes": 325952996,
+        "state_roundtrip_equal": true
+      }
+    ],
+    "context_total": 524288,
+    "label": "candidate-fast",
+    "prefix_a": 6144,
+    "prefix_b": 4096,
+    "scope": "Correctness diagnostic with synchronized QSA callback; not a performance benchmark",
+    "slots": 2,
+    "teacher_forced_suffix": 16
+  }
+]

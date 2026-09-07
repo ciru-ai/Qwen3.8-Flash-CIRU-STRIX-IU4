@@ -1,0 +1,16 @@
+{
+  "classification": "paired8K served MTP confirmation",
+  "user_scope": "Check ordinary speed at shorter context without64K prefills or fourload repetition",
+  "context": 262144,
+  "slots": 1,
+  "schedule": [
+    "C",
+    "A"
+  ],
+  "prompt_tokens": 8192,
+  "generated_tokens": 128,
+  "warmup": "512prompt/16output excluded",
+  "budget": "Exactlytwofreshloads,onepatchedthenonebaseline;onemeasuredrequesteach;noautomaticretry",
+  "gate": "Exactoutputtokensanddraftcounts;lessthan2percentPP/TGloss;officialstoreandcleanupverified",
+  "scope": "Real cold8Krequest,fullproductionMTPsettings;notproof of64Kthroughput"
+}

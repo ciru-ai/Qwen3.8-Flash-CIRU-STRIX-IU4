@@ -1,0 +1,27 @@
+{
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf": {
+    "bytes": 79397818720,
+    "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0",
+    "mtime_ns": 1788008884377941688
+  },
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf": {
+    "bytes": 4135893248,
+    "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642",
+    "mtime_ns": 1788008885971892625
+  },
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.manifest.json": {
+    "bytes": 115213,
+    "sha256": "eb7404ce5ef056729452df10ee888e0c300cd0459121444be3313c51788cc171",
+    "mtime_ns": 1787766334187770443
+  },
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.payload.bin": {
+    "bytes": 52429053952,
+    "sha256": "687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2",
+    "mtime_ns": 1787766534066307056
+  },
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.scale.bf16": {
+    "bytes": 2,
+    "sha256": "c7c58bd6007672362da2106fdbfaf9f50629e4bdf8598169c598027394ef9791",
+    "mtime_ns": 1787764234000000000
+  }
+}

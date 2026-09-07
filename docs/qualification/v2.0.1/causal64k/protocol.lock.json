@@ -1,0 +1,99 @@
+{
+  "classification": "local-custom paired release regression and separate attached diagnostic",
+  "schedule": [
+    "candidate-fast",
+    "baseline"
+  ],
+  "clean_requests_per_arm": 1,
+  "context": 262144,
+  "slots": 1,
+  "MTP_depth": 6,
+  "shortlist": 32768,
+  "main_KV": "f16/f16",
+  "draft_KV": "q8_0/q8_0",
+  "batch": 2048,
+  "microbatch": 512,
+  "prompt_tokens": 65536,
+  "generated_tokens": 128,
+  "warmup": "same512tokenprefix+16outputs per fresh load",
+  "instrumentation_clean": "0.25s telemetry; no profiler or inference-code instrumentation",
+  "diagnostic": "one attached16token continuation per same loaded server; original65536prompt+128generatedprefix; prefix checkpoint replay capped1024tokens, cached>=64512",
+  "trace": "ROCm10 HIP/kernel/graph/memory traces after clean timing; requires actualkernel coverage and equalwork; incompletecapture is not a zero-work result",
+  "gate": "Exact128outputtokens and draftcounts; complete officialstore; PP/TG loss below2%; explain anymaterial clock/temperature/CPU/io/graph discrepancy. No automatic retry or secondlongprefill perarm.",
+  "budget": "two freshloads, two longrequests, two boundedcacheddiagnostics; changes require a new explicit diagnosis, nofourload sweep",
+  "old_evidence": "Sozo real64K PP-2.6147%,TG-6.8649% retained; this same-host pair is on Ciru, not a retrospective proof of the Sozo cause",
+  "runtime_identities": {
+    "changed": [
+      "libllama.so.0.3.0"
+    ],
+    "files": {
+      "libllama-bench-impl.so": {
+        "baseline": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+        "candidate-fast": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55"
+      },
+      "libggml.so.0.22.0": {
+        "baseline": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+        "candidate-fast": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2"
+      },
+      "libggml-cpu.so.0.22.0": {
+        "baseline": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+        "candidate-fast": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa"
+      },
+      "libgomp.so.1": {
+        "baseline": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+        "candidate-fast": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953"
+      },
+      "libstdc++.so.6": {
+        "baseline": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+        "candidate-fast": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6"
+      },
+      "libggml-hip.so.0.22.0": {
+        "baseline": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+        "candidate-fast": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4"
+      },
+      "libllama-server-impl.so": {
+        "baseline": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+        "candidate-fast": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7"
+      },
+      "llama-bench": {
+        "baseline": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+        "candidate-fast": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84"
+      },
+      "libllama.so.0.3.0": {
+        "baseline": "c29bec577633c8c0c0f0b08a2103b69135aff035aedd49eb70799310aef9576b",
+        "candidate-fast": "4a70e051c953617fe6a13d60444073dd2a5e7be1a9f707896841156939d3992c"
+      },
+      "libllama-cli-impl.so": {
+        "baseline": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+        "candidate-fast": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17"
+      },
+      "llama-cli": {
+        "baseline": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+        "candidate-fast": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78"
+      },
+      "llama-server": {
+        "baseline": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8",
+        "candidate-fast": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+      },
+      "libggml-base.so.0.22.0": {
+        "baseline": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+        "candidate-fast": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a"
+      },
+      "libllama-common.so.0.3.0": {
+        "baseline": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+        "candidate-fast": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4"
+      },
+      "libmtmd.so.0.3.0": {
+        "baseline": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+        "candidate-fast": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e"
+      },
+      "libgcc_s.so.1": {
+        "baseline": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+        "candidate-fast": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57"
+      }
+    }
+  },
+  "fixture_sha256": "4f72c7f6f80bf99520ce38991f491caf9727e3b2192c64b54759bff1b5b66ace",
+  "governors": "intakeperformance; unchanged throughout",
+  "ptrace": "ownedchild grants this driver/descendants tracing permission via PR_SET_PTRACER; no global sysctl changes"
+}

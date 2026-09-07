@@ -1,0 +1,48 @@
+{
+  "service": {
+    "args": [
+      "systemctl",
+      "--user",
+      "show",
+      "qwen-main.service",
+      "-p",
+      "ActiveState",
+      "-p",
+      "SubState",
+      "-p",
+      "MainPID"
+    ],
+    "returncode": 0,
+    "stdout": "ActiveState=inactive\nSubState=dead\nMainPID=0\n",
+    "stderr": ""
+  },
+  "llama_server": {
+    "args": [
+      "pgrep",
+      "-x",
+      "llama-server"
+    ],
+    "returncode": 1,
+    "stdout": "",
+    "stderr": ""
+  },
+  "owned_containers": {
+    "args": [
+      "docker",
+      "ps",
+      "--filter",
+      "name=qwen38-qsa-v201",
+      "--format",
+      "{{.Names}}"
+    ],
+    "returncode": 0,
+    "stdout": "",
+    "stderr": ""
+  },
+  "governors": [
+    "performance"
+  ],
+  "gpu_busy_percent": {
+    "/sys/class/drm/card0/device/gpu_busy_percent": "0"
+  }
+}

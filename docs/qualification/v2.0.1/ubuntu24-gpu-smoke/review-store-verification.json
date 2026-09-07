@@ -1,0 +1,12 @@
+{
+  "args": [
+    "/home/crown/.nix-profile/bin/python3",
+    "/srv/llm/work/qwen38-qsa-release-20260907/ubuntu24-smoke-assets/benchmark/llama_benchmark.py",
+    "verify-store",
+    "--out-dir",
+    "/srv/llm/work/qwen38-qsa-release-20260907/ubuntu24-gpu-smoke/store"
+  ],
+  "returncode": 0,
+  "stdout": "{\n  \"db\": \"/srv/llm/work/qwen38-qsa-release-20260907/ubuntu24-gpu-smoke/store/results.sqlite3\",\n  \"ledger\": \"/srv/llm/work/qwen38-qsa-release-20260907/ubuntu24-gpu-smoke/store/results.ledger.jsonl\",\n  \"ledger_rows\": 1,\n  \"ok\": true,\n  \"problems\": [],\n  \"rows\": 1\n}\n",
+  "stderr": ""
+}

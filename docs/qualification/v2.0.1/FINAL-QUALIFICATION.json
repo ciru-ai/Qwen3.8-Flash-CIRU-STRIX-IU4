@@ -1,0 +1,94 @@
+{
+  "status": "QUALIFIED_FOR_SCOPED_RELEASE",
+  "release": "v2.0.1",
+  "decision_utc": "2026-09-07T23:06:35.606923+00:00",
+  "source_code_commit": "bf0bf4b795e112bb1b4af0101640b8fdb250365f",
+  "scope": "Focused QSA conversation isolation/indexer state backport plus guarded canonical input construction. Two-slot tests use MTP disabled; production MTP remains one slot.",
+  "correctness": {
+    "qsa_mapping_state_cases": 66,
+    "canonical_input_tensor_cases": 288,
+    "clean_batch_tests": 30,
+    "clean_batch_assertions": 198,
+    "served_recall_passed": 16,
+    "served_recall_total": 16,
+    "active_initial_recall_prompt_tokens": 13062,
+    "separate_and_unified_kv": true,
+    "full_model_controls": "Cache copies/state round trips, equal-layout foreign-content and simultaneous-sequence controls, normalization boundary checks; see original structured summaries."
+  },
+  "performance": {
+    "gate": "Less than 2% PP/TG loss in the final bounded pair, exact target tokens and MTP counts; inspect hardware telemetry for material mismatches.",
+    "ciru_real_64k": {
+      "prompt_tokens": 65536,
+      "generated_tokens": 128,
+      "loads": 2,
+      "order": [
+        "candidate",
+        "baseline"
+      ],
+      "changes_percent": {
+        "prompt_per_second": 2.1206494168475754,
+        "predicted_per_second": -0.44880462382312913
+      },
+      "tokens_exact": true,
+      "draft_counts_exact": true,
+      "telemetry_review": "No material clock, power, CPU or I/O anomaly; baseline was modestly warmer. No causal attribution of the older slowdown."
+    },
+    "sozo_real_8k": {
+      "prompt_tokens": 8192,
+      "generated_tokens": 128,
+      "loads": 2,
+      "order": [
+        "candidate",
+        "baseline"
+      ],
+      "prefill_change_percent": 4.699006735082145,
+      "generation_change_percent": 1.2031817171471504,
+      "tokens_exact": true,
+      "draft_counts_exact": true
+    },
+    "short_coding": {
+      "generated_tokens": 520,
+      "tokens_exact": true,
+      "pooled_tg_change_percent": 0.10079194713958906
+    },
+    "historical_sozo_64k": "Earlier pair showed PP -2.61% / TG -6.86%; original evidence retained, cause unresolved. Final Ciru pair does not turn it into a passing Sozo result.",
+    "profiler": "Attachment failed before any diagnostic request. No GPU kernel trace captured; final decision uses clean served timing, native counts, telemetry and prior source-level controls."
+  },
+  "clean_build": {
+    "status": "PASS",
+    "userspace": "Ubuntu 24.04",
+    "sdk": "ROCm 10.0.0",
+    "build_host": "Dunamis CPU only",
+    "cpu_isa": "Explicit AVX2 portable configuration, GGML_NATIVE=OFF, AVX512/VNNI disabled",
+    "gpu_smoke_host": "Ciru gfx1151 using NixOS host driver",
+    "token_sha256": "5115118aef25826d9d904cd30f47a28fc9aeac842457b17ff906deba653fb731",
+    "matched_tokens": 520,
+    "draft_n": 674,
+    "draft_n_accepted": 400,
+    "gpu_smoke_receipt": "ubuntu24-gpu-smoke/REVIEWED-RESULT.json",
+    "original_verifier_error": "Literal gfx1151 omitted by low-verbosity log; corrected using device enumeration/KFD identity and actual RDNA3.5 execution log, without inference retry."
+  },
+  "unchanged": [
+    "Target and draft weights",
+    "PLE sidecars",
+    "HIP sources",
+    "Sampling defaults",
+    "Production MTP depth and shortlist"
+  ],
+  "excluded": [
+    "HIP host-buffer #25863",
+    "Kairic",
+    "HC-mix",
+    "Multi-slot MTP support",
+    "Native-IU4 E3 experiments"
+  ],
+  "limits": [
+    "No filled 512K context or every-agent-workload claim",
+    "No new full task-quality suite",
+    "Physical cache layouts can change floating-point results",
+    "Ubuntu container userspace smoke is not native Ubuntu host certification",
+    "Single matched performance pair per new context, not statistical confidence bounds"
+  ],
+  "cleanup": "Ciru GPU released; no owned llama-server or running test containers; service remains inactive and performance governors unchanged. Dunamis build containers stopped.",
+  "publication_state_at_decision": "Local release preparation; no upload or deployment performed"
+}

@@ -1,5 +1,15 @@
 # Release provenance
 
+## v2.0.1 source and build identity
+
+v2.0.1 is the qualified QSA source release. The named archive and external source identity record identify its exact Git tree.
+
+At publication, the [v2.0.1 Git tag](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0.1) and named `ciru-runtime-v2.0.1-source.tar.gz` release asset identify the same file contents, executable modes and symlinks. The [release](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v2.0.1) supplies the archive, SHA256SUMS and `git-source.json` with the exact commit/tree IDs and archive hash. [Compare v2.0 to v2.0.1](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/compare/v2.0...v2.0.1).
+
+The focused backport preserves Daniel Han's authorship for upstream [#27941](https://github.com/ggml-org/llama.cpp/pull/27941), commit `36b10154383b60eb15baac2c7a40d2a5f784faa7`. Ciru adds the guarded canonical-stream implementation and regression fixtures. `CIRU_RELEASE.json` records the five changed core files and tested library identities. Weights and HIP sources are unchanged. The retained NixOS HIP binary is unchanged; the clean Ubuntu 24.04 / ROCm 10 build has a separate binary hash map. See [qualification](QSA_BACKPORT_STATUS.md) for the 66 QSA / 30 batch-test results, later Sozo 8K and Ciru 64K serving comparisons, and Ubuntu GPU output/count match with verified device and binary identities. The earlier Sozo slowdown and failed profiler attachment remain documented.
+
+Original v1.1.1/v2.0 tags and the original v2.0 source archive retain their identities. The historical source record follows.
+
 ## v2.0 source in Git
 
 The [GitHub `v2.0` tag](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0) points to [`3e21240ec793`](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/commit/3e21240ec7935b18fd39e1f07fd80f8d905ba968), a direct child of `v1.1.1` (`764ee491d4bc765cb8414d9bb17c24a5b364e097`). [Compare v1.1.1 to v2.0](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/compare/v1.1.1...v2.0).
@@ -29,7 +39,7 @@ The public release is text-only and does not include a vision projector.
 
 - Clean public base: [`ggml-org/llama.cpp@f5e85d43a048f3d5adefb4c5e29867d8077fba62`](https://github.com/ggml-org/llama.cpp/commit/f5e85d43a048f3d5adefb4c5e29867d8077fba62).
 - Qwen experimental/MTP support was adapted from the integration represented by `1d8de7c1b0c7d2febf8f983174d8e6a711e2b1af`; it is a port onto the pinned base, not a claim that the base commit already contained that integration.
-- CIRU additions include the Q4_1-to-IU4 gfx1151 kernels, PLE paging/banking, protected-core loading, speculative controls, and serving changes required by this artifact.
+- CIRU additions include the optimized Q4_1/IU8 gfx1151 kernels, PLE paging/banking, protected-core loading, speculative controls, and serving changes required by this artifact.
 - H121 release fix: persistent MTP continuation inputs in `src/models/qwen4exp.cpp`.
 
 The exact H121 patch has SHA-256:
@@ -70,7 +80,7 @@ The target contains 1,223 tensors:
 | Q5_1 | 48 |
 | BF16 | 25 |
 
-The 144 Q4_1 routed-expert tensors occupy 75,497,472,000 bytes. The remaining protected core occupies 3,900,335,968 bytes. No tensor is stored on disk as a custom `IU4_A640` type; the release runtime performs the optimized IU4 execution transform internally.
+The 144 Q4_1 routed-expert tensors occupy 75,497,472,000 bytes. The remaining protected core occupies 3,900,335,968 bytes. No tensor is stored on disk as a custom `IU4_A640` type; the standard launcher uses ordinary Q4_1 storage, expands packed values to byte lanes for the IU8 WMMA matrix path, and does not activate the separate native IU4/E3 bank path.
 
 ## Validation identities
 

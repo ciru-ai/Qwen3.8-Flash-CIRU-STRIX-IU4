@@ -1,0 +1,756 @@
+[
+  {
+    "cases": [
+      {
+        "equal_layout_foreign_sequence": {
+          "max_abs_logit": 0.0,
+          "mean_kl": 2.697288676262377e-25,
+          "pass": true,
+          "rms_logit": 0.0,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "foreign_sequence": {
+          "max_abs_logit": 17.204347610473633,
+          "mean_kl": 0.00015055864335980037,
+          "pass": false,
+          "rms_logit": 0.5400110918475961,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "layout_only_change": {
+          "max_abs_logit": 17.204347610473633,
+          "mean_kl": 0.00015055864335980037,
+          "pass": false,
+          "rms_logit": 0.5400110918475961,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "mode": "unified",
+        "qsa_captures": [
+          {
+            "file": "solo-topk-0.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-1.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-2.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-3.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-4.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-5.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-6.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-7.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-8.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-9.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-10.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-11.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-12.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-13.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-14.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "solo-topk-15.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "solo",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-16.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-17.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-18.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-19.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-20.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-21.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-22.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-23.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-24.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-25.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-26.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-27.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-28.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-29.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-30.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "reserved-layout-topk-31.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "reserved-layout",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-32.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-33.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-34.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-35.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-36.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-37.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-38.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-39.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-40.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-41.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-42.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-43.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-44.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-45.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-46.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "with-B-topk-47.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "with-B",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-48.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-49.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-50.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-51.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-52.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-53.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-54.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-55.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-56.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-57.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-58.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-59.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-60.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-61.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-62.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          },
+          {
+            "file": "copied-A-topk-63.i32le",
+            "name": "indexer_top_k-3",
+            "phase": "copied-A",
+            "shape": [
+              2051,
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "sequence_copy": {
+          "max_abs_logit": 0.0,
+          "mean_kl": -4.217756986420187e-25,
+          "pass": true,
+          "rms_logit": 0.0,
+          "top1_differences": 0,
+          "vectors": 16
+        },
+        "state_bytes": 325952996,
+        "state_roundtrip_equal": true
+      }
+    ],
+    "context_total": 524288,
+    "label": "candidate-fast",
+    "prefix_a": 6144,
+    "prefix_b": 4096,
+    "scope": "Correctness diagnostic with synchronized QSA callback; not a performance benchmark",
+    "slots": 2,
+    "teacher_forced_suffix": 16
+  }
+]

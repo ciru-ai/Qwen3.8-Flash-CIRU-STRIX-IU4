@@ -1,0 +1,26 @@
+{
+  "cases": 288,
+  "different_input_tensors": [],
+  "all_four_QSA_input_tensors_byte_equal_via_SHA256": true,
+  "host_diagnostic_only": true,
+  "groups": [
+    {
+      "queries": 1,
+      "cases": 6,
+      "reference_median_us": 425.3878,
+      "rescue_median_us": 59.8915
+    },
+    {
+      "queries": 7,
+      "cases": 6,
+      "reference_median_us": 493.8774000000001,
+      "rescue_median_us": 78.9453
+    },
+    {
+      "queries": 512,
+      "cases": 6,
+      "reference_median_us": 6076.6463,
+      "rescue_median_us": 1805.9500999999998
+    }
+  ]
+}

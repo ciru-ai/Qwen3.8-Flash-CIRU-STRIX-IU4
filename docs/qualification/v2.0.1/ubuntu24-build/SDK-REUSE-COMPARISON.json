@@ -1,0 +1,334 @@
+{
+  "remote": "/srv/llm/work/qwen38-v2-release-20260905/runtime-v2/.venv-rocm/lib/python3.12/site-packages",
+  "packages": {
+    "rocm_sdk_core": {
+      "same": false,
+      "differences": {
+        "../../../bin/hipify-perl": {
+          "dunamis": [
+            "sha256=wb3O-GPypjI_fsAB6wXspPAUvkoMbahN9XopUbZ0dgo",
+            "245"
+          ],
+          "ciru": [
+            "sha256=g3bZjSMPFLKE9jVdqmFvsdweyX2QIOFZ0of8I4erE8U",
+            "242"
+          ]
+        },
+        "../../../bin/amd-smi": {
+          "dunamis": [
+            "sha256=Oeo0EIdinEqmbz5kvihZGsVxTw2RYcb6rxMwRD8yzgc",
+            "237"
+          ],
+          "ciru": [
+            "sha256=14Sl4_nXbquFdHRfyTAmTMHkOWSB-LKtfsukisuWAE4",
+            "234"
+          ]
+        },
+        "../../../bin/roc-obj": {
+          "dunamis": [
+            "sha256=x5Yyo02frIVltWi36cdXt7JoD_1LxTTKNFF7u6VA6Q0",
+            "237"
+          ],
+          "ciru": [
+            "sha256=y5_mMN5PZSMdhJS6gHzC31jBFtsBpKrtKzYFYS3vGMY",
+            "234"
+          ]
+        },
+        "../../../bin/amdclang++": {
+          "dunamis": [
+            "sha256=-ciHKbL6rkGNNcL-jMOJiIBr7HehM_DfJMsQdbsyFUo",
+            "243"
+          ],
+          "ciru": [
+            "sha256=itGR5SrnPjTQhRTQWxWHs1Hb1_Tjq82bQtJ5IteRYwk",
+            "240"
+          ]
+        },
+        "../../../bin/rocprofv3-avail": {
+          "dunamis": [
+            "sha256=rLDOhm9eXX_w5PKjiD5VDYlMs1zBF8gJjySJBo5O9PM",
+            "253"
+          ],
+          "ciru": [
+            "sha256=pK-bi815qu_QUy6njUKlk0n_AceEfK_5PaAfwzTS8jo",
+            "250"
+          ]
+        },
+        "../../../bin/amdlld": {
+          "dunamis": [
+            "sha256=eMgaMUQYawKKl5mljOg6Un9I-7NvMfk_jFqU9Qw6dXI",
+            "235"
+          ],
+          "ciru": [
+            "sha256=JQ7Jmmw70aiTaqVCoRPtPoqWJvUeQCFFZpWGYl8oTSA",
+            "232"
+          ]
+        },
+        "../../../bin/roc-obj-extract": {
+          "dunamis": [
+            "sha256=Q40XSYpLIrfPWkyB8J0xbUGp23SyrmIvRloRbjkH-h8",
+            "253"
+          ],
+          "ciru": [
+            "sha256=u05515jDhDtCZrXIlH6QJNqb74JTfGi_SAEA9HEp0dU",
+            "250"
+          ]
+        },
+        "../../../bin/rocpd2pftrace": {
+          "dunamis": [
+            "sha256=piNHkFsHTxkz8LSp_E0a3hPzkN0N0n4_2Z2lv__2lhk",
+            "249"
+          ],
+          "ciru": [
+            "sha256=EAR1jppSpCeG4rXZRRXFlsGe__zVEKUg5RV4jFgD3Tk",
+            "246"
+          ]
+        },
+        "../../../bin/rocgdb": {
+          "dunamis": [
+            "sha256=mZTYpbBreUV27r_ssurfwiuBPIyJ5IUy3Jm_dUodXbQ",
+            "235"
+          ],
+          "ciru": [
+            "sha256=pydlfhHSytTb0gw6HRULL1IjLWgfEx8Yk_JEGrfu2QE",
+            "232"
+          ]
+        },
+        "../../../bin/rocm_agent_enumerator": {
+          "dunamis": [
+            "sha256=nd1V4T39VlcFq2UTZ_oV01Udo4k33vwSnic3TAGtIwE",
+            "265"
+          ],
+          "ciru": [
+            "sha256=YagHMEBzC_cdF31zfqKcXf3w4OeUcJCi7mK4sOSLi7A",
+            "262"
+          ]
+        },
+        "../../../bin/rocpd": {
+          "dunamis": [
+            "sha256=21zaFjuw_mgZuBBgAe59Z0jtvuUmYRjY6dT9BPDclrg",
+            "233"
+          ],
+          "ciru": [
+            "sha256=9YBkqL0JOk4uq3Vh9cKPqvcIMDVn-u4Sa1VY5HyKeng",
+            "230"
+          ]
+        },
+        "../../../bin/rocprofv3": {
+          "dunamis": [
+            "sha256=oaW23QXRIWmVNLRThOfTfUKjzh77peOhBZnil4E3KVc",
+            "241"
+          ],
+          "ciru": [
+            "sha256=tpysA-h9aq2CkWHXf61zxoOe7S8g9p-MNi7mcztvHrU",
+            "238"
+          ]
+        },
+        "../../../bin/rocpd2summary": {
+          "dunamis": [
+            "sha256=69SRkYgz2SM68YUDKN7eScgacIe3qoBvhG1XsGeMAxI",
+            "249"
+          ],
+          "ciru": [
+            "sha256=DTmcBNW9xh0PDSgMjHK6HG0Z15E24JfVv4vQhk7ExuA",
+            "246"
+          ]
+        },
+        "../../../bin/rocpd2csv": {
+          "dunamis": [
+            "sha256=bVr67Ltub5w7zQ1eWHCL-nQI3lOSZB3YTcDVwrV6VT0",
+            "241"
+          ],
+          "ciru": [
+            "sha256=FPgSf-eg_w1FyuH5hzePp3OTICsC3nCIBzdCNGrzHKU",
+            "238"
+          ]
+        },
+        "../../../bin/rocminfo": {
+          "dunamis": [
+            "sha256=kZS813qiXtb_a2TOql5XQeLsEWh7VcPHQVVr9OHMapY",
+            "241"
+          ],
+          "ciru": [
+            "sha256=mf0RtX4iyMAegZm4f56Jc7GSCmmGOIRkwZW_MNJjVR0",
+            "238"
+          ]
+        },
+        "../../../bin/rocpd2otf2": {
+          "dunamis": [
+            "sha256=mYbOxCLnNwzki4h-6vtlJBPQJ3bkTnJWvjbC3lBxo1g",
+            "243"
+          ],
+          "ciru": [
+            "sha256=P4M7BJb_0tV7RA4SbdFFTaAKkZSUfrqjzbcABu1ELKQ",
+            "240"
+          ]
+        },
+        "../../../bin/roc-obj-ls": {
+          "dunamis": [
+            "sha256=wmOpA9P9rtDDCVfJh1S4fxK9HmpBcw-g6kJKlElig5k",
+            "243"
+          ],
+          "ciru": [
+            "sha256=Mo9oNBAF91VLUi8wLDrNqhuHrwY-euWzCIu5F5L359w",
+            "240"
+          ]
+        },
+        "../../../bin/hipify-clang": {
+          "dunamis": [
+            "sha256=FOQmu8ydTCChpewdqoHF6svB-oe3JM-14f72kztV8xo",
+            "247"
+          ],
+          "ciru": [
+            "sha256=oNmKckfCtmTv5rrwJTncvAin9-MYjyDGLp0Ly70v9DA",
+            "244"
+          ]
+        },
+        "../../../bin/rocm-smi": {
+          "dunamis": [
+            "sha256=IQs10AGDvaLIgAbNfAb5ykm7VCMngos_DIkfO-QQyFI",
+            "239"
+          ],
+          "ciru": [
+            "sha256=ZlUAm1fSEU2AOIiaUkpr2HYHJWcc9n_tTm6H-GMrBdA",
+            "236"
+          ]
+        },
+        "../../../bin/offload-arch": {
+          "dunamis": [
+            "sha256=bTTxmGkbPJuSxY26DosUmjcnYa-pG4Sfl_D9k_4l45E",
+            "247"
+          ],
+          "ciru": [
+            "sha256=OzN5rDW4R5U6AhREJKEGBWNd6gdN84ida1JgRPBJ-b8",
+            "244"
+          ]
+        },
+        "../../../bin/amdclang-cpp": {
+          "dunamis": [
+            "sha256=XF29BId5btzCr1mtP6XXg1b_2IX51GqdYIFYuckMt2I",
+            "247"
+          ],
+          "ciru": [
+            "sha256=EfVRAn8Oa78yKZ-x6TeYBFWpLJs55u4B50SRjavOK1Q",
+            "244"
+          ]
+        },
+        "../../../bin/hipcc": {
+          "dunamis": [
+            "sha256=bR810EHkpU-Bz76ft-dKsYspuQ0OnyMt5xq-0yagrcY",
+            "233"
+          ],
+          "ciru": [
+            "sha256=qeNNzWkEr9q6UFKuEXOVm44yvzRBTDf_vVdc5cdXjbw",
+            "230"
+          ]
+        },
+        "../../../bin/amdclang": {
+          "dunamis": [
+            "sha256=c5Bld7_eR5ZyNnRugUvVZEf5fNjFwtMswGSwjF5Lsyc",
+            "239"
+          ],
+          "ciru": [
+            "sha256=MthJCpGdVLow4FA0MfYHSvISvtYL-dCb054LqpV4Lv4",
+            "236"
+          ]
+        },
+        "../../../bin/amdclang-cl": {
+          "dunamis": [
+            "sha256=l-kHWmXEo2BEjdspKUZQ_1LCeEuy7hYE4tqiKptYobc",
+            "245"
+          ],
+          "ciru": [
+            "sha256=Vv_h92kX1XOd-sVKAfdg0IhBC7sKGlTm82ug_vwc24s",
+            "242"
+          ]
+        },
+        "../../../bin/rocprofv3-attach": {
+          "dunamis": [
+            "sha256=X6JQjwXtdhD_weFzvRV58plLPHPOB623WTAbdz3j7bk",
+            "255"
+          ],
+          "ciru": [
+            "sha256=0Ce1t1lrjgrlfYqpC6OyhRf2FgLb9AMmzwftWsD_zOs",
+            "252"
+          ]
+        },
+        "../../../bin/roccoremerge": {
+          "dunamis": [
+            "sha256=vp3eNT2vEeWe86ELkt1RIp9P9PbNUqZzJ1Y-9R2PAtc",
+            "247"
+          ],
+          "ciru": [
+            "sha256=-zt7Ou3H8aGkjeTsA27vfFKfrzSbzRkRgQ5ikali4tY",
+            "244"
+          ]
+        },
+        "../../../bin/hipconfig": {
+          "dunamis": [
+            "sha256=YycDs9I-SGoPnSnXg2NOZgEkQB7MaTY7HPgM-Hg1Otk",
+            "241"
+          ],
+          "ciru": [
+            "sha256=cHGS-Tft6Yl65qEmC73lzfixoafjvaGP6wvn6hCiang",
+            "238"
+          ]
+        },
+        "../../../bin/amdflang": {
+          "dunamis": [
+            "sha256=EazQvmyDfWoH0aTvEry-c2Yq-K3oaVM8A_pV42F_txA",
+            "239"
+          ],
+          "ciru": [
+            "sha256=2B1s53tb06EieyoIeZ0A4wA1a5WYlu7I_6r9Etlwd5U",
+            "236"
+          ]
+        }
+      }
+    },
+    "rocm_sdk_devel": {
+      "same": true,
+      "differences": {}
+    },
+    "rocm_sdk_device_gfx1151": {
+      "same": true,
+      "differences": {}
+    },
+    "rocm_sdk_libraries": {
+      "same": true,
+      "differences": {}
+    }
+  },
+  "critical_runtime_files": {
+    "_rocm_sdk_devel/lib/libamdhip64.so.7": {
+      "same": true,
+      "sha256_dunamis": "1a8bcd00d05cce36bebcf4acf30289f36f6562ec532e9c618c42e9bd2d90ed05",
+      "sha256_ciru": "1a8bcd00d05cce36bebcf4acf30289f36f6562ec532e9c618c42e9bd2d90ed05"
+    },
+    "_rocm_sdk_devel/lib/libhipblas.so": {
+      "same": true,
+      "sha256_dunamis": "fd9e8587412b456e9da10b1be67917376f6088ff8f61c5b132b1e15504883567",
+      "sha256_ciru": "fd9e8587412b456e9da10b1be67917376f6088ff8f61c5b132b1e15504883567"
+    },
+    "_rocm_sdk_devel/lib/librocblas.so": {
+      "same": true,
+      "sha256_dunamis": "c27e2252cc7a4b6e174601a180a169822dcf15a29e634046daecb61498e3bd2a",
+      "sha256_ciru": "c27e2252cc7a4b6e174601a180a169822dcf15a29e634046daecb61498e3bd2a"
+    },
+    "_rocm_sdk_devel/lib/libhipblaslt.so": {
+      "same": true,
+      "sha256_dunamis": "726921b73776933606610d0d812fcbe4d448423b16057352f7c9902b152cda38",
+      "sha256_ciru": "726921b73776933606610d0d812fcbe4d448423b16057352f7c9902b152cda38"
+    },
+    "_rocm_sdk_devel/lib/libhsa-runtime64.so.1": {
+      "same": true,
+      "sha256_dunamis": "815364af872593e577206ff22a29141af63e800a78488b2ee02cf04532e14a46",
+      "sha256_ciru": "815364af872593e577206ff22a29141af63e800a78488b2ee02cf04532e14a46"
+    },
+    "_rocm_sdk_devel/lib/llvm/bin/clang++": {
+      "same": true,
+      "sha256_dunamis": "f80bad7383249331b12bd9bfdfdfe821a9d362393d08e9489d5976681e9e4616",
+      "sha256_ciru": "f80bad7383249331b12bd9bfdfdfe821a9d362393d08e9489d5976681e9e4616"
+    }
+  }
+}

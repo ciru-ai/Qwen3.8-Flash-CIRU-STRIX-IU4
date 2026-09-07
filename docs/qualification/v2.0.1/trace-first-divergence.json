@@ -1,0 +1,57 @@
+{
+  "first_divergence": "existing FLASH_ATTN_EXT layer3; 6400 versus10496 physical cell window; current Q/V and logical selectedcells exact; fullcontext layoutcontrol subsequently resolves origin",
+  "selected_traces": [
+    {
+      "tensor": "l_last-0",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "l_last-1",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "l_last-2",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "l_last-3",
+      "exact": false,
+      "max_abs": 0.00012352131307125092
+    },
+    {
+      "tensor": "Qcur-3",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "Vcur-3",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "indexer_k_raw-3",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "indexer_q-3",
+      "exact": true,
+      "max_abs": 0.0
+    },
+    {
+      "tensor": "attn_pregate-3",
+      "exact": false,
+      "max_abs": 0.000657200813293457
+    },
+    {
+      "tensor": "indexer_top_k-3",
+      "logical_selection_equal": true,
+      "foreign_selected": 0
+    }
+  ],
+  "raw_trace_directory": "/home/crown/Documents/ChatGPT/Qwen3.8flash/qsa-fix-20260906/context-trace-candidate/unified",
+  "raw_trace_bytes": 5440726349
+}

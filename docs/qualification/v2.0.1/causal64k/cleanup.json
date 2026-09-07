@@ -1,0 +1,6 @@
+{
+  "service_before": "ActiveState=inactive\nSubState=dead\nMainPID=0\n",
+  "service_after": "ActiveState=inactive\nSubState=dead\nMainPID=0\n",
+  "governors_unchanged": true,
+  "servers_remaining": ""
+}

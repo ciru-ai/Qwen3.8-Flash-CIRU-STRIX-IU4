@@ -1,0 +1,17 @@
+{
+  "libggml-base.so.0.22.0": "050337fda35c3583569c6de08db017956d3de7920f05fb056c5d953ec7ae09f1",
+  "libggml-cpu.so.0.22.0": "b5cac94caa935e2474d840fa804ca18896472f5c8aa0bb2e30050d2a2c1061ba",
+  "libggml-hip.so.0.22.0": "7955750301284227e36a558195fc4830ec1a521fed19e412159f3ac56a9629a9",
+  "libggml.so.0.22.0": "9ca6ba9ecf95039f7e654069ad11eb584e92ea58c564a4e869edd522ed4cdf1a",
+  "libllama-bench-impl.so": "0bc0289578c8bbd0389da61906ab9a9aa4e28a9fb15d2ce7fb6248e60e7aa38f",
+  "libllama-cli-impl.so": "9284f3ecffca07ea489dd21cf8f53a55d90d5a35ab009949823634e77c7a0d9d",
+  "libllama-common.so.0.3.0": "a53615b86767dffc5178057de44568a54726b784b0f9e0765970d0a39db269d6",
+  "libllama-server-impl.so": "e2b7fdd9a3c8500adacac96d095645c9f22380a601f5be1b73df5498892c9f6e",
+  "libllama.so.0.3.0": "7d4f28ed7578e242a744b27e12d7a2a1d9256a1dbe6bb97a91b9b362be23066e",
+  "libmtmd.so.0.3.0": "bdfd9a4c735f320454ece0c2b808dcebd79bad467c259a96bbcff0def99a64ac",
+  "llama-bench": "21f36a0d7f8f7ab1389134576c8ff459af785845272cbade2728737ec4749ef3",
+  "llama-cli": "a328c99d5d2113aa7fc71f42dfbc3ff971c089eb9b18897933b0ada1d0a95f7b",
+  "llama-server": "5a2903840a6607d4f69c1c76639653603b98c4255a0b6b9ad73204d19dc8bda4",
+  "test-batch-alloc": "1b1305021d84bb8182d541835277fde00db9eee27f623c61ada1666ea188c28b",
+  "test-qsa-sequence": "e3f92fd5a840a4f1e7d34b96720beabd3b5797bf6cd2139e3c02e582d025d0de"
+}

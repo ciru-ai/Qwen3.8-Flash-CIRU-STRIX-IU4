@@ -1,0 +1,1191 @@
+{
+  "method": "Read-only original raw/SSE and telemetry review. Phase split inferred from request window and native durations; discard 0.5s boundary margins. No kernel trace exists. Means are time-sampled, not hardware counter integrals. CPU percentages assume Linux USER_HZ=100.",
+  "arms": {
+    "candidate-fast": {
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 65536,
+        "prompt_ms": 225876.185,
+        "prompt_per_token_ms": 3.4465970611572265,
+        "prompt_per_second": 290.1412559274454,
+        "predicted_n": 128,
+        "predicted_ms": 7450.458,
+        "predicted_per_token_ms": 58.665023622047244,
+        "predicted_per_second": 17.045931941365215,
+        "draft_n": 225,
+        "draft_n_accepted": 89
+      },
+      "token_sha256": "0c660e3346822d9f1c57ba8b38726eaaf65a4d0f0aa7010d4d5e81ee6fd40cfe",
+      "prefill": {
+        "sample_count": 894,
+        "observed_span_s": 224.83136510849,
+        "gpu_clock_mhz": {
+          "samples": 894,
+          "min": 2513.0,
+          "median": 2849.0,
+          "mean": 2838.6599552572707,
+          "p95": 2880.0,
+          "max": 2889.0
+        },
+        "gpu_power_w": {
+          "samples": 894,
+          "min": 97.085,
+          "median": 106.305,
+          "mean": 106.4526677852349,
+          "p95": 114.574,
+          "max": 122.56
+        },
+        "gpu_temperature_c": {
+          "samples": 894,
+          "min": 44.0,
+          "median": 68.0,
+          "mean": 66.94742729306488,
+          "p95": 71.0,
+          "max": 76.0
+        },
+        "gpu_busy_percent": {
+          "samples": 894,
+          "min": 83.0,
+          "median": 98.0,
+          "mean": 97.90044742729306,
+          "p95": 99.0,
+          "max": 100.0
+        },
+        "gtt_gib": {
+          "samples": 894,
+          "min": 88.52698135375977,
+          "median": 88.52726745605469,
+          "mean": 88.53636477084234,
+          "p95": 88.57609558105469,
+          "max": 88.57609558105469
+        },
+        "cpu_all_core_mean_mhz": {
+          "samples": 894,
+          "min": 2097.1059999999998,
+          "median": 2313.07184375,
+          "mean": 2450.4134578090043,
+          "p95": 3530.67259375,
+          "max": 4708.74734375
+        },
+        "cpu_pressure_some_percent": 0.48668076158858,
+        "memory_pressure_some_percent": 0.0016327793047151574,
+        "memory_pressure_full_percent": 0.0016212150819086759,
+        "vmstat_delta": {
+          "pgmajfault": 110,
+          "pswpin": 0,
+          "pswpout": 0,
+          "pgpgin": 51812,
+          "pgpgout": 152008
+        },
+        "server_pid": 3974698,
+        "server_cpu_ticks_delta": 22871,
+        "server_cpu_percent_assuming_USER_HZ100": 101.72513069501598,
+        "server_minor_faults_delta": 165794,
+        "server_major_faults_delta": 0,
+        "server_io_delta": {
+          "rchar": 47282326,
+          "wchar": 4850,
+          "syscr": 11544,
+          "syscw": 102,
+          "read_bytes": 47194112,
+          "write_bytes": 28672,
+          "cancelled_write_bytes": 0
+        },
+        "main_thread_schedstat_delta": {
+          "cpu_runtime_ns": 224071322217,
+          "runqueue_wait_ns": 36628399,
+          "timeslices": 11583
+        }
+      },
+      "generation": {
+        "sample_count": 25,
+        "observed_span_s": 6.066975355148315,
+        "gpu_clock_mhz": {
+          "samples": 25,
+          "min": 2589.0,
+          "median": 2655.0,
+          "mean": 2654.8,
+          "p95": 2678.0,
+          "max": 2678.0
+        },
+        "gpu_power_w": {
+          "samples": 25,
+          "min": 103.158,
+          "median": 105.323,
+          "mean": 105.60996,
+          "p95": 108.242,
+          "max": 110.509
+        },
+        "gpu_temperature_c": {
+          "samples": 25,
+          "min": 61.0,
+          "median": 67.0,
+          "mean": 66.16,
+          "p95": 69.0,
+          "max": 69.0
+        },
+        "gpu_busy_percent": {
+          "samples": 25,
+          "min": 82.0,
+          "median": 83.0,
+          "mean": 83.56,
+          "p95": 84.0,
+          "max": 87.0
+        },
+        "gtt_gib": {
+          "samples": 25,
+          "min": 88.57619857788086,
+          "median": 88.57619857788086,
+          "mean": 88.57619857788086,
+          "p95": 88.57619857788086,
+          "max": 88.57619857788086
+        },
+        "cpu_all_core_mean_mhz": {
+          "samples": 25,
+          "min": 2529.62490625,
+          "median": 3004.367375,
+          "mean": 3092.79829,
+          "p95": 4514.46125,
+          "max": 4627.12225
+        },
+        "cpu_pressure_some_percent": 0.49985368696554794,
+        "memory_pressure_some_percent": 0.00019779213360108733,
+        "memory_pressure_full_percent": 0.00021427481140117797,
+        "vmstat_delta": {
+          "pgmajfault": 1,
+          "pswpin": 0,
+          "pswpout": 0,
+          "pgpgin": 11296,
+          "pgpgout": 5856
+        },
+        "server_pid": 3974698,
+        "server_cpu_ticks_delta": 1867,
+        "server_cpu_percent_assuming_USER_HZ100": 307.73159452769175,
+        "server_minor_faults_delta": 1970,
+        "server_major_faults_delta": 0,
+        "server_io_delta": {
+          "rchar": 11554816,
+          "wchar": 103,
+          "syscr": 2821,
+          "syscw": 3,
+          "read_bytes": 11554816,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "main_thread_schedstat_delta": {
+          "cpu_runtime_ns": 5897291902,
+          "runqueue_wait_ns": 1931978,
+          "timeslices": 286
+        }
+      },
+      "prefill_quarters": [
+        {
+          "sample_count": 222,
+          "observed_span_s": 55.63240694999695,
+          "gpu_clock_mhz": {
+            "samples": 222,
+            "min": 2555.0,
+            "median": 2840.0,
+            "mean": 2827.527027027027,
+            "p95": 2875.0,
+            "max": 2882.0
+          },
+          "gpu_power_w": {
+            "samples": 222,
+            "min": 101.297,
+            "median": 110.705,
+            "mean": 111.18262612612612,
+            "p95": 117.139,
+            "max": 122.56
+          },
+          "gpu_temperature_c": {
+            "samples": 222,
+            "min": 44.0,
+            "median": 65.0,
+            "mean": 64.67567567567568,
+            "p95": 69.0,
+            "max": 70.0
+          },
+          "gpu_busy_percent": {
+            "samples": 222,
+            "min": 84.0,
+            "median": 98.0,
+            "mean": 97.51351351351352,
+            "p95": 99.0,
+            "max": 99.0
+          },
+          "gtt_gib": {
+            "samples": 222,
+            "min": 88.52698135375977,
+            "median": 88.52726745605469,
+            "mean": 88.52725070231669,
+            "p95": 88.52726745605469,
+            "max": 88.52726745605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 222,
+            "min": 2097.519625,
+            "median": 2321.785203125,
+            "mean": 2446.336235078829,
+            "p95": 3400.58959375,
+            "max": 4579.044625
+          },
+          "cpu_pressure_some_percent": 0.5191524433943547,
+          "memory_pressure_some_percent": 0.0024679859730571576,
+          "memory_pressure_full_percent": 0.002464390946148116,
+          "vmstat_delta": {
+            "pgmajfault": 64,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 45136,
+            "pgpgout": 36376
+          },
+          "server_pid": 3974698,
+          "server_cpu_ticks_delta": 5559,
+          "server_cpu_percent_assuming_USER_HZ100": 99.9237729368153,
+          "server_minor_faults_delta": 114329,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 43255958,
+            "wchar": 1492,
+            "syscr": 10561,
+            "syscw": 33,
+            "read_bytes": 43167744,
+            "write_bytes": 12288,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 55285129201,
+            "runqueue_wait_ns": 9349924,
+            "timeslices": 3445
+          }
+        },
+        {
+          "sample_count": 225,
+          "observed_span_s": 56.40009665489197,
+          "gpu_clock_mhz": {
+            "samples": 225,
+            "min": 2758.0,
+            "median": 2847.0,
+            "mean": 2844.9644444444443,
+            "p95": 2880.0,
+            "max": 2886.0
+          },
+          "gpu_power_w": {
+            "samples": 225,
+            "min": 101.242,
+            "median": 106.996,
+            "mean": 107.42891555555555,
+            "p95": 112.696,
+            "max": 116.124
+          },
+          "gpu_temperature_c": {
+            "samples": 225,
+            "min": 55.0,
+            "median": 68.0,
+            "mean": 67.58222222222223,
+            "p95": 71.0,
+            "max": 72.0
+          },
+          "gpu_busy_percent": {
+            "samples": 225,
+            "min": 96.0,
+            "median": 98.0,
+            "mean": 98.25333333333333,
+            "p95": 99.0,
+            "max": 99.0
+          },
+          "gtt_gib": {
+            "samples": 225,
+            "min": 88.52726745605469,
+            "median": 88.52726745605469,
+            "mean": 88.52726745605469,
+            "p95": 88.52726745605469,
+            "max": 88.52726745605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 225,
+            "min": 2097.4084375,
+            "median": 2298.0260625,
+            "mean": 2454.3529777777776,
+            "p95": 4216.27340625,
+            "max": 4708.74734375
+          },
+          "cpu_pressure_some_percent": 0.4615807692546208,
+          "memory_pressure_some_percent": 0.0018049614457738732,
+          "memory_pressure_full_percent": 0.0018031883991670226,
+          "vmstat_delta": {
+            "pgmajfault": 25,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 2412,
+            "pgpgout": 34136
+          },
+          "server_pid": 3974698,
+          "server_cpu_ticks_delta": 5643,
+          "server_cpu_percent_assuming_USER_HZ100": 100.05302002457728,
+          "server_minor_faults_delta": 2509,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 2031616,
+            "wchar": 1314,
+            "syscr": 496,
+            "syscw": 27,
+            "read_bytes": 2031616,
+            "write_bytes": 8192,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 56206909817,
+            "runqueue_wait_ns": 9046124,
+            "timeslices": 2847
+          }
+        },
+        {
+          "sample_count": 224,
+          "observed_span_s": 56.136677742004395,
+          "gpu_clock_mhz": {
+            "samples": 224,
+            "min": 2759.0,
+            "median": 2857.0,
+            "mean": 2850.8616071428573,
+            "p95": 2883.0,
+            "max": 2888.0
+          },
+          "gpu_power_w": {
+            "samples": 224,
+            "min": 98.931,
+            "median": 104.185,
+            "mean": 104.30811160714286,
+            "p95": 109.884,
+            "max": 114.068
+          },
+          "gpu_temperature_c": {
+            "samples": 224,
+            "min": 55.0,
+            "median": 68.5,
+            "mean": 67.81696428571429,
+            "p95": 71.0,
+            "max": 73.0
+          },
+          "gpu_busy_percent": {
+            "samples": 224,
+            "min": 96.0,
+            "median": 99.0,
+            "mean": 98.35714285714286,
+            "p95": 99.0,
+            "max": 100.0
+          },
+          "gtt_gib": {
+            "samples": 224,
+            "min": 88.52726745605469,
+            "median": 88.52726745605469,
+            "mean": 88.53026689801898,
+            "p95": 88.54289245605469,
+            "max": 88.54289245605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 224,
+            "min": 2097.4681875,
+            "median": 2318.116,
+            "mean": 2467.3270866350445,
+            "p95": 3662.14271875,
+            "max": 4701.6350625000005
+          },
+          "cpu_pressure_some_percent": 0.5057121500932333,
+          "memory_pressure_some_percent": 0.001907843575856328,
+          "memory_pressure_full_percent": 0.001866872145189012,
+          "vmstat_delta": {
+            "pgmajfault": 11,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 2292,
+            "pgpgout": 40092
+          },
+          "server_pid": 3974698,
+          "server_cpu_ticks_delta": 5622,
+          "server_cpu_percent_assuming_USER_HZ100": 100.14842748332657,
+          "server_minor_faults_delta": 1366,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 65536,
+            "wchar": 1022,
+            "syscr": 16,
+            "syscw": 21,
+            "read_bytes": 65536,
+            "write_bytes": 4096,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 56024947303,
+            "runqueue_wait_ns": 8938733,
+            "timeslices": 2892
+          }
+        },
+        {
+          "sample_count": 223,
+          "observed_span_s": 55.90774059295654,
+          "gpu_clock_mhz": {
+            "samples": 223,
+            "min": 2513.0,
+            "median": 2850.0,
+            "mean": 2831.1255605381166,
+            "p95": 2883.0,
+            "max": 2889.0
+          },
+          "gpu_power_w": {
+            "samples": 223,
+            "min": 97.085,
+            "median": 101.985,
+            "mean": 102.91308968609866,
+            "p95": 111.428,
+            "max": 116.606
+          },
+          "gpu_temperature_c": {
+            "samples": 223,
+            "min": 56.0,
+            "median": 68.0,
+            "mean": 67.69506726457399,
+            "p95": 72.0,
+            "max": 76.0
+          },
+          "gpu_busy_percent": {
+            "samples": 223,
+            "min": 83.0,
+            "median": 98.0,
+            "mean": 97.47085201793722,
+            "p95": 99.0,
+            "max": 100.0
+          },
+          "gtt_gib": {
+            "samples": 223,
+            "min": 88.54289245605469,
+            "median": 88.55851745605469,
+            "mean": 88.56074209170491,
+            "p95": 88.57609558105469,
+            "max": 88.57609558105469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 223,
+            "min": 2097.1059999999998,
+            "median": 2302.94475,
+            "mean": 2433.5080703475337,
+            "p95": 3258.30934375,
+            "max": 4659.97303125
+          },
+          "cpu_pressure_some_percent": 0.46660801748240444,
+          "memory_pressure_some_percent": 0.0003738301669560414,
+          "memory_pressure_full_percent": 0.0003738301669560414,
+          "vmstat_delta": {
+            "pgmajfault": 10,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 1972,
+            "pgpgout": 41340
+          },
+          "server_pid": 3974698,
+          "server_cpu_ticks_delta": 5971,
+          "server_cpu_percent_assuming_USER_HZ100": 106.80095343992936,
+          "server_minor_faults_delta": 47590,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 1929216,
+            "wchar": 1022,
+            "syscr": 471,
+            "syscw": 21,
+            "read_bytes": 1929216,
+            "write_bytes": 4096,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 55797913347,
+            "runqueue_wait_ns": 9025473,
+            "timeslices": 2329
+          }
+        }
+      ],
+      "graphs_reused_prints": [
+        3,
+        39
+      ],
+      "gpu_error_matches": [],
+      "attach_required_env_confirmed": true,
+      "diagnostic_attempted": false,
+      "prefill_cumulative_progress_s": {
+        "0": 0.0,
+        "2048": 3.38,
+        "4096": 8.35,
+        "6144": 13.5,
+        "8192": 18.93,
+        "10240": 24.52,
+        "12288": 30.3,
+        "14336": 36.24,
+        "16384": 42.33,
+        "18432": 48.57,
+        "20480": 54.94,
+        "22528": 61.38,
+        "24576": 67.94,
+        "26624": 74.62,
+        "28672": 81.49,
+        "30720": 88.46,
+        "32768": 95.6,
+        "34816": 102.78,
+        "36864": 110.02,
+        "38912": 117.32,
+        "40960": 124.79,
+        "43008": 132.3,
+        "45056": 139.88,
+        "47104": 147.62,
+        "49152": 155.54,
+        "51200": 163.51,
+        "53248": 171.57,
+        "55296": 179.75,
+        "57344": 187.96,
+        "59392": 196.21,
+        "61440": 204.54,
+        "63488": 213.01,
+        "65020": 223.3,
+        "65532": 223.6
+      }
+    },
+    "baseline": {
+      "timings": {
+        "cache_n": 0,
+        "prompt_n": 65536,
+        "prompt_ms": 230666.227,
+        "prompt_per_token_ms": 3.5196873016357424,
+        "prompt_per_second": 284.11614848150265,
+        "predicted_n": 128,
+        "predicted_ms": 7417.02,
+        "predicted_per_token_ms": 58.40173228346457,
+        "predicted_per_second": 17.122779768694166,
+        "draft_n": 225,
+        "draft_n_accepted": 89
+      },
+      "token_sha256": "0c660e3346822d9f1c57ba8b38726eaaf65a4d0f0aa7010d4d5e81ee6fd40cfe",
+      "prefill": {
+        "sample_count": 913,
+        "observed_span_s": 229.60925102233887,
+        "gpu_clock_mhz": {
+          "samples": 913,
+          "min": 1799.0,
+          "median": 2849.0,
+          "mean": 2833.537787513691,
+          "p95": 2880.0,
+          "max": 2888.0
+        },
+        "gpu_power_w": {
+          "samples": 913,
+          "min": 71.951,
+          "median": 106.175,
+          "mean": 106.49108433734939,
+          "p95": 115.089,
+          "max": 119.501
+        },
+        "gpu_temperature_c": {
+          "samples": 913,
+          "min": 42.0,
+          "median": 70.0,
+          "mean": 69.14238773274919,
+          "p95": 73.0,
+          "max": 80.0
+        },
+        "gpu_busy_percent": {
+          "samples": 913,
+          "min": 49.0,
+          "median": 98.0,
+          "mean": 97.69331872946331,
+          "p95": 99.0,
+          "max": 100.0
+        },
+        "gtt_gib": {
+          "samples": 913,
+          "min": 88.52698135375977,
+          "median": 88.52726745605469,
+          "mean": 88.53631977026983,
+          "p95": 88.57609558105469,
+          "max": 88.57609558105469
+        },
+        "cpu_all_core_mean_mhz": {
+          "samples": 913,
+          "min": 2097.2005625,
+          "median": 2307.7230625,
+          "mean": 2458.251357269989,
+          "p95": 3731.4051875,
+          "max": 4796.32665625
+        },
+        "cpu_pressure_some_percent": 0.49458939260662205,
+        "memory_pressure_some_percent": 8.710450433050794e-07,
+        "memory_pressure_full_percent": 8.710450433050794e-07,
+        "vmstat_delta": {
+          "pgmajfault": 255,
+          "pswpin": 0,
+          "pswpout": 0,
+          "pgpgin": 50732,
+          "pgpgout": 159572
+        },
+        "server_pid": 3982150,
+        "server_cpu_ticks_delta": 23360,
+        "server_cpu_percent_assuming_USER_HZ100": 101.73806105803327,
+        "server_minor_faults_delta": 165804,
+        "server_major_faults_delta": 0,
+        "server_io_delta": {
+          "rchar": 47274673,
+          "wchar": 4850,
+          "syscr": 11542,
+          "syscw": 102,
+          "read_bytes": 47194112,
+          "write_bytes": 28672,
+          "cancelled_write_bytes": 0
+        },
+        "main_thread_schedstat_delta": {
+          "cpu_runtime_ns": 228806422000,
+          "runqueue_wait_ns": 38888946,
+          "timeslices": 11936
+        }
+      },
+      "generation": {
+        "sample_count": 26,
+        "observed_span_s": 6.31339168548584,
+        "gpu_clock_mhz": {
+          "samples": 26,
+          "min": 2639.0,
+          "median": 2668.0,
+          "mean": 2666.769230769231,
+          "p95": 2687.0,
+          "max": 2688.0
+        },
+        "gpu_power_w": {
+          "samples": 26,
+          "min": 99.199,
+          "median": 104.30799999999999,
+          "mean": 105.25307692307692,
+          "p95": 111.654,
+          "max": 111.887
+        },
+        "gpu_temperature_c": {
+          "samples": 26,
+          "min": 59.0,
+          "median": 68.0,
+          "mean": 67.15384615384616,
+          "p95": 70.0,
+          "max": 71.0
+        },
+        "gpu_busy_percent": {
+          "samples": 26,
+          "min": 83.0,
+          "median": 84.0,
+          "mean": 84.03846153846153,
+          "p95": 86.0,
+          "max": 86.0
+        },
+        "gtt_gib": {
+          "samples": 26,
+          "min": 88.57619857788086,
+          "median": 88.57619857788086,
+          "mean": 88.57619857788086,
+          "p95": 88.57619857788086,
+          "max": 88.57619857788086
+        },
+        "cpu_all_core_mean_mhz": {
+          "samples": 26,
+          "min": 2348.91825,
+          "median": 3021.977140625,
+          "mean": 3012.1299591346155,
+          "p95": 3258.428375,
+          "max": 4577.2655625
+        },
+        "cpu_pressure_some_percent": 0.42797914886411337,
+        "memory_pressure_some_percent": 0.0,
+        "memory_pressure_full_percent": 0.0,
+        "vmstat_delta": {
+          "pgmajfault": 2,
+          "pswpin": 0,
+          "pswpout": 0,
+          "pgpgin": 11484,
+          "pgpgout": 888
+        },
+        "server_pid": 3982150,
+        "server_cpu_ticks_delta": 1955,
+        "server_cpu_percent_assuming_USER_HZ100": 309.65922873032633,
+        "server_minor_faults_delta": 1999,
+        "server_major_faults_delta": 0,
+        "server_io_delta": {
+          "rchar": 11751424,
+          "wchar": 103,
+          "syscr": 2869,
+          "syscw": 3,
+          "read_bytes": 11751424,
+          "write_bytes": 0,
+          "cancelled_write_bytes": 0
+        },
+        "main_thread_schedstat_delta": {
+          "cpu_runtime_ns": 6150059719,
+          "runqueue_wait_ns": 815374,
+          "timeslices": 308
+        }
+      },
+      "prefill_quarters": [
+        {
+          "sample_count": 227,
+          "observed_span_s": 56.9092857837677,
+          "gpu_clock_mhz": {
+            "samples": 227,
+            "min": 1799.0,
+            "median": 2839.0,
+            "mean": 2806.625550660793,
+            "p95": 2874.0,
+            "max": 2880.0
+          },
+          "gpu_power_w": {
+            "samples": 227,
+            "min": 71.951,
+            "median": 112.338,
+            "mean": 111.52136123348018,
+            "p95": 117.222,
+            "max": 119.034
+          },
+          "gpu_temperature_c": {
+            "samples": 227,
+            "min": 42.0,
+            "median": 70.0,
+            "mean": 69.18502202643172,
+            "p95": 72.0,
+            "max": 74.0
+          },
+          "gpu_busy_percent": {
+            "samples": 227,
+            "min": 49.0,
+            "median": 98.0,
+            "mean": 96.6079295154185,
+            "p95": 99.0,
+            "max": 99.0
+          },
+          "gtt_gib": {
+            "samples": 227,
+            "min": 88.52698135375977,
+            "median": 88.52726745605469,
+            "mean": 88.52724645001247,
+            "p95": 88.52726745605469,
+            "max": 88.52726745605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 227,
+            "min": 2097.25184375,
+            "median": 2312.24690625,
+            "mean": 2454.5590828744494,
+            "p95": 3671.47484375,
+            "max": 4575.12615625
+          },
+          "cpu_pressure_some_percent": 0.5423455869271077,
+          "memory_pressure_some_percent": 0.0,
+          "memory_pressure_full_percent": 0.0,
+          "vmstat_delta": {
+            "pgmajfault": 7,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 42292,
+            "pgpgout": 32604
+          },
+          "server_pid": 3982150,
+          "server_cpu_ticks_delta": 5685,
+          "server_cpu_percent_assuming_USER_HZ100": 99.8958240593759,
+          "server_minor_faults_delta": 114358,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 43248305,
+            "wchar": 1492,
+            "syscr": 10559,
+            "syscw": 33,
+            "read_bytes": 43167744,
+            "write_bytes": 8192,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 56552135489,
+            "runqueue_wait_ns": 11136326,
+            "timeslices": 3326
+          }
+        },
+        {
+          "sample_count": 230,
+          "observed_span_s": 57.671876430511475,
+          "gpu_clock_mhz": {
+            "samples": 230,
+            "min": 2771.0,
+            "median": 2851.0,
+            "mean": 2846.3217391304347,
+            "p95": 2880.0,
+            "max": 2886.0
+          },
+          "gpu_power_w": {
+            "samples": 230,
+            "min": 101.178,
+            "median": 107.027,
+            "mean": 107.45679130434783,
+            "p95": 113.137,
+            "max": 115.083
+          },
+          "gpu_temperature_c": {
+            "samples": 230,
+            "min": 57.0,
+            "median": 71.0,
+            "mean": 69.91304347826087,
+            "p95": 73.0,
+            "max": 75.0
+          },
+          "gpu_busy_percent": {
+            "samples": 230,
+            "min": 96.0,
+            "median": 98.5,
+            "mean": 98.29565217391304,
+            "p95": 99.0,
+            "max": 100.0
+          },
+          "gtt_gib": {
+            "samples": 230,
+            "min": 88.52726745605469,
+            "median": 88.52726745605469,
+            "mean": 88.52726745605469,
+            "p95": 88.52726745605469,
+            "max": 88.52726745605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 230,
+            "min": 2097.2005625,
+            "median": 2328.95759375,
+            "mean": 2476.4540758152175,
+            "p95": 3915.2995,
+            "max": 4763.52890625
+          },
+          "cpu_pressure_some_percent": 0.4504413868222323,
+          "memory_pressure_some_percent": 0.0,
+          "memory_pressure_full_percent": 0.0,
+          "vmstat_delta": {
+            "pgmajfault": 222,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 5228,
+            "pgpgout": 41760
+          },
+          "server_pid": 3982150,
+          "server_cpu_ticks_delta": 5769,
+          "server_cpu_percent_assuming_USER_HZ100": 100.0314253161337,
+          "server_minor_faults_delta": 2486,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 2031616,
+            "wchar": 1314,
+            "syscr": 496,
+            "syscw": 27,
+            "read_bytes": 2031616,
+            "write_bytes": 8192,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 57462016132,
+            "runqueue_wait_ns": 9291327,
+            "timeslices": 2909
+          }
+        },
+        {
+          "sample_count": 229,
+          "observed_span_s": 57.3787887096405,
+          "gpu_clock_mhz": {
+            "samples": 229,
+            "min": 2790.0,
+            "median": 2855.0,
+            "mean": 2851.2052401746723,
+            "p95": 2882.0,
+            "max": 2887.0
+          },
+          "gpu_power_w": {
+            "samples": 229,
+            "min": 99.114,
+            "median": 104.111,
+            "mean": 104.32239301310044,
+            "p95": 109.379,
+            "max": 111.351
+          },
+          "gpu_temperature_c": {
+            "samples": 229,
+            "min": 57.0,
+            "median": 70.0,
+            "mean": 68.96943231441048,
+            "p95": 73.0,
+            "max": 74.0
+          },
+          "gpu_busy_percent": {
+            "samples": 229,
+            "min": 96.0,
+            "median": 99.0,
+            "mean": 98.41921397379913,
+            "p95": 99.0,
+            "max": 100.0
+          },
+          "gtt_gib": {
+            "samples": 229,
+            "min": 88.52726745605469,
+            "median": 88.52726745605469,
+            "mean": 88.5302696394608,
+            "p95": 88.54289245605469,
+            "max": 88.54289245605469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 229,
+            "min": 2097.4453750000002,
+            "median": 2286.04996875,
+            "mean": 2444.7779799399564,
+            "p95": 3726.4899375,
+            "max": 4796.32665625
+          },
+          "cpu_pressure_some_percent": 0.44617010180451394,
+          "memory_pressure_some_percent": 0.0,
+          "memory_pressure_full_percent": 0.0,
+          "vmstat_delta": {
+            "pgmajfault": 7,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 92,
+            "pgpgout": 39780
+          },
+          "server_pid": 3982150,
+          "server_cpu_ticks_delta": 5747,
+          "server_cpu_percent_assuming_USER_HZ100": 100.15896342953677,
+          "server_minor_faults_delta": 1369,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 65536,
+            "wchar": 1022,
+            "syscr": 16,
+            "syscw": 21,
+            "read_bytes": 65536,
+            "write_bytes": 4096,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 57265863129,
+            "runqueue_wait_ns": 8886283,
+            "timeslices": 2931
+          }
+        },
+        {
+          "sample_count": 227,
+          "observed_span_s": 56.8957793712616,
+          "gpu_clock_mhz": {
+            "samples": 227,
+            "min": 2421.0,
+            "median": 2852.0,
+            "mean": 2829.6740088105726,
+            "p95": 2883.0,
+            "max": 2888.0
+          },
+          "gpu_power_w": {
+            "samples": 227,
+            "min": 97.056,
+            "median": 101.877,
+            "mean": 102.67013656387665,
+            "p95": 110.606,
+            "max": 119.501
+          },
+          "gpu_temperature_c": {
+            "samples": 227,
+            "min": 55.0,
+            "median": 69.0,
+            "mean": 68.49339207048457,
+            "p95": 73.0,
+            "max": 80.0
+          },
+          "gpu_busy_percent": {
+            "samples": 227,
+            "min": 82.0,
+            "median": 98.0,
+            "mean": 97.43612334801762,
+            "p95": 99.0,
+            "max": 100.0
+          },
+          "gtt_gib": {
+            "samples": 227,
+            "min": 88.54289245605469,
+            "median": 88.55851745605469,
+            "mean": 88.56066847477716,
+            "p95": 88.57609558105469,
+            "max": 88.57609558105469
+          },
+          "cpu_all_core_mean_mhz": {
+            "samples": 227,
+            "min": 2097.4529375,
+            "median": 2309.57896875,
+            "mean": 2457.09243405837,
+            "p95": 3677.33125,
+            "max": 4654.363375
+          },
+          "cpu_pressure_some_percent": 0.546441235950515,
+          "memory_pressure_some_percent": 3.515199232880554e-06,
+          "memory_pressure_full_percent": 3.515199232880554e-06,
+          "vmstat_delta": {
+            "pgmajfault": 19,
+            "pswpin": 0,
+            "pswpout": 0,
+            "pgpgin": 3120,
+            "pgpgout": 45208
+          },
+          "server_pid": 3982150,
+          "server_cpu_ticks_delta": 6084,
+          "server_cpu_percent_assuming_USER_HZ100": 106.93236066422645,
+          "server_minor_faults_delta": 47591,
+          "server_major_faults_delta": 0,
+          "server_io_delta": {
+            "rchar": 1929216,
+            "wchar": 1022,
+            "syscr": 471,
+            "syscw": 21,
+            "read_bytes": 1929216,
+            "write_bytes": 8192,
+            "cancelled_write_bytes": 0
+          },
+          "main_thread_schedstat_delta": {
+            "cpu_runtime_ns": 56774899124,
+            "runqueue_wait_ns": 9285524,
+            "timeslices": 2740
+          }
+        }
+      ],
+      "graphs_reused_prints": [
+        3,
+        39
+      ],
+      "gpu_error_matches": [],
+      "attach_required_env_confirmed": true,
+      "diagnostic_attempted": false,
+      "prefill_cumulative_progress_s": {
+        "0": 0.0,
+        "2048": 4.15,
+        "4096": 9.09,
+        "6144": 14.32,
+        "8192": 19.82,
+        "10240": 25.53,
+        "12288": 31.39,
+        "14336": 37.46,
+        "16384": 43.62,
+        "18432": 49.97,
+        "20480": 56.48,
+        "22528": 63.05,
+        "24576": 69.73,
+        "26624": 76.5,
+        "28672": 83.46,
+        "30720": 90.57,
+        "32768": 97.83,
+        "34816": 105.12,
+        "36864": 112.54,
+        "38912": 119.97,
+        "40960": 127.57,
+        "43008": 135.2,
+        "45056": 142.92,
+        "47104": 150.83,
+        "49152": 158.93,
+        "51200": 167.07,
+        "53248": 175.3,
+        "55296": 183.62,
+        "57344": 192.01,
+        "59392": 200.41,
+        "61440": 208.92,
+        "63488": 217.55,
+        "65020": 228.04,
+        "65532": 228.35
+      }
+    }
+  },
+  "exact_tokens": true,
+  "exact_work_counts": true,
+  "metric_change_percent": {
+    "prompt_per_second": 2.1206494168475754,
+    "predicted_per_second": -0.44880462382312913
+  },
+  "progress_segments": [
+    {
+      "from": 0,
+      "to": 8192,
+      "baseline_s": 19.82,
+      "candidate_s": 18.93,
+      "runtime_delta_percent": -4.49041372351161
+    },
+    {
+      "from": 8192,
+      "to": 16384,
+      "baseline_s": 23.799999999999997,
+      "candidate_s": 23.4,
+      "runtime_delta_percent": -1.680672268907557
+    },
+    {
+      "from": 16384,
+      "to": 24576,
+      "baseline_s": 26.110000000000007,
+      "candidate_s": 25.61,
+      "runtime_delta_percent": -1.9149751053236574
+    },
+    {
+      "from": 24576,
+      "to": 32768,
+      "baseline_s": 28.099999999999994,
+      "candidate_s": 27.659999999999997,
+      "runtime_delta_percent": -1.565836298932377
+    },
+    {
+      "from": 32768,
+      "to": 40960,
+      "baseline_s": 29.739999999999995,
+      "candidate_s": 29.190000000000012,
+      "runtime_delta_percent": -1.8493611297914714
+    },
+    {
+      "from": 40960,
+      "to": 49152,
+      "baseline_s": 31.360000000000014,
+      "candidate_s": 30.749999999999986,
+      "runtime_delta_percent": -1.9451530612245804
+    },
+    {
+      "from": 49152,
+      "to": 57344,
+      "baseline_s": 33.079999999999984,
+      "candidate_s": 32.420000000000016,
+      "runtime_delta_percent": -1.9951632406286834
+    },
+    {
+      "from": 57344,
+      "to": 63488,
+      "baseline_s": 25.54000000000002,
+      "candidate_s": 25.049999999999983,
+      "runtime_delta_percent": -1.918559122944541
+    }
+  ],
+  "cleanup": {
+    "service_before": "ActiveState=inactive\nSubState=dead\nMainPID=0\n",
+    "service_after": "ActiveState=inactive\nSubState=dead\nMainPID=0\n",
+    "governors_unchanged": true,
+    "servers_remaining": ""
+  },
+  "store_verification": "{\n  \"db\": \"/srv/llm/work/qwen38-qsa-release-20260907/causal64k/store/results.sqlite3\",\n  \"ledger\": \"/srv/llm/work/qwen38-qsa-release-20260907/causal64k/store/results.ledger.jsonl\",\n  \"ledger_rows\": 2,\n  \"ok\": true,\n  \"problems\": [],\n  \"rows\": 2\n}\n",
+  "independent_raw_validation": {
+    "candidate-fast": {
+      "raw_sha256": "5a3549661962e67559e32e30fd3b4a87ac31143bed9488ee414b9b46b87c23ee",
+      "raw_tokens_equal_summary": true,
+      "raw_timings_equal_summary": true,
+      "trace_error": [
+        "E0907 18:46:15.653020 3982139 rocattach.cpp:358] [rocprofiler-sdk-rocattach] Cannot attach to process 3974698: 'rocp-bg-attach' thread not found. The target process does not appear to have attach support enabled. Start the target with ROCP_TOOL_ATTACH=1, or use a rocprofiler-register build configured with ROCPROFILER_REGISTER_BUILD_DEFAULT_ATTACHMENT=ON."
+      ],
+      "request_sha256": "acdd1fef2b95cfe91c039f0a179f58e26540e05ac14ddcb56d523fef7fb77d25"
+    },
+    "baseline": {
+      "raw_sha256": "4eea73b28c26a56b95434347c7e965054719393523435c4274c334f24f0a62e6",
+      "raw_tokens_equal_summary": true,
+      "raw_timings_equal_summary": true,
+      "trace_error": [
+        "E0907 18:50:48.214772 3989502 rocattach.cpp:358] [rocprofiler-sdk-rocattach] Cannot attach to process 3982150: 'rocp-bg-attach' thread not found. The target process does not appear to have attach support enabled. Start the target with ROCP_TOOL_ATTACH=1, or use a rocprofiler-register build configured with ROCPROFILER_REGISTER_BUILD_DEFAULT_ATTACHMENT=ON."
+      ],
+      "request_sha256": "acdd1fef2b95cfe91c039f0a179f58e26540e05ac14ddcb56d523fef7fb77d25"
+    }
+  },
+  "disposition": "Supports scoped QSA v2.0.1 release after clean Ubuntu GPU launcher smoke and packaging checks. Performance gate passed; previous Sozo slowdown and causal attribution remain unresolved."
+}

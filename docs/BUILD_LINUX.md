@@ -4,16 +4,18 @@
 
 | Environment | Status | Notes |
 |---|---|---|
-| NixOS x86-64 + TheRock ROCm + gfx1151 | **Validated** | Release performance path |
-| Ubuntu 24.04 container + isolated ROCm 10.0.0 | **v2.0 build and GPU-smoke validated** | Clean build, ELF checks, 64-token MTP completion; NixOS host GPU driver |
-| Ubuntu 26.04 + isolated TheRock ROCm 10.0.0 SDK | **Build-validated** | Clean container, all three binaries; GPU inference remains unvalidated on this distro |
+| NixOS x86-64 + TheRock ROCm + gfx1151 | **v2.0.1 runtime validated** | Matched incremental GPU build; correctness and performance regression checks |
+| Ubuntu 24.04 container + isolated ROCm 10.0.0 | **v2.0.1 clean build and GPU smoke validated** | ELF checks; 66 QSA cases and 30 batch tests; 520-token completion and MTP counts matched; NixOS host GPU driver |
+| Ubuntu 26.04 + isolated TheRock ROCm 10.0.0 SDK | **Historical v1.1.1 build-validated** | Clean container, all three binaries; GPU inference remains unvalidated on this distro |
 | Other Ubuntu/Debian + ROCm | Unvalidated | Requires a complete, matching SDK with gfx1151 support |
 | Fedora/RHEL + ROCm | Source-compatible, unvalidated | Use the distro's supported ROCm packages |
 | Arch + ROCm | Source-compatible, unvalidated | Rolling packages can change behavior |
 | Ubuntu under WSL2 + ROCDXG | Experimental, unvalidated | Verify `/dev/dxg`; store PLE on WSL ext4 |
-| Linux CPU-only | Build-validated | Compatibility and diagnostics only |
+| Linux CPU-only | **v2.0.1 clean build validated** | 66 QSA mapping/state cases and batch-allocation test |
 
-Only the first row is represented by the published speed numbers.
+The performance comparisons use NixOS; Ubuntu qualification is a separate compatibility check. v2.0.1 passed a clean Ubuntu 24.04 / ROCm 10.0.0 build on Dunamis, plus ELF/help checks and the existing 66 QSA mapping/state cases and 30 batch-allocation tests (198 assertions). No prior build cache was imported. The build used the documented helper, with `GGML_NATIVE=OFF`, AVX2/F16C/FMA/BMI2 on and AVX512/VNNI off because Dunamis has an Intel CPU; the final compile commands verify these portable settings.
+
+The resulting binaries ran in an Ubuntu 24.04 container on Ciru with its NixOS host GPU driver and matching ROCm 10 SDK. At 262144 configured context, the 57-token coding prompt produced all 520 reference tokens exactly, with 674 drafted / 400 accepted tokens. GPU device identity and all 15 binary hashes were verified; the original overly strict device-label verifier failure is preserved in the qualification report. This does not qualify a native Ubuntu host or a filled 262144-token conversation. See [qualification and separate build identities](QSA_BACKPORT_STATUS.md). The earlier v2.0 Ubuntu smoke remains historical; the build scripts and HIP sources are unchanged in v2.0.1.
 
 Historical v1.1.1 Ubuntu build validation on 2026-09-05 used CMake 4.2.3, GNU 15.2.0, Python 3.14, and AMD's stable ROCm 10.0.0 SDK in a clean Ubuntu 26.04 container with no GPU devices. All three binaries compiled, the server's shared libraries resolved, and `--version`/`--help` returned successfully with the PLE and MTP options present. The expected no-GPU diagnostic in that container is not an inference test.
 
@@ -53,6 +55,22 @@ This installs the host build packages above with `apt`, then installs AMD's stab
 
 The script does not install a GPU driver, edit `/opt/rocm`, change permissions or boot settings, manage services, download model weights, or launch a model. Run it without `sudo`; only the explicit host-package step uses sudo. If host tools are already installed, omit `--install-host-deps`. The SDK and build directories are reusable. Keep `.venv-rocm/` in place because the binaries link to its libraries. Use a new `ROCM_VENV` and `BUILD_DIR` when testing a different `ROCM_VERSION`.
 
+### Reproduce the tested portable CPU configuration
+
+The helper's fresh-build default is native CPU compilation. When building on another CPU for transfer to Strix Halo, use the explicit AVX2 configuration tested for v2.0.1. After setup has initialized `build-gfx1151-sdk/`, reconfigure that same directory and rebuild:
+
+```bash
+cmake -S . -B build-gfx1151-sdk \
+  -DGGML_NATIVE=OFF \
+  -DGGML_SSE42=ON -DGGML_AVX=ON -DGGML_AVX2=ON \
+  -DGGML_F16C=ON -DGGML_FMA=ON -DGGML_BMI2=ON \
+  -DGGML_AVX_VNNI=OFF -DGGML_AVX512=OFF \
+  -DGGML_AVX512_VBMI=OFF -DGGML_AVX512_VNNI=OFF -DGGML_AVX512_BF16=OFF
+./scripts/ciru/setup-linux-amd.sh
+```
+
+If you changed the defaults, replace CMake's `-B build-gfx1151-sdk` with your chosen build directory, and pass the matching `BUILD_DIR` and `ROCM_VENV` to the setup helper. This rebuilds affected CPU objects while retaining unchanged HIP objects from that source build. The clean qualification used these settings on an Intel build host and ran the resulting binaries on Strix Halo; it does not require changing the runtime profile.
+
 Check an existing private SDK without installing or building:
 
 ```bash
@@ -82,7 +100,7 @@ BUILD_DIR="$PWD/build-gfx1151-sdk" \
 
 ## Build the gfx1151 release runtime
 
-If you already have a complete ROCm/TheRock SDK, use the lower-level build script from this extracted v2.0 source directory. The v1.1.1 SDK setup fixes are retained.
+If you already have a complete ROCm/TheRock SDK, use the lower-level build script from this extracted v2.0.1 source directory. The v1.1.1 SDK setup fixes are retained.
 
 ~~~bash
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh

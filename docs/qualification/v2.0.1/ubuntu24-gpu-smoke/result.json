@@ -1,0 +1,6 @@
+{
+  "status": "FAIL",
+  "error": "gfx1151 identification not found",
+  "context_allocation": 262144,
+  "scope": "One unretried build/inference smoke attempt; inspect preserved artifacts."
+}

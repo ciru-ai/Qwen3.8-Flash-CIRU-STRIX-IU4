@@ -1,16 +1,16 @@
-# Parallel serving validation — 2026-09-06
+# Parallel serving validation - 2026-09-07
 
-The released v2.0 runtime passed a bounded two-slot, target-only smoke on the actual CIRU model with both separate and unified KV caches. The confirmed configuration problem is that the released MTP shortlist requires one slot. `main` now catches that configuration before model load; it does not include a new HIP kernel patch.
+## Prepared release: v2.0.1
 
-## Follow-up: the exact community issue is identified
+The QSA fix is included in the prepared v2.0.1 source. Full-model tests reproduce the released v2.0 unified-KV interference and split-KV indexer-copy defects; v2.0.1 passes the corresponding exact-logit controls. It also passes 16/16 served recall requests, with 13062-token initial prompts, across separate and unified KV. See the [complete qualification and performance report](QSA_BACKPORT_STATUS.md) and [copyable two-slot instructions](RUNNING.md#parallel-requests-and-unified-kv-cache).
 
-The links supplied after the smoke test identify [#27994](https://github.com/ggml-org/llama.cpp/issues/27994), fixed upstream by [#27941](https://github.com/ggml-org/llama.cpp/pull/27941), merged 2026-09-01 as `36b10154383b60eb15baac2c7a40d2a5f784faa7`. Source comparison confirms that the relevant sequence-aware QSA block mapping and indexer-update fix are absent from CIRU v2.0. The released mapping still uses position-only buckets. This is a model-runtime issue, separate from the HIP host-buffer candidate investigated below.
+MTP with the released shortlist still requires one slot. The community's assertion log (`n_slots = 2`, `n_ctx_slot = 100096`, `kv_unified = false`) identifies this separate configuration limitation. Use `ENABLE_MTP=0 PARALLEL_SLOTS=2` for two slots. The launcher catches unsupported multi-slot MTP before loading the model.
 
-The passing short marker responses do not validate recall from a conversation's earlier context after another request joins. They must not be treated as clearance of #27994. For two-slot operation, use `ENABLE_MTP=0 PARALLEL_SLOTS=2` with explicit `--no-kv-unified` pending integration and validation of the QSA fix. The launcher guard catches unsupported multi-slot MTP before model load; it does not implement that missing runtime fix.
+## Historical v2.0 smoke and issue identification
 
-The community's v2 discussion also supplies an actual assertion log: `n_slots = 2`, `n_ctx_slot = 100096`, `kv_unified = false`, followed by the one-slot shortlist assertion. This confirms the separate unsupported MTP configuration.
+The initial v2.0 short-marker smoke below passed, but it did not validate recall from a conversation's earlier context after another request joined. It did not rule out [#27994](https://github.com/ggml-org/llama.cpp/issues/27994). The subsequently supplied [#27941](https://github.com/ggml-org/llama.cpp/pull/27941) identified the missing sequence-aware QSA grouping and indexer update. Those fixes are included in v2.0.1; the original v2.0 tag and archive remain unchanged.
 
-[Structured results and identities](parallel-validation-20260906.json) · [Copyable two-slot command](RUNNING.md#parallel-requests-and-unified-kv-cache)
+[Original structured smoke results and identities](parallel-validation-20260906.json)
 
 | Test | Result | Scope |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ The four-load A1/C1/C2/A2 MTP comparison used the released 262144-token configur
 
 This is an unresolved numerical or execution difference, not an established task-quality loss. It fails the predeclared exact-output regression gate, so the candidate remains unqualified for promotion. Timing rows from different continuations do not establish a speedup. The original logs, token IDs, request JSON, build identities and official performance-store records are retained for investigation. No new Ubuntu qualification or filled-context stability claim is made for the candidate.
 
-The older fragmented unified-KV/SWA fix [#23981](https://github.com/ggml-org/llama.cpp/pull/23981), commit `236531595584fdb5f63f09bf4306cf982b757e6e`, is already an ancestor of v2.0. An exact upstream issue URL and reproducible request are needed to distinguish that resolved issue from other reports.
+The older fragmented unified-KV/SWA fix [#23981](https://github.com/ggml-org/llama.cpp/pull/23981), commit `236531595584fdb5f63f09bf4306cf982b757e6e`, is already an ancestor of v2.0. It is distinct from the QSA issue corrected in v2.0.1.
 
 ## Launcher regression check
 

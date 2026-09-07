@@ -1,0 +1,60 @@
+[
+  {
+    "fixture": "test-qsa-sequence",
+    "compile": [
+      "/nix/store/788mx070y81zjlg5ipcl0cra3afviw9k-gcc-wrapper-15.2.0/bin/g++",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/src",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/include",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/ggml/include",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/vendor",
+      "-L/srv/llm/work/qwen38-qsa-fix-20260906/baseline/bin",
+      "-Wl,-rpath,/srv/llm/work/qwen38-qsa-fix-20260906/baseline/bin",
+      "/srv/llm/work/qwen38-qsa-fix-20260906/test-qsa-sequence.cpp",
+      "-lllama",
+      "-lggml",
+      "-lggml-base",
+      "-o",
+      "/srv/llm/work/qwen38-qsa-fix-20260906/test-qsa-sequence"
+    ],
+    "command": [
+      "/srv/llm/work/qwen38-qsa-fix-20260906/test-qsa-sequence"
+    ],
+    "returncode": 0,
+    "stdout": "sequences=1 fragmented=0 shared=0 tails=0 block_bias=0 offset=0 PASS\nsequences=1 fragmented=0 shared=0 tails=0 block_bias=0 offset=3 PASS\nsequences=1 fragmented=0 shared=0 tails=0 block_bias=1 offset=0 PASS\nsequences=1 fragmented=0 shared=0 tails=0 block_bias=1 offset=3 PASS\nsequences=1 fragmented=0 shared=0 tails=1 block_bias=0 offset=0 PASS\nsequences=1 fragmented=0 shared=0 tails=1 block_bias=0 offset=3 PASS\nsequences=1 fragmented=0 shared=0 tails=1 block_bias=1 offset=0 PASS\nsequences=1 fragmented=0 shared=0 tails=1 block_bias=1 offset=3 PASS\nsequences=1 fragmented=0 shared=1 tails=0 block_bias=0 offset=0 PASS\nsequences=1 fragmented=0 shared=1 tails=0 block_bias=0 offset=3 PASS\nsequences=1 fragmented=0 shared=1 tails=0 block_bias=1 offset=0 PASS\nsequences=1 fragmented=0 shared=1 tails=0 block_bias=1 offset=3 PASS\nsequences=1 fragmented=0 shared=1 tails=1 block_bias=0 offset=0 PASS\nsequences=1 fragmented=0 shared=1 tails=1 block_bias=0 offset=3 PASS\nsequences=1 fragmented=0 shared=1 tails=1 block_bias=1 offset=0 PASS\nsequences=1 fragmented=0 shared=1 tails=1 block_bias=1 offset=3 PASS\nsequences=1 fragmented=1 shared=0 tails=0 block_bias=0 offset=0 PASS\nsequences=1 fragmented=1 shared=0 tails=0 block_bias=0 offset=3 PASS\nsequences=1 fragmented=1 shared=0 tails=0 block_bias=1 offset=0 PASS\nsequences=1 fragmented=1 shared=0 tails=0 block_bias=1 offset=3 PASS\nsequences=1 fragmented=1 shared=0 tails=1 block_bias=0 offset=0 PASS\nsequences=1 fragmented=1 shared=0 tails=1 block_bias=0 offset=3 PASS\nsequences=1 fragmented=1 shared=0 tails=1 block_bias=1 offset=0 PASS\nsequences=1 fragmented=1 shared=0 tails=1 block_bias=1 offset=3 PASS\nsequences=1 fragmented=1 shared=1 tails=0 block_bias=0 offset=0 PASS\nsequences=1 fragmented=1 shared=1 tails=0 block_bias=0 offset=3 PASS\nsequences=1 fragmented=1 shared=1 tails=0 block_bias=1 offset=0 PASS\nsequences=1 fragmented=1 shared=1 tails=0 block_bias=1 offset=3 PASS\nsequences=1 fragmented=1 shared=1 tails=1 block_bias=0 offset=0 PASS\nsequences=1 fragmented=1 shared=1 tails=1 block_bias=0 offset=3 PASS\nsequences=1 fragmented=1 shared=1 tails=1 block_bias=1 offset=0 PASS\nsequences=1 fragmented=1 shared=1 tails=1 block_bias=1 offset=3 PASS\nsequences=2 fragmented=0 shared=0 tails=0 block_bias=0 offset=0 PASS\nsequences=2 fragmented=0 shared=0 tails=0 block_bias=0 offset=3 PASS\nsequences=2 fragmented=0 shared=0 tails=0 block_bias=1 offset=0 PASS\nsequences=2 fragmented=0 shared=0 tails=0 block_bias=1 offset=3 PASS\nsequences=2 fragmented=0 shared=0 tails=1 block_bias=0 offset=0 PASS\nsequences=2 fragmented=0 shared=0 tails=1 block_bias=0 offset=3 PASS\nsequences=2 fragmented=0 shared=0 tails=1 block_bias=1 offset=0 PASS\nsequences=2 fragmented=0 shared=0 tails=1 block_bias=1 offset=3 PASS\nsequences=2 fragmented=0 shared=1 tails=0 block_bias=0 offset=0 PASS\nsequences=2 fragmented=0 shared=1 tails=0 block_bias=0 offset=3 PASS\nsequences=2 fragmented=0 shared=1 tails=0 block_bias=1 offset=0 PASS\nsequences=2 fragmented=0 shared=1 tails=0 block_bias=1 offset=3 PASS\nsequences=2 fragmented=0 shared=1 tails=1 block_bias=0 offset=0 PASS\nsequences=2 fragmented=0 shared=1 tails=1 block_bias=0 offset=3 PASS\nsequences=2 fragmented=0 shared=1 tails=1 block_bias=1 offset=0 PASS\nsequences=2 fragmented=0 shared=1 tails=1 block_bias=1 offset=3 PASS\nsequences=2 fragmented=1 shared=0 tails=0 block_bias=0 offset=0 PASS\nsequences=2 fragmented=1 shared=0 tails=0 block_bias=0 offset=3 PASS\nsequences=2 fragmented=1 shared=0 tails=0 block_bias=1 offset=0 PASS\nsequences=2 fragmented=1 shared=0 tails=0 block_bias=1 offset=3 PASS\nsequences=2 fragmented=1 shared=0 tails=1 block_bias=0 offset=0 PASS\nsequences=2 fragmented=1 shared=0 tails=1 block_bias=0 offset=3 PASS\nsequences=2 fragmented=1 shared=0 tails=1 block_bias=1 offset=0 PASS\nsequences=2 fragmented=1 shared=0 tails=1 block_bias=1 offset=3 PASS\nsequences=2 fragmented=1 shared=1 tails=0 block_bias=0 offset=0 PASS\nsequences=2 fragmented=1 shared=1 tails=0 block_bias=0 offset=3 PASS\nsequences=2 fragmented=1 shared=1 tails=0 block_bias=1 offset=0 PASS\nsequences=2 fragmented=1 shared=1 tails=0 block_bias=1 offset=3 PASS\nsequences=2 fragmented=1 shared=1 tails=1 block_bias=0 offset=0 PASS\nsequences=2 fragmented=1 shared=1 tails=1 block_bias=0 offset=3 PASS\nsequences=2 fragmented=1 shared=1 tails=1 block_bias=1 offset=0 PASS\nsequences=2 fragmented=1 shared=1 tails=1 block_bias=1 offset=3 PASS\nspatial state restore unified=0 PASS\nspatial state restore unified=1 PASS\nQSA map/state cases: 66, failed: 0\n"
+  },
+  {
+    "fixture": "qsa-norm-boundary",
+    "compile": [
+      "/nix/store/788mx070y81zjlg5ipcl0cra3afviw9k-gcc-wrapper-15.2.0/bin/g++",
+      "-std=c++17",
+      "-O2",
+      "-Wall",
+      "-Wextra",
+      "-Werror",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/src",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/include",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/ggml/include",
+      "-I/srv/llm/work/qwen38-qsa-fix-20260906/source-fast/vendor",
+      "-L/srv/llm/work/qwen38-qsa-fix-20260906/baseline/bin",
+      "-Wl,-rpath,/srv/llm/work/qwen38-qsa-fix-20260906/baseline/bin",
+      "/srv/llm/work/qwen38-qsa-fix-20260906/qsa-norm-boundary.cpp",
+      "-lllama",
+      "-lggml",
+      "-lggml-base",
+      "-o",
+      "/srv/llm/work/qwen38-qsa-fix-20260906/qsa-norm-boundary"
+    ],
+    "command": [
+      "/srv/llm/work/qwen38-qsa-fix-20260906/qsa-norm-boundary",
+      "/srv/llm/work/qwen38-qsa-fix-20260906/candidate-fast/bin",
+      "gpu"
+    ],
+    "returncode": 0,
+    "stdout": "backend=ROCm0\nrows=65535 values=8388480 max_abs_error=3.60466458e-07 finite=1 PASS\nrows=65536 values=8388608 max_abs_error=3.60466458e-07 finite=1 PASS\nrows=131072 values=16777216 max_abs_error=3.60466458e-07 finite=1 PASS\n"
+  }
+]

@@ -1,0 +1,8 @@
+{
+  "user_constraint": "No repeated four-load 8K/64K full-model block; complete qualification with targeted checks.",
+  "status": "Original long block stopped after A1/C1; all evidence preserved and Sozo released.",
+  "diagnostic": "Compare released and revised QSA mapping on desktop CPU, and old/revised normalization shapes in one small standalone GPU process. No model weights loaded; no runtime source edits.",
+  "purpose": "Locate added computation before deciding whether any further full-model speed measurement is necessary.",
+  "gpu_budget_seconds": 30,
+  "scope": "Operation timing only; do not relabel it as served full-model throughput or erase the incomplete full-model result."
+}

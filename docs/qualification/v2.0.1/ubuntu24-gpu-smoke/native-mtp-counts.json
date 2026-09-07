@@ -1,0 +1,24 @@
+{
+  "generation_tokens": 520,
+  "draft_n": 674,
+  "draft_n_accepted": 400,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 57,
+    "prompt_ms": 825.28,
+    "prompt_per_token_ms": 14.47859649122807,
+    "prompt_per_second": 69.06746801085691,
+    "predicted_n": 520,
+    "predicted_ms": 12416.389,
+    "predicted_per_token_ms": 23.923678227360305,
+    "predicted_per_second": 41.799592458000475,
+    "draft_n": 674,
+    "draft_n_accepted": 400
+  },
+  "reference_counts": {
+    "draft_n": 674,
+    "draft_n_accepted": 400
+  },
+  "counts_match_reference": true,
+  "scope": "Native counts for the same 520-token budget as the reference; count equality recorded, target token identity is the required fidelity gate."
+}

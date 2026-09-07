@@ -5,7 +5,7 @@
 ```bash
 python -m pip install -U "huggingface_hub[cli]"
 hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --revision v2.0 --local-dir ./model
+  --revision v2.0.1 --local-dir ./model
 cd model
 sha256sum -c checksums.sha256
 cd ..
@@ -82,7 +82,7 @@ MTP_DEPTH=3 BUILD_DIR="$PWD/build-gfx1151-sdk" \
 
 The headline 42.28–42.31 tok/s was measured on a non-thinking coding probe with 57 prompt tokens, 520 generated tokens, greedy sampling, one slot, 16K configured context and the performance CPU governor. It does not establish that six is optimal for short chat, long contexts or batched serving. No adaptive depth selection is enabled. The MTP-off context sweep cannot establish an optimal MTP depth.
 
-For a useful comparison, retain the exact source/build identity, launch command and exported profile, shortlist startup line, request JSON and effective sampling settings (including min-p), thinking mode, actual prompt/output counts, cache state, drafted/accepted counts and timing definition. Report generation rate separately from time to first token and end-to-end latency. A single sampled completion is directional evidence; acceptance percentage alone does not determine speed or show that one runtime is generally faster. Compare depths within v2.0 with all other settings held fixed; when comparing versions, record each version's supported profile explicitly.
+For a useful comparison, retain the exact source/build identity, launch command and exported profile, shortlist startup line, request JSON and effective sampling settings (including min-p), thinking mode, actual prompt/output counts, cache state, drafted/accepted counts and timing definition. Report generation rate separately from time to first token and end-to-end latency. A single sampled completion is directional evidence; acceptance percentage alone does not determine speed or show that one runtime is generally faster. Compare depths within the same runtime version with all other settings held fixed; when comparing versions, record each version's supported profile explicitly.
 
 ## Production cache behavior
 
@@ -150,9 +150,7 @@ This reduces disk and memory pressure but gives up the published speculative-dec
 
 ## Parallel requests and unified KV cache
 
-**The v2.0 MTP shortlist supports exactly one slot.** Setting `PARALLEL_SLOTS=2` while leaving MTP enabled hits a runtime assertion, with either split or unified KV. This is separate from upstream reports about HIP host buffers or unified-cache state. The launcher on `main` now rejects that configuration before loading the model and explains the target-only option; the original `v2.0` tag and archive are unchanged.
-
-For two slots, disable MTP explicitly. This command also works with the original v2.0 launcher:
+**The MTP shortlist still supports exactly one slot in v2.0.1.** The launcher rejects multi-slot MTP before model load. For two slots, disable MTP explicitly:
 
 ```bash
 ENABLE_MTP=0 PARALLEL_SLOTS=2 CONTEXT_SIZE=524288 \
@@ -160,15 +158,15 @@ ENABLE_MTP=0 PARALLEL_SLOTS=2 CONTEXT_SIZE=524288 \
   ./scripts/ciru/run-server.sh --no-kv-unified
 ```
 
-With separate KV caches, `524288` is the **total** context allocation: two slots receive `262144` tokens each. It is not 512K per agent. Check `/slots` for the actual per-slot limit. Unified KV shares the pool; this runtime still caps each slot at the model's 262144-token training context.
+For unified KV on **v2.0.1**, replace `--no-kv-unified` with `--kv-unified`. Both modes passed the bounded concurrency, isolation and recall checks. Rebuild the v2.0.1 source before using unified multi-slot serving; the original v2.0 runtime is missing this fix.
 
-On 2026-09-06, the released CIRU/ROCm 10 build completed 16 target-only requests across two fresh loads: eight with separate KV and eight with unified KV, both at `-c 524288 -np 2`. These mixed short prompts, a 6659-token reference fixture, overlapping requests, queued requests, streamed responses and prefix caching. All returned their own requested marker, with no foreign markers, transport failures or GPU errors. This is a bounded concurrency smoke test, **not validation of filled 512K contexts or every agent workload**. These marker checks did not validate retrieval from an earlier conversation after another request joined, so they do not rule out the model-specific QSA bug below. Use the explicit separate-KV configuration above for two slots.
+With separate KV, `524288` is the total context allocation: **262144 tokens per slot**, not 512K per agent. Unified KV shares the pool; this runtime still caps each slot at the model's 262144-token training context. Inspect `/slots` for actual limits.
 
-The community subsequently identified [upstream #27994](https://github.com/ggml-org/llama.cpp/issues/27994), a **Qwen3.8/QSA unified-cache sequence-isolation bug**, fixed upstream by [#27941](https://github.com/ggml-org/llama.cpp/pull/27941) on 2026-09-01. **The relevant fix is missing from our v2.0 source:** the QSA block map still groups cells by position without separating sequence sets. The PR also repairs indexer-key copying; that update is absent too. The older fragmented-KV/SWA fix #23981 and the separate HIP host-buffer report #25992 are different issues.
+v2.0.1 includes the relevant QSA fix from [upstream #27941](https://github.com/ggml-org/llama.cpp/pull/27941) for [#27994](https://github.com/ggml-org/llama.cpp/issues/27994). QSA blocks now separate sequence sets, and pending copies update indexer keys. Full-model simultaneous-sequence tests retained exact logits when the other conversation changed. Sixteen served recall requests passed across split/unified KV with 13062-token initial prompts, concurrent requests, followups and slot reuse.
 
-**Keep `--no-kv-unified` explicit for multi-slot serving until the QSA backport is integrated and validated.** The new launcher guard addresses the one-slot MTP assertion; it does not repair QSA sequence isolation or implement multi-slot MTP. The source archive, release tags and weights are unchanged. The separate proposed HIP patch #25863 remains held after the MTP regression comparison; it is not the fix for #27994.
+These checks do not validate a filled 512K cache or every agent workload. The earlier v2.0 short-marker smoke missed the QSA issue; it should not be used as evidence that v2.0 is protected. The separate HIP host-buffer proposal #25863 remains excluded after its MTP regression comparison.
 
-[Validation and source-audit details](PARALLEL_VALIDATION.md).
+[v2.0.1 qualification](QSA_BACKPORT_STATUS.md) · [Parallel validation history](PARALLEL_VALIDATION.md).
 
 ## Network exposure
 

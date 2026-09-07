@@ -1,0 +1,15 @@
+{
+  "status": "PASS",
+  "tested_source_commit": "bf0bf4b795e112bb1b4af0101640b8fdb250365f",
+  "files_checked": 3566,
+  "post_build_changes": [
+    "CIRU_RELEASE.json",
+    "README.md",
+    "docs/BUILD_LINUX.md",
+    "docs/PARALLEL_VALIDATION.md",
+    "docs/PROVENANCE.md",
+    "docs/QSA_BACKPORT_STATUS.md",
+    "docs/RUNNING.md"
+  ],
+  "scope": "Only release documentation and manifest differ from the clean tested source snapshot; no executable source/profile/build script changes."
+}

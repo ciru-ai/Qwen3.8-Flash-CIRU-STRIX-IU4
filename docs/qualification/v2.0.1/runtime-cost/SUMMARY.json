@@ -1,0 +1,154 @@
+{
+  "rows": {
+    "candidate-fast": [
+      {
+        "batch": 1,
+        "depth": 65536,
+        "logit_sha256": [
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d",
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d",
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d"
+        ],
+        "median_us": 90654.285,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          90183.048,
+          90654.285,
+          103661.045
+        ]
+      },
+      {
+        "batch": 7,
+        "depth": 65536,
+        "logit_sha256": [
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061",
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061",
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061"
+        ],
+        "median_us": 148332.724,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          147185.865,
+          148332.724,
+          168017.664
+        ]
+      },
+      {
+        "batch": 512,
+        "depth": 65536,
+        "logit_sha256": [
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0",
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0",
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0"
+        ],
+        "median_us": 1524775.082,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          1520940.029,
+          1524775.082,
+          1528956.55
+        ]
+      }
+    ],
+    "baseline": [
+      {
+        "batch": 1,
+        "depth": 65536,
+        "logit_sha256": [
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d",
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d",
+          "d23f2f9bd95d208f09fbb685bd8c71e3ad24492334bb9951d190591888cffc7d"
+        ],
+        "median_us": 90540.548,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          89549.993,
+          90540.548,
+          106779.051
+        ]
+      },
+      {
+        "batch": 7,
+        "depth": 65536,
+        "logit_sha256": [
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061",
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061",
+          "e8d311c5fc3f5560d0987ef705400246bd320a20e5fb16c1715e819e3d2bd061"
+        ],
+        "median_us": 148552.724,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          146570.183,
+          148552.724,
+          218210.508
+        ]
+      },
+      {
+        "batch": 512,
+        "depth": 65536,
+        "logit_sha256": [
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0",
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0",
+          "ffbde9d68ac7700be74c0b958358b206cdc1ec2b22fdb1acb0fed5661e9012b0"
+        ],
+        "median_us": 1552853.459,
+        "mtp": false,
+        "synthetic_zero_kv": true,
+        "us": [
+          1543514.049,
+          1552853.459,
+          1558408.636
+        ]
+      }
+    ]
+  },
+  "reports": [
+    {
+      "batch": 1,
+      "runtime_change_percent": 0.1256199597996721,
+      "exact_logits": true,
+      "pass": true
+    },
+    {
+      "batch": 7,
+      "runtime_change_percent": -0.14809556773930366,
+      "exact_logits": true,
+      "pass": true
+    },
+    {
+      "batch": 512,
+      "runtime_change_percent": -1.808179441354496,
+      "exact_logits": true,
+      "pass": true
+    }
+  ],
+  "pass": true,
+  "scope": {
+    "classification": "synthetic-cache full-runtime operation diagnostic; not served throughput",
+    "context": 262144,
+    "depth": 65536,
+    "counts": [
+      1,
+      7,
+      512
+    ],
+    "mtp": false,
+    "kv": "f16",
+    "batch": 2048,
+    "ubatch": 512,
+    "warmup": "first call per shape excluded",
+    "schedule": [
+      "candidate-fast",
+      "baseline"
+    ],
+    "max_total_seconds": 120,
+    "purpose": "Isolate code cost at64K without repeating64K prefill; compare finite full-vocabulary logits and execution times",
+    "gate": "exact logit hashes and <2% median runtime increase for each shape",
+    "caveat": "Zero-filled attention/indexer values plus a one-token recurrent state, with contiguous sequence metadata; not a real64K conversation"
+  }
+}

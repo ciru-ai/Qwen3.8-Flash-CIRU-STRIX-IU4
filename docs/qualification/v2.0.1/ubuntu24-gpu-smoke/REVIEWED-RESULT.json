@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "reviewed_utc": "2026-09-07T23:02:09.140790+00:00",
+  "original_verifier_status_preserved": {
+    "status": "FAIL",
+    "error": "gfx1151 identification not found",
+    "context_allocation": 262144,
+    "scope": "One unretried build/inference smoke attempt; inspect preserved artifacts."
+  },
+  "adjudication": "Original inference passed exact tokens and native counts. The original verifier incorrectly required the literal gfx1151 in a verbosity-3 server log. The same built binary enumerates ROCm0 as Radeon 8060S; the sole GPU KFD node is gfx_target_version=110501 and the actual inference log records RDNA3.5 kernel execution. No inference was repeated.",
+  "context_allocation": 262144,
+  "active_prompt_tokens": 57,
+  "generated_tokens": 520,
+  "token_sha256": "5115118aef25826d9d904cd30f47a28fc9aeac842457b17ff906deba653fb731",
+  "tokens_exact": true,
+  "mtp_counts_exact": true,
+  "draft_n": 674,
+  "draft_n_accepted": 400,
+  "timings": {
+    "cache_n": 0,
+    "prompt_n": 57,
+    "prompt_ms": 825.28,
+    "prompt_per_token_ms": 14.47859649122807,
+    "prompt_per_second": 69.06746801085691,
+    "predicted_n": 520,
+    "predicted_ms": 12416.389,
+    "predicted_per_token_ms": 23.923678227360305,
+    "predicted_per_second": 41.799592458000475,
+    "draft_n": 674,
+    "draft_n_accepted": 400
+  },
+  "binary_hashes_verified": 15,
+  "scope": "Clean Ubuntu 24.04 userspace / ROCm 10 build and one matched coding completion, using Ciru NixOS host GPU driver. Not a native Ubuntu host certification, filled 262144-token context test, or matched speed comparison.",
+  "cleanup_restored": true
+}

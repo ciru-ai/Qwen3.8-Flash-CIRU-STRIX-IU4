@@ -1,0 +1,8 @@
+{
+  "db": "/srv/llm/work/qwen38-qsa-fix-20260906/mtp-regression-fast/store/results.sqlite3",
+  "ledger": "/srv/llm/work/qwen38-qsa-fix-20260906/mtp-regression-fast/store/results.ledger.jsonl",
+  "ledger_rows": 4,
+  "ok": true,
+  "problems": [],
+  "rows": 4
+}

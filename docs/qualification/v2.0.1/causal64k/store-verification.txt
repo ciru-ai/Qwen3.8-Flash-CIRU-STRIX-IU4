@@ -1,0 +1,8 @@
+{
+  "db": "/srv/llm/work/qwen38-qsa-release-20260907/causal64k/store/results.sqlite3",
+  "ledger": "/srv/llm/work/qwen38-qsa-release-20260907/causal64k/store/results.ledger.jsonl",
+  "ledger_rows": 2,
+  "ok": true,
+  "problems": [],
+  "rows": 2
+}

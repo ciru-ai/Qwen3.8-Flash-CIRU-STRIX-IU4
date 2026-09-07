@@ -1,0 +1,12 @@
+[
+  {
+    "arm": "baseline",
+    "returncode": 1,
+    "stdout": "fragmented=0 shared=0 tails=0 block_bias=0 FAIL\nfragmented=0 shared=0 tails=0 block_bias=1 FAIL\nfragmented=0 shared=0 tails=1 block_bias=0 FAIL\nfragmented=0 shared=0 tails=1 block_bias=1 FAIL\nfragmented=0 shared=1 tails=0 block_bias=0 FAIL\nfragmented=0 shared=1 tails=0 block_bias=1 FAIL\nfragmented=0 shared=1 tails=1 block_bias=0 FAIL\nfragmented=0 shared=1 tails=1 block_bias=1 FAIL\nfragmented=1 shared=0 tails=0 block_bias=0 FAIL\nfragmented=1 shared=0 tails=0 block_bias=1 FAIL\nfragmented=1 shared=0 tails=1 block_bias=0 FAIL\nfragmented=1 shared=0 tails=1 block_bias=1 FAIL\nfragmented=1 shared=1 tails=0 block_bias=0 FAIL\nfragmented=1 shared=1 tails=0 block_bias=1 FAIL\nfragmented=1 shared=1 tails=1 block_bias=0 FAIL\nfragmented=1 shared=1 tails=1 block_bias=1 FAIL\nQSA map cases: 16, failed: 16\n"
+  },
+  {
+    "arm": "candidate",
+    "returncode": 0,
+    "stdout": "fragmented=0 shared=0 tails=0 block_bias=0 PASS\nfragmented=0 shared=0 tails=0 block_bias=1 PASS\nfragmented=0 shared=0 tails=1 block_bias=0 PASS\nfragmented=0 shared=0 tails=1 block_bias=1 PASS\nfragmented=0 shared=1 tails=0 block_bias=0 PASS\nfragmented=0 shared=1 tails=0 block_bias=1 PASS\nfragmented=0 shared=1 tails=1 block_bias=0 PASS\nfragmented=0 shared=1 tails=1 block_bias=1 PASS\nfragmented=1 shared=0 tails=0 block_bias=0 PASS\nfragmented=1 shared=0 tails=0 block_bias=1 PASS\nfragmented=1 shared=0 tails=1 block_bias=0 PASS\nfragmented=1 shared=0 tails=1 block_bias=1 PASS\nfragmented=1 shared=1 tails=0 block_bias=0 PASS\nfragmented=1 shared=1 tails=0 block_bias=1 PASS\nfragmented=1 shared=1 tails=1 block_bias=0 PASS\nfragmented=1 shared=1 tails=1 block_bias=1 PASS\nQSA map cases: 16, failed: 0\n"
+  }
+]
