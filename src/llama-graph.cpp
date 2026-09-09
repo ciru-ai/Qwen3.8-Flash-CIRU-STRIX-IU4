@@ -1,3 +1,4 @@
+#include <cstdlib>
 #include "llama-graph.h"
 
 #include "llama-impl.h"
@@ -2638,6 +2639,26 @@ ggml_tensor * llm_graph_context::build_attn_mha(
 
         if (v->type == GGML_TYPE_F32) {
             v = ggml_cast(ctx0, v, GGML_TYPE_F16);
+        }
+
+        // Draft-only attention window. Target verification keeps its full
+        // context; absolute RoPE positions and stored draft KV are unchanged.
+        const char * mtp_window = std::getenv("CIRU_MTP_ATTENTION_WINDOW");
+        if (cparams.ctx_type == LLAMA_CONTEXT_TYPE_MTP && mtp_window) {
+            const int64_t window = std::strtoll(mtp_window, nullptr, 10);
+            if (window >= 256 && window % 256 == 0 && k->ne[1] > window &&
+                    q->ne[3] == 1 && v->ne[1] == k->ne[1] &&
+                    kq_mask && kq_mask->ne[0] == k->ne[1]) {
+                const int64_t start = k->ne[1] - window;
+                k = ggml_view_4d(ctx0, k, k->ne[0], window, k->ne[2], k->ne[3],
+                        k->nb[1], k->nb[2], k->nb[3], start*k->nb[1]);
+                v = ggml_view_4d(ctx0, v, v->ne[0], window, v->ne[2], v->ne[3],
+                        v->nb[1], v->nb[2], v->nb[3], start*v->nb[1]);
+                kq_mask = ggml_view_4d(ctx0, kq_mask, window, kq_mask->ne[1],
+                        kq_mask->ne[2], kq_mask->ne[3], kq_mask->nb[1],
+                        kq_mask->nb[2], kq_mask->nb[3], start*kq_mask->nb[0]);
+                kq_mask = ggml_cont(ctx0, kq_mask);
+            }
         }
 
         cur = ggml_flash_attn_ext(ctx0, q, k, v, kq_mask, kq_scale, hparams.f_max_alibi_bias,

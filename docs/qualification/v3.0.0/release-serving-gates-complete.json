@@ -1,0 +1,10 @@
+{
+  "time": 1788920948.275073,
+  "before": "v2-final-before",
+  "capacity": "v3-default6-full-capacity",
+  "selected_quality": "v3-final-C1",
+  "default_mtp": 6,
+  "optional_mtp2_quality": "v3-selected-C1-mtp2",
+  "default_reason": "MTP2 improved low-acceptance long requests but regressed high-acceptance short coding. MTP6 remains the general default; both profiles are documented.",
+  "publication": "not performed; inspect comparison and artifact verification"
+}

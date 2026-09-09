@@ -1,0 +1,80 @@
+{
+  "indexer_K_norm_tensors": [
+    {
+      "name": "blk.3.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.7.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.11.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.15.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.19.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.23.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.27.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.31.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.35.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.39.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.43.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    },
+    {
+      "name": "blk.47.indexer.k_norm.weight",
+      "shape": [
+        128
+      ]
+    }
+  ],
+  "full_capacity": 262144,
+  "blocks": 65536,
+  "F32_minus_F16_bytes": 201326592,
+  "MiB": 192.0
+}

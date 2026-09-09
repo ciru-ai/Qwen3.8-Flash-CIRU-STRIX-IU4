@@ -7,6 +7,8 @@
 
 #include <algorithm>
 #include <cinttypes>
+#include <cstdlib>
+#include <cstring>
 #include <stdexcept>
 #include <map>
 #include <mutex>
@@ -912,8 +914,8 @@ public:
             uint32_t ratio,
             bool blk_bias,
             llama_qsa_block_plan block_plan,
-            bool exact_legacy) :
-        mctx(mctx), ratio(ratio), blk_bias(blk_bias), block_plan(block_plan), exact_legacy(exact_legacy) {}
+            bool exact_legacy, llama_qsa_block_plan pool_plan) :
+        mctx(mctx), ratio(ratio), blk_bias(blk_bias), block_plan(block_plan), exact_legacy(exact_legacy), pool_plan(pool_plan) {}
     virtual ~llm_graph_input_qsa() = default;
 
     void set_input(const llama_ubatch * ubatch) override {
@@ -923,6 +925,21 @@ public:
         }
         if (exact_legacy || !block_plan.sparse_attention) {
             mctx->set_input_qsa(cell_blk, blk_cells, blk_pos, bias, ubatch, ratio, blk_bias);
+        }
+        if (pool_plan.enabled) {
+            const auto plan = mctx->plan_qsa_cached_pool(*ubatch, ratio);
+            GGML_ASSERT(plan.enabled && plan.new_blocks == pool_plan.new_blocks);
+            const auto n = plan.new_blocks;
+            std::memcpy(pool_cells->data, (int32_t *) blk_cells->data + ratio*plan.first_block, ratio*n*sizeof(int32_t));
+            for (uint32_t sec = 0; sec < 4; ++sec) {
+                std::memcpy((int32_t *) pool_pos->data + sec*n,
+                        (int32_t *) blk_pos->data + sec*plan.total_blocks + plan.first_block, n*sizeof(int32_t));
+            }
+            for (uint32_t i = 0; i < n; ++i) { ((int32_t *) pool_ids->data)[i] = plan.first_block + i; }
+            auto * cache = mctx->get_idx_blocks();
+            cache->valid_blocks = plan.total_blocks;
+            cache->valid_base = plan.cell_base;
+            cache->valid_seq = plan.seq_id;
         }
     }
 
@@ -939,13 +956,17 @@ public:
         const int64_t n_blocks = (n_kv + ratio - 1)/ratio;
         const llama_qsa_block_plan current_plan = mctx->plan_qsa_blocks(params.ubatch, ratio);
 
-        bool res = true;
+        const auto current_pool = mctx->plan_qsa_cached_pool(params.ubatch, ratio);
+        bool res = current_pool.enabled == pool_plan.enabled;
+        if (pool_plan.enabled) {
+            res &= current_pool.new_blocks == pool_plan.new_blocks;
+            res &= current_pool.total_blocks == pool_plan.total_blocks;
+        }
 
         res &= params.ubatch.n_tokens % n_stream == 0;
 
         res &= k_idxs->ne[0]    == params.ubatch.n_tokens;
         if (exact_legacy) {
-            res &= params.ubatch.n_tokens == 512;
             res &= current_plan.enabled;
             res &= current_plan.cell_base == block_plan.cell_base;
             res &= current_plan.new_blocks == block_plan.new_blocks;
@@ -991,6 +1012,10 @@ public:
     const bool blk_bias;
     const llama_qsa_block_plan block_plan;
     const bool exact_legacy;
+    const llama_qsa_block_plan pool_plan;
+    ggml_tensor * pool_cells = nullptr;
+    ggml_tensor * pool_pos = nullptr;
+    ggml_tensor * pool_ids = nullptr;
 };
 
 ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
@@ -1026,7 +1051,7 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
 
     const llama_qsa_block_plan proposed_plan =
         mctx_hyb->plan_qsa_blocks(ubatch, (uint32_t) r);
-    const bool h109c_exact_legacy = n_tokens == 512 && proposed_plan.enabled;
+    const bool h109c_exact_legacy = proposed_plan.enabled;
     if (h109c_exact_legacy) {
         qsa_indexed_cell_base = proposed_plan.cell_base;
     }
@@ -1039,7 +1064,8 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         inp = it->second;
     } else {
         auto qsa = std::make_unique<llm_graph_input_qsa>(
-            mctx_hyb, (uint32_t) r, blk_bias, proposed_plan, h109c_exact_legacy);
+            mctx_hyb, (uint32_t) r, blk_bias, proposed_plan, h109c_exact_legacy,
+            mctx_hyb->plan_qsa_cached_pool(ubatch, (uint32_t) r));
 
         qsa->k_idxs    = mctx_idx->build_input_k_idxs(ctx0, ubatch);
         if (proposed_plan.enabled && !h109c_exact_legacy) {
@@ -1063,6 +1089,18 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
             ggml_set_input(qsa->bias);
         }
 
+        if (qsa->pool_plan.enabled) {
+            // These CPU inputs also feed the suffix metadata copied in set_input.
+            ggml_build_forward_expand(gf, qsa->blk_cells);
+            ggml_build_forward_expand(gf, qsa->blk_pos);
+            const auto n = qsa->pool_plan.new_blocks;
+            qsa->pool_cells = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, r*n);
+            qsa->pool_pos = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, 4*n);
+            qsa->pool_ids = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, n);
+            ggml_set_input(qsa->pool_cells);
+            ggml_set_input(qsa->pool_pos);
+            ggml_set_input(qsa->pool_ids);
+        }
         inp = qsa.get();
         res->add_input(std::move(qsa));
         qsa_inps.emplace((uint32_t) r, inp);
@@ -1147,12 +1185,34 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         }
     }
 
+    ggml_tensor * pooled = nullptr;
+    if (inp->pool_plan.enabled) {
+        const auto n = inp->pool_plan.new_blocks;
+        ggml_tensor * members = ggml_get_rows(ctx0, k_all, inp->pool_cells);
+        members = ggml_reshape_3d(ctx0, members, idx_dim, r, n);
+        for (int64_t i = 0; i < r; ++i) {
+            auto * slice = ggml_cont(ctx0, ggml_view_2d(ctx0, members, idx_dim, n,
+                    members->nb[2], i*members->nb[1]));
+            pooled = pooled ? ggml_add(ctx0, pooled, slice) : slice;
+        }
+        pooled = ggml_scale(ctx0, pooled, 1.0f/(float) r);
+        pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, n, 1);
+        pooled = build_norm(pooled, model.layers[il].index_k_norm, nullptr, LLM_NORM_RMS, il);
+        pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, 1, n);
+        pooled = ggml_rope_multi(ctx0, pooled, inp->pool_pos, nullptr,
+                n_rot, sections, rope_type, n_ctx_orig, freq_base, freq_scale,
+                ext_factor, attn_factor, beta_fast, beta_slow);
+        auto * cache = mctx_hyb->get_idx_blocks();
+        auto * storage = cache->get(ctx0, il, cache->capacity());
+        pooled = ggml_set_rows(ctx0, storage, ggml_reshape_2d(ctx0, pooled, idx_dim, n), inp->pool_ids);
+        pooled = ggml_view_3d(ctx0, pooled, idx_dim, n_blocks, 1, pooled->nb[1], pooled->nb[2], 0);
+        cb(pooled, "indexer_k_cached", il);
+    } else {
     // gathers per stream: blk_cells row s indexes stream s's own cells
     ggml_tensor * members = ggml_get_rows(ctx0, k_all, inp->blk_cells);
     members = ggml_reshape_4d(ctx0, members, idx_dim, r, n_blocks, n_stream);
 
     // mean over the block members; r is small, so summing slices beats a transpose plus sum_rows
-    ggml_tensor * pooled = nullptr;
     for (int64_t i = 0; i < r; ++i) {
         ggml_tensor * slice = ggml_cont(ctx0,
                 ggml_view_3d(ctx0, members, idx_dim, n_blocks, n_stream,
@@ -1173,6 +1233,7 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
             ext_factor, attn_factor, beta_fast, beta_slow);
     pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, n_blocks, n_stream);
     cb(pooled, "indexer_k", il);
+    }
 
     ggml_tensor * q = build_lora_mm(model.layers[il].index_q_proj, cur);
     q = ggml_reshape_3d(ctx0, q, idx_dim, n_idx_h, n_tokens);
@@ -1296,13 +1357,19 @@ ggml_tensor * llama_model_qwen4exp::graph::build_attn_qsa(
     ggml_tensor * k = mctx_cur->get_k(ctx0, il);
     ggml_tensor * v = mctx_cur->get_v(ctx0, il);
 
-    const bool h109c_indexed_m512 = n_tokens == 512 && qsa_indexed_cell_base >= 0;
-    const int h109c_indexed_layout = h109c_indexed_m512 ?
-        (hparams.dsv4_compress_ratios[il] | (qsa_indexed_cell_base << 8)) : 0;
+    const char * decode_env = std::getenv("CIRU_QSA_INDEXED_DECODE");
+    const bool indexed_decode = decode_env && std::strcmp(decode_env, "1") == 0 &&
+        qsa_indexed_cell_base < 0 && top_k->ne[0] == 2051 &&
+        top_k->ne[1] >= 1 && top_k->ne[1] <= 8 && top_k->ne[3] == 1;
+    const bool h109c_indexed_prefill = qsa_indexed_cell_base >= 0 || indexed_decode;
+    // Layout 1 is the ordinary top-k list: every entry is unique and the
+    // original sparse mask remains authoritative. It has no padded tail.
+    const int h109c_indexed_layout = indexed_decode ? 1 : (h109c_indexed_prefill ?
+        (hparams.dsv4_compress_ratios[il] | (qsa_indexed_cell_base << 8)) : 0);
     ggml_tensor * cur = build_attn_mha(
         q, k, v, nullptr, kq_mask_top_k, nullptr, nullptr, kq_scale, il,
-        h109c_indexed_m512 ? top_k : nullptr,
-        h109c_indexed_m512 ? positions : nullptr,
+        h109c_indexed_prefill ? top_k : nullptr,
+        h109c_indexed_prefill ? positions : nullptr,
         h109c_indexed_layout);
     cb(cur, "kqv_out", il);
 

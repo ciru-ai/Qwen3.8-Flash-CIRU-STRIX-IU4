@@ -5355,8 +5355,8 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
                 }
                 return op->src[0]->type == GGML_TYPE_F32 &&
                        op->type == GGML_TYPE_I32 &&
-                       op->src[0]->ne[1] == 512 &&
-                       ggml_nrows(op->src[0]) == 512 &&
+                       op->src[0]->ne[1] == ggml_nrows(op->src[0]) &&
+                       ggml_cuda_qsa_prefill_rows_supported(ggml_nrows(op->src[0])) &&
                        op->src[0]->ne[0] <= max_cols &&
                        op->ne[0] == std::min<int64_t>(op->src[0]->ne[0], 2051) &&
                        ggml_is_contiguous(op->src[0]) &&

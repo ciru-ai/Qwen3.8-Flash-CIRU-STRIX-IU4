@@ -1,0 +1,316 @@
+{
+  "status": "PASS_STAGED_PACKAGE",
+  "reviewed_utc": "2026-09-07T23:17:29.235092+00:00",
+  "git_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+  "git_tree": "e060b9fce2a1ad3abee390fffe1c33ba02945e3b",
+  "source_archive_sha256": "28b2194323ba1105921f2c52639cc28cce8b8336f4f0a3a54349c249823fa7c5",
+  "checks": {
+    "git_commit_and_tree": {
+      "pass": true,
+      "details": {
+        "head": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+        "tree": "e060b9fce2a1ad3abee390fffe1c33ba02945e3b"
+      }
+    },
+    "worktree_clean": {
+      "pass": true,
+      "details": null
+    },
+    "github_staged_checksums": {
+      "pass": true,
+      "details": [
+        {
+          "path": "ciru-runtime-v2.0.1-source.tar.gz",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "qsa-v2.0.1-evidence.tar.gz",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "git-source.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "source-manifest.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "FINAL-QUALIFICATION.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "RELEASE-NOTES.md",
+          "exists": true,
+          "matches": true
+        }
+      ]
+    },
+    "huggingface_staged_checksums": {
+      "pass": true,
+      "details": [
+        {
+          "path": ".gitattributes",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "README.md",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "assets/qwen38-flash-ciru-strix-iu4.jpg",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "assets/v2-bf16-fidelity.png",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "assets/v2-context-sweep.png",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/FINAL-QUALIFICATION.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/QUALIFICATION.md",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/git-source.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/qsa-v2.0.1-evidence.tar.gz",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/source-manifest.json",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "checksums.sha256",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "profiles/strix-halo-production.env",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "runtime/v2.0.1/ciru-runtime-v2.0.1-source.tar.gz",
+          "exists": true,
+          "matches": true
+        },
+        {
+          "path": "v2.0-checksums.sha256",
+          "exists": true,
+          "matches": true
+        }
+      ]
+    },
+    "source_archive_identity": {
+      "pass": true,
+      "details": null
+    },
+    "source_archive_matches_git_every_blob_and_mode": {
+      "pass": true,
+      "details": {
+        "files": 3593,
+        "expected_files": 3593,
+        "failures": [],
+        "missing": [],
+        "extra": []
+      }
+    },
+    "source_manifest_hash": {
+      "pass": true,
+      "details": null
+    },
+    "qualified_core_identity": {
+      "pass": true,
+      "details": [
+        {
+          "path": "src/llama-memory-hybrid-idx.h",
+          "matches_archive_and_worktree": true,
+          "matches_tested_commit": true
+        },
+        {
+          "path": "src/llama-kv-cells.h",
+          "matches_archive_and_worktree": true,
+          "matches_tested_commit": true
+        },
+        {
+          "path": "src/llama-kv-cache.cpp",
+          "matches_archive_and_worktree": true,
+          "matches_tested_commit": true
+        },
+        {
+          "path": "src/llama-memory-hybrid-idx.cpp",
+          "matches_archive_and_worktree": true,
+          "matches_tested_commit": true
+        },
+        {
+          "path": "src/models/qwen4exp.cpp",
+          "matches_archive_and_worktree": true,
+          "matches_tested_commit": true
+        }
+      ]
+    },
+    "changes_since_tested_code_are_docs_evidence_only": {
+      "pass": true,
+      "details": {
+        "changed_count": 58,
+        "unexpected": []
+      }
+    },
+    "github_hf_assets_identical": {
+      "pass": true,
+      "details": [
+        "ciru-runtime-v2.0.1-source.tar.gz",
+        "qsa-v2.0.1-evidence.tar.gz",
+        "git-source.json",
+        "source-manifest.json",
+        "FINAL-QUALIFICATION.json"
+      ]
+    },
+    "historical_hf_checksums_preserved": {
+      "pass": true,
+      "details": null
+    },
+    "production_profile_unchanged": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_archive_identity": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_member_manifest": {
+      "pass": true,
+      "details": {
+        "entries": 606,
+        "failed": []
+      }
+    },
+    "evidence_contains_short-context-confirmation/SUMMARY.json": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_contains_causal64k/SUMMARY.json": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_contains_causal64k/telemetry.jsonl": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_contains_ubuntu24-gpu-smoke/REVIEWED-RESULT.json": {
+      "pass": true,
+      "details": null
+    },
+    "evidence_contains_long-regression-fast/rows-so-far.json": {
+      "pass": true,
+      "details": null
+    },
+    "hf_qualification_source_references_present": {
+      "pass": true,
+      "details": [
+        {
+          "path": "docs/qualification/v2.0.1/FINAL-QUALIFICATION.json",
+          "present": true
+        },
+        {
+          "path": "docs/qualification/v2.0.1/short-context-confirmation/",
+          "present": true
+        },
+        {
+          "path": "docs/qualification/v2.0.1/causal64k/",
+          "present": true
+        },
+        {
+          "path": "docs/qualification/v2.0.1/ubuntu24-build/",
+          "present": true
+        },
+        {
+          "path": "docs/qualification/v2.0.1/ubuntu24-gpu-smoke/REVIEWED-RESULT.json",
+          "present": true
+        },
+        {
+          "path": "docs/qualification/v2.0.1/",
+          "present": true
+        },
+        {
+          "path": "docs/PARALLEL_VALIDATION.md",
+          "present": true
+        }
+      ]
+    },
+    "hf_new_release_local_references_present": {
+      "pass": true,
+      "details": [
+        {
+          "path": "runtime/v2.0.1/ciru-runtime-v2.0.1-source.tar.gz",
+          "present": true
+        },
+        {
+          "path": "benchmarks/v2.0.1/git-source.json",
+          "present": true
+        },
+        {
+          "path": "v2.0.1-checksums.sha256",
+          "present": true
+        }
+      ]
+    },
+    "qualification_material_limits_retained": {
+      "pass": true,
+      "details": {
+        "ROCP_TOOL_ATTACH=1": true,
+        "-2.61%": true,
+        "-6.86%": true,
+        "+2.1206%": true,
+        "-0.4488%": true,
+        "Ubuntu 24.04": true,
+        "Multi-slot MTP is still unsupported": true,
+        "#25863": true
+      }
+    },
+    "iu4_correction_present": {
+      "pass": true,
+      "details": null
+    },
+    "final_qualification_matches_repo": {
+      "pass": true,
+      "details": null
+    },
+    "local_tag_target": {
+      "pass": true,
+      "details": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e"
+    }
+  },
+  "blockers": [],
+  "notes": [
+    "No public upload or remote tag/link verification was attempted; new public links are publication targets.",
+    "Old unchanged HF v2.0 benchmark assets and model weights are intentionally absent from this incremental staging folder and were not downloaded or rehashed."
+  ],
+  "publication": "Not uploaded; independent local package verification only",
+  "writes": "Only this review receipt, outside source and release archives."
+}

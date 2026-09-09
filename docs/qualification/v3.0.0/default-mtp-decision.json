@@ -1,0 +1,22 @@
+{
+  "decision": "Retain MTP6 general default; MTP2 qualified as an optional long-request setting",
+  "trigger": "The high-acceptance short coding panel exposed a regression from changing the general default to MTP2.",
+  "coding_panel": {
+    "tasks": 20,
+    "previous_CIRU_MTP6_TG": 53.327449701233775,
+    "v3_MTP6_TG": 53.2389694088275,
+    "v3_MTP2_TG": 39.63335865299028,
+    "Halo_MTP3_TG": 49.48345935868638,
+    "previous_vs_v3_MTP6_token_streams_identical": 20,
+    "generated_tokens": {
+      "previous": 3179,
+      "v3_MTP6": 3179,
+      "v3_MTP2": 3212,
+      "Halo_MTP3": 3241
+    }
+  },
+  "quality": "All four runs20/20base+plus; same request panel, different sampled output lengths at different depths.",
+  "scope": "Default selection across two workload families; no adaptive algorithm implemented and no claim this is Halo optimal on every coding task.",
+  "queue_transition": "MTP2C2 is allowed to finish. The prior queue source/profile guard then deliberately holds subsequent inference because launcher default changed. New default-final unit verifies restored source/binaries and runs freshMTP6speed,HaloMTP3repeat,fullcapacityMTP6.",
+  "source_patch_unchanged": "47711a875f7b5a56395ca4825f8ebfa80a36c0f2987bfe02e4f4f531a1d8cbf6"
+}

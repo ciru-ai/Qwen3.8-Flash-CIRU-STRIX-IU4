@@ -1,3 +1,5 @@
+#include <cstdlib>
+#include <cstring>
 #include "getrows.cuh"
 #include "dequantize.cuh"
 #include "convert.cuh"
@@ -66,6 +68,20 @@ static __global__ void k_get_rows_kq(
         for (int64_t ib = blockIdx.y; ib < nsb; ib += gridDim.y) {
             dequantize_kq(src0_row, ib, dst_row + ib*QK_K, threadIdx.x);
         }
+    }
+}
+
+static __global__ void ciru_get_rows_tiny_f32(
+        const float * src, const int32_t * ids, float * dst,
+        int64_t columns, int64_t count, size_t src_stride, size_t id_stride) {
+    ggml_cuda_pdl_lc();
+    ggml_cuda_pdl_sync();
+    const int64_t i = (int64_t) blockIdx.x*blockDim.x + threadIdx.x;
+    if (i < count) {
+        const int64_t row = i/columns;
+        const int64_t col = i - row*columns;
+        const float * in = (const float *) ((const char *) src + ids[row*id_stride]*src_stride);
+        dst[i] = in[col];
     }
 }
 
@@ -237,6 +253,17 @@ static void get_rows_cuda_float(
         const int64_t ne10, const int64_t ne11, const int64_t ne12, const size_t nb10, const size_t nb11, const size_t nb12,
         const size_t nb1, const size_t nb2, const size_t nb3,
         cudaStream_t stream) {
+    if constexpr (std::is_same<src0_t, float>::value && std::is_same<dst_t, float>::value) {
+        if ((std::getenv("CIRU_QSA_TINY_GATHER") && std::strcmp(std::getenv("CIRU_QSA_TINY_GATHER"), "1") == 0) && ne00 >= 1 && ne00 <= 8 &&
+                ne10 >= 4096 && ne11 == 1 && ne12 == 1 && nb1 == ne00*sizeof(float)) {
+            const int64_t count = ne00*ne10;
+            const dim3 grid((count + 255)/256), block(256);
+            const ggml_cuda_kernel_launch_params launch = {grid, block, 0, stream};
+            ggml_cuda_kernel_launch(ciru_get_rows_tiny_f32, launch,
+                    src0_d, src1_d, dst_d, ne00, count, nb01, nb10/sizeof(int32_t));
+            return;
+        }
+    }
     const dim3 block_dims(CUDA_GET_ROWS_BLOCK_SIZE, 1, 1);
 
     // strides in elements

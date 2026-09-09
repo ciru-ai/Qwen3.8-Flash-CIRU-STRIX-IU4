@@ -10,6 +10,7 @@
 #include <cassert>
 #include <cmath>
 #include <cstring>
+#include <cstdlib>
 #include <limits>
 #include <map>
 #include <stdexcept>
@@ -1834,6 +1835,30 @@ void llama_kv_cache::get_prev_tokens(const llama_ubatch & ubatch, uint32_t n, st
 
     if (n == 0) {
         return;
+    }
+
+    if ((std::getenv("CIRU_PLE_PREV_DIRECT") && std::strcmp(std::getenv("CIRU_PLE_PREV_DIRECT"), "1") == 0) && ubatch.token &&
+            n_tokens > 0 && ubatch.n_seqs_unq == 1) {
+        const llama_seq_id seq = ubatch.seq_id_unq[0];
+        const uint32_t stream = seq_to_stream[seq];
+        const auto & cells = v_cells[stream];
+        const int64_t base = (int64_t) v_heads[stream] - ubatch.pos[n_tokens - 1] - 1;
+        bool complete = true;
+        for (uint32_t i = 0; i < n_tokens && complete; ++i) {
+            if (ubatch.n_seq_id[i] != 1 || ubatch.seq_id[i][0] != seq) { complete = false; break; }
+            for (uint32_t j = 0; j < n; ++j) {
+                const llama_pos pos = ubatch.pos[i] - (llama_pos) (n - j);
+                if (pos < 0) { continue; }
+                const int64_t cell = base + pos;
+                if (cell < 0 || cell >= cells.size() ||
+                        !cells.token_at_position((uint32_t) cell, seq, pos, res[i*n + j])) {
+                    complete = false;
+                    break;
+                }
+            }
+        }
+        if (complete) { return; }
+        std::fill(res.begin(), res.end(), LLAMA_TOKEN_NULL);
     }
 
     // note: apply_ubatch() has already stored the current ubatch

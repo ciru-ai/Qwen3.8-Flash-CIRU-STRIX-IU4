@@ -8,6 +8,7 @@
 #include <cmath>
 #include <cstdio>
 #include <cstring>
+#include <cstdlib>
 #include <stdexcept>
 #include <memory>
 #include <vector>
@@ -144,12 +145,86 @@ static bool check_spatial_restore(bool unified) {
     std::printf("spatial state restore unified=%d %s\n", unified, ok ? "PASS" : "FAIL");
     return ok;
 }
+static bool check_direct_token() {
+    llama_kv_cells cells;
+    cells.resize(8);
+    cells.pos_set(2, 3); cells.seq_add(2, 0); cells.ext_set(2, {7, 9, 123});
+    llama_token token = LLAMA_TOKEN_NULL;
+    bool ok = cells.token_at_position(2, 0, 3, token) && token == 123;
+    ok &= !cells.token_at_position(2, 1, 3, token);
+    ok &= !cells.token_at_position(2, 0, 4, token);
+    ok &= !cells.token_at_position(8, 0, 3, token);
+    cells.pos_set(4, 3); cells.seq_add(4, 0); cells.ext_set(4, {0, 0, 456});
+    ok &= !cells.token_at_position(2, 0, 3, token);
+    std::printf("direct token exact position/sequence/duplicate guards %s\n", ok ? "PASS" : "FAIL");
+    return ok;
+}
+
+static bool check_pool_plan(bool unified) {
+    std::unique_ptr<llama_model> model(llama_model_create(LLM_ARCH_QWEN4EXP, llama_model_default_params()));
+    auto & hp = model->hparams;
+    hp.n_layer_all = 1; hp.n_embd = 4; hp.n_ctx_train = 1024;
+    hp.indexer_head_size = 4; hp.n_embd_head_k_full = 4; hp.n_embd_head_v_full = 4;
+    hp.n_head_arr.fill(1); hp.n_head_kv_arr.fill(1);
+    const auto no_layers = [](int32_t) { return false; };
+    llama_memory_hybrid_idx mem(*model, GGML_TYPE_F32, GGML_TYPE_F32, false, 1024, 256, 0,
+        LLAMA_SWA_TYPE_NONE, GGML_TYPE_F32, GGML_TYPE_F32, 2, 2, 0, false, unified,
+        no_layers, no_layers, no_layers);
+    auto & idx = const_cast<llama_kv_cells &>(mem.get_mem_idx()->get_cells(0));
+    auto & att = const_cast<llama_kv_cells &>(mem.get_mem_attn()->get_cells(0));
+    for (int p = 0; p < 264; ++p) {
+        idx.pos_set(p, p); idx.seq_add(p, 0);
+        att.pos_set(p, p); att.seq_add(p, 0);
+    }
+    llama_pos pos[] = {260, 261, 262, 263};
+    llama_seq_id seq = 0; llama_seq_id * ids[] = {&seq, &seq, &seq, &seq};
+    int32_t counts[] = {1, 1, 1, 1};
+    llama_ubatch ub {}; ub.n_tokens = 4; ub.n_seqs = 1; ub.n_seqs_unq = 1;
+    ub.n_pos = 1; ub.pos = pos; ub.n_seq_id = counts; ub.seq_id = ids;
+    llama_kv_cache::slot_info info {}; info.s0 = 0; info.s1 = 0;
+    info.strm = {0}; info.idxs = {{260, 261, 262, 263}};
+    auto plan = mem.plan_qsa_cached_pool(ub, info, 4);
+    const char * flag = std::getenv("CIRU_QSA_POOL_CACHE");
+    const bool enabled = flag && std::strcmp(flag, "1") == 0;
+    bool ok = plan.enabled == enabled;
+    auto * cache = mem.get_mem_idx_blocks();
+    if (enabled) {
+        ok &= plan.first_block == 0 && plan.total_blocks == 128;
+        cache->valid_base = 0; cache->valid_blocks = 128; cache->valid_seq = 0;
+        plan = mem.plan_qsa_cached_pool(ub, info, 4);
+        ok &= plan.enabled && plan.first_block == 64 && plan.new_blocks == 64;
+        mem.seq_cp(0, 1, unified ? 0 : -1, unified ? 4 : -1);
+        ok &= cache->valid_base == -1 && cache->valid_blocks == 0;
+        ok &= mem.plan_qsa_cached_pool(ub, info, 4).enabled == !unified;
+        mem.seq_rm(1, -1, -1);
+        ok &= mem.plan_qsa_cached_pool(ub, info, 4).enabled;
+        info.idxs[0][3] = 265;
+        ok &= !mem.plan_qsa_cached_pool(ub, info, 4).enabled;
+        if (!unified) {
+            auto & idx1 = const_cast<llama_kv_cells &>(mem.get_mem_idx()->get_cells(1));
+            auto & att1 = const_cast<llama_kv_cells &>(mem.get_mem_attn()->get_cells(1));
+            for (int p = 0; p < 264; ++p) {
+                idx1.pos_set(p, p); idx1.seq_add(p, 1);
+                att1.pos_set(p, p); att1.seq_add(p, 1);
+            }
+            cache->valid_base = 0; cache->valid_blocks = 128; cache->valid_seq = 0;
+            seq = 1; info.s0 = 1; info.s1 = 1; info.strm = {1}; info.idxs[0][3] = 263;
+            plan = mem.plan_qsa_cached_pool(ub, info, 4);
+            ok &= plan.enabled && plan.seq_id == 1 && plan.first_block == 0 && plan.new_blocks == 128;
+        }
+    }
+    std::printf("pool suffix alignment/sequence invalidation/fragmentation enabled=%d unified=%d %s\n", enabled, unified, ok ? "PASS" : "FAIL");
+    return ok;
+}
+
 int main() {
     int failed = 0;
+    if (!check_direct_token()) ++failed;
+    for (bool unified : {false, true}) if (!check_pool_plan(unified)) ++failed;
     for (int sequences : {1, 2}) for (bool fragmented : {false, true}) for (bool shared : {false, true})
         for (bool tails : {false, true}) for (bool bias : {false, true}) for (int offset : {0, 3})
             if (!check_case(sequences, fragmented, shared, tails, bias, offset)) ++failed;
     for (bool unified : {false, true}) if (!check_spatial_restore(unified)) ++failed;
-    std::printf("QSA map/state cases: 66, failed: %d\n", failed);
+    std::printf("QSA map/state/guard cases: 69, failed: %d\n", failed);
     return failed ? 1 : 0;
 }

@@ -1593,6 +1593,7 @@ struct test_case {
             n_runs = (int)std::min<int64_t>(ggml_graph_size(gf) - ggml_graph_n_nodes(gf), target_size / op_size(out)) + 1;
         }
 
+        if (std::getenv("CIRU_V3_RADIX_PERF")) n_runs = std::min(n_runs, 16);
         // duplicate the op
         for (int i = 1; i < n_runs; i++) {
             ggml_graph_add_node(gf, out);
@@ -8304,6 +8305,23 @@ static const ggml_type other_types[] = {
 // Test cases for evaluation: should try to cover edge cases while using small input sizes to keep the runtime low
 static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
     std::vector<std::unique_ptr<test_case>> test_cases;
+    if (std::getenv("CIRU_V3_BACKEND_CHECK")) {
+        for (int64_t cols : {4096, 262144}) {
+            for (int64_t rows : {1, 4, 8, 12, 512, 1536}) {
+                if (cols == 262144 && rows > 8) continue;
+                for (bool ties : {false, true}) {
+                    test_cases.emplace_back(new test_top_k(GGML_TYPE_F32, {cols, rows, 1, 1}, 2051, ties));
+                }
+            }
+        }
+        for (int cols : {1, 2, 4, 8, 9}) {
+            for (int rows : {4095, 4096, 8192}) {
+                test_cases.emplace_back(new test_get_rows(GGML_TYPE_F32, cols, 128, rows));
+            }
+        }
+        return test_cases;
+    }
+
     std::default_random_engine rng(0);
 
     // unary ops
@@ -10150,6 +10168,13 @@ static std::vector<std::unique_ptr<test_case>> make_test_cases_eval() {
 // Test cases for performance evaluation: should be representative of real-world use cases
 static std::vector<std::unique_ptr<test_case>> make_test_cases_perf() {
     std::vector<std::unique_ptr<test_case>> test_cases;
+    if (std::getenv("CIRU_V3_RADIX_PERF")) {
+        for (int64_t rows : {4, 1536}) {
+            test_cases.emplace_back(new test_top_k(GGML_TYPE_F32, {262144, rows, 1, 1}, 2051));
+        }
+        return test_cases;
+    }
+
 
     // SWIGLU at a 27B-class FFN width, fused [gate|up] vs split operands
     // note: same bytes either way, so a backend that indexes them differently shows it here

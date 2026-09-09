@@ -1,0 +1,392 @@
+{
+  "version": "3.0.0",
+  "platform": "Tested NixOS x86-64 / ROCm10 gfx1151 only",
+  "source_identity": {
+    "base_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+    "patch_sha256": "47711a875f7b5a56395ca4825f8ebfa80a36c0f2987bfe02e4f4f531a1d8cbf6",
+    "files": {
+      "ggml/src/ggml-cuda/fattn-tile.cuh": "89afad4509e4829281156795a8bc6252f2988b8def7b23726ff2bf11df2f5e3a",
+      "ggml/src/ggml-cuda/fattn.cu": "f65d5aa062af32cf623ba8831cb23ac97997a4813931bd4253b327dd292554a9",
+      "ggml/src/ggml-cuda/getrows.cu": "45eeb1beceeb8a80b1b8db42be413b6a7564b87177ab1d8828c9cb498e3e7bff",
+      "ggml/src/ggml-cuda/ggml-cuda.cu": "500f6c9fbb25558bde3a1705e39d801c46cc0feb343185672fb8ec74c6919247",
+      "ggml/src/ggml-cuda/mmq.cuh": "b45c2902c4e9170f85e058493f928719eed7f8b50348e652988ba05b59a86c6f",
+      "ggml/src/ggml-cuda/top-k.cu": "3362a25540fdb304e9ba91707a6dee874665ea4d8da61d74820a5284c31f39d8",
+      "ggml/src/ggml-cuda/top-k.cuh": "45566445c41b406a3f1b6e4c37b05c9e9dcc770f3b23b65ccb83ba6575316996",
+      "src/llama-graph.cpp": "c20fb02a4b29e2c06967f57126236d2d5532e59cc318e1f4629c4c83d713f176",
+      "src/llama-kv-cache.cpp": "a789d3e2a0d062fbe43f292da0fc27e3a1134ee5e4a199d44a03d2f0f6c88643",
+      "src/llama-kv-cells.h": "8a3f84c8ed9b7b9a004c6eb803ac6bf7d1ce104c84bf9104f399bdb059bca2e9",
+      "src/llama-memory-hybrid-idx.cpp": "19ea11aae77a927c1d2eebfb6357e6f01e562976077f9dafe5a0df6a56df0d44",
+      "src/llama-memory-hybrid-idx.h": "209f04181f581936070575c1195dedab607bc519c5f897022e8f32de368a3ae0",
+      "src/models/qwen4exp.cpp": "397b0748df4a622f5082cc6e6f4813bcf65e55d249f071e328a6bd37cb682069",
+      "tests/test-backend-ops.cpp": "a74be2d6c593734beaeadec04052794adb73bca3093dae42798dc318efd92883",
+      "tests/test-qsa-sequence.cpp": "8d14609998dc731dfb3f28ad07c2360c4e81213dfd9abc34b10f06e1e6d30a24"
+    },
+    "profile_files": {
+      "profiles/strix-halo-production.env": "7051ecb38492291dc93b0564807c6c60c837dae2a444acdb92b8fd39bbf822aa",
+      "scripts/ciru/run-server.sh": "d29677489306037a21d2d5ab06db5eacdf2883b084529a3cc2dced0a10094864"
+    },
+    "scope": "Compiled inference sources and focused tests; release docs and archive identity are recorded separately.",
+    "excluded_hybrid_components": [
+      "CIRU_KV_DEVICE",
+      "CIRU_QSA_HISTORY_OWNER",
+      "CIRU_QSA_PREFILL_OWNER",
+      "CIRU_QSA_PEER_KV",
+      "hot/cold expert ownership",
+      "scheduler overlap",
+      "CIRU_QSA_POOL_CACHE_PREFILL",
+      "CIRU_QSA_COMPACT_MASK"
+    ]
+  },
+  "selection": {
+    "time": 1788918535.353631,
+    "selected_binaries": "v3-pre-q5/bin restored to runtime-build/bin",
+    "reference_protocol": "runs/v3-mtp-screen-2/protocol.lock.json",
+    "source_patch_sha256": "47711a875f7b5a56395ca4825f8ebfa80a36c0f2987bfe02e4f4f531a1d8cbf6",
+    "rejected_candidate": "q5-three-column",
+    "verification": "Every inference binary/library hash equals the pre-candidate reference; all source/profile hashes match final-source-identity.json."
+  },
+  "inference_protocol": "v3-default6-confirm",
+  "files": [
+    {
+      "name": "libggml-base.so",
+      "bytes": 926848,
+      "symlink": "libggml-base.so.0"
+    },
+    {
+      "name": "libggml-base.so.0",
+      "bytes": 926848,
+      "symlink": "libggml-base.so.0.22.0"
+    },
+    {
+      "name": "libggml-base.so.0.22.0",
+      "bytes": 926848,
+      "sha256": "f88012f7cca9127c7119081f842d34f37e34f813b3fee5ae9156a80bf8243659",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libgomp.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libggml-cpu.so",
+      "bytes": 1388112,
+      "symlink": "libggml-cpu.so.0"
+    },
+    {
+      "name": "libggml-cpu.so.0",
+      "bytes": 1388112,
+      "symlink": "libggml-cpu.so.0.22.0"
+    },
+    {
+      "name": "libggml-cpu.so.0.22.0",
+      "bytes": 1388112,
+      "sha256": "a290300b1f253986fc2983765dc1f39630f4acd82a50ee28700c7ef756bbc84d",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgomp.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libpthread.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libggml-hip.so",
+      "bytes": 66914056,
+      "symlink": "libggml-hip.so.0"
+    },
+    {
+      "name": "libggml-hip.so.0",
+      "bytes": 66914056,
+      "symlink": "libggml-hip.so.0.22.0"
+    },
+    {
+      "name": "libggml-hip.so.0.22.0",
+      "bytes": 66914056,
+      "sha256": "4b9372fe8a1224163a79962e2647fee0e6d92131ae8de61288952bb07831ea32",
+      "elf_dynamic": [
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/toolchains/therock-gfx1151-10.0.0/lib:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/rocm_sysdeps/lib:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/llvm/lib:/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib:/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib:/srv/llm/work/strix-v3-20260908/runtime-build/bin:]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libhipblas.so.3]",
+        "0x0000000000000001 (NEEDED)             Shared library: [librocblas.so.5]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libamdhip64.so.7]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libggml.so",
+      "bytes": 55192,
+      "symlink": "libggml.so.0"
+    },
+    {
+      "name": "libggml.so.0",
+      "bytes": 55192,
+      "symlink": "libggml.so.0.22.0"
+    },
+    {
+      "name": "libggml.so.0.22.0",
+      "bytes": 55192,
+      "sha256": "dabccabb93c1f22e9e3275eda95b5edb6613caddf314502763836b59cc764dd4",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libdl.so.2]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libllama-bench-impl.so",
+      "bytes": 454672,
+      "sha256": "03fac17aad52446e86f42e0fd099f397ac1b64ab2d8adb08e96b932985162050",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libllama-common.so",
+      "bytes": 5684704,
+      "symlink": "libllama-common.so.0"
+    },
+    {
+      "name": "libllama-common.so.0",
+      "bytes": 5684704,
+      "symlink": "libllama-common.so.0.3.0"
+    },
+    {
+      "name": "libllama-common.so.0.3.0",
+      "bytes": 5684704,
+      "sha256": "075cd447a5ae081a3509be554e8b98e9cd060655bb99c4e7726a916008efaa08",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libllama-server-impl.so",
+      "bytes": 6813560,
+      "sha256": "35943dcee932959eb36d0c12d30cf69b70199fbb1bd40a1230032786fc585af6",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libmtmd.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libllama.so",
+      "bytes": 4899352,
+      "symlink": "libllama.so.0"
+    },
+    {
+      "name": "libllama.so.0",
+      "bytes": 4899352,
+      "symlink": "libllama.so.0.3.0"
+    },
+    {
+      "name": "libllama.so.0.3.0",
+      "bytes": 4899352,
+      "sha256": "b2e8bd39d3d989020508e6798ae0b92f22d825dac60e905f62ba15c5fc6bc42e",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "libmtmd.so",
+      "bytes": 1886576,
+      "symlink": "libmtmd.so.0"
+    },
+    {
+      "name": "libmtmd.so.0",
+      "bytes": 1886576,
+      "symlink": "libmtmd.so.0.3.0"
+    },
+    {
+      "name": "libmtmd.so.0.3.0",
+      "bytes": 1886576,
+      "sha256": "7a40775c4a5de8c85b03d30a80c4131157dff5fc9207261e16325042c085156c",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [ld-linux-x86-64.so.2]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": []
+    },
+    {
+      "name": "llama-bench",
+      "bytes": 15944,
+      "sha256": "d6c364d33d83b38d05838bcdee728479bc921ed27321816deb22d5f516261850",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-bench-impl.so]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": [
+        "[Requesting program interpreter: /nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib/ld-linux-x86-64.so.2]"
+      ]
+    },
+    {
+      "name": "llama-server",
+      "bytes": 15944,
+      "sha256": "71262d4bddd5699b89cef369233ddedd0097e0585d0a4610fca081f4595490e5",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-server-impl.so]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libmtmd.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": [
+        "[Requesting program interpreter: /nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib/ld-linux-x86-64.so.2]"
+      ]
+    },
+    {
+      "name": "test-backend-ops",
+      "bytes": 1308680,
+      "sha256": "b85fada96e62b160111d63b025af9b2f38676bfb8bc8ed57af7f91d16fdddd00",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": [
+        "[Requesting program interpreter: /nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib/ld-linux-x86-64.so.2]"
+      ]
+    },
+    {
+      "name": "test-batch-alloc",
+      "bytes": 350624,
+      "sha256": "200c567fc9e4ae0dc7952f2dabaec21ea203d55ca5b3efacc872b2b27f64a63a",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": [
+        "[Requesting program interpreter: /nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib/ld-linux-x86-64.so.2]"
+      ]
+    },
+    {
+      "name": "test-qsa-sequence",
+      "bytes": 70040,
+      "sha256": "94c9a5b2f9dcdbf38d87dc8683d5050df61734d55133ac364942838bbf192332",
+      "elf_dynamic": [
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama-common.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libllama.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-cpu.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-hip.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libggml-base.so.0]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libstdc++.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libm.so.6]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libgcc_s.so.1]",
+        "0x0000000000000001 (NEEDED)             Shared library: [libc.so.6]",
+        "0x000000000000001d (RUNPATH)            Library runpath: [/srv/llm/work/strix-v3-20260908/runtime-build/bin:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib::/nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib:/nix/store/si4q3zks5mn5jhzzyri9hhd3cv789vlm-gcc-15.2.0-lib/lib]"
+      ],
+      "interpreter": [
+        "[Requesting program interpreter: /nix/store/fjkx1l5cnskzrqacf08z7i8z17256w0j-glibc-2.42-61/lib/ld-linux-x86-64.so.2]"
+      ]
+    }
+  ],
+  "time": 1788920951.604526,
+  "scope": "Server, bench, focused tests and shared libraries. Not a standalone portable Linux SDK; no CLI binary was built."
+}

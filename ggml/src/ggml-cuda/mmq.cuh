@@ -1483,18 +1483,16 @@ void mul_mat_q_switch_J(ggml_backend_cuda_context & ctx, const mmq_args & args, 
     int J_best        = 0;
     int ntiles_J_best = INT_MAX;
 
-    // H64: select only existing Q4_1 device specializations for the exact
-    // M512 expert gate/up/down shapes. The one-expert H62 admission graph has
-    // these same matrix dimensions and therefore admits the selected J before
-    // model load. M1 never reaches MMQ, and every other shape keeps the
-    // original automatic selector below.
+    // Keep the qualified M512 selector; optionally use its tile for other prefill sizes.
     if constexpr (type == GGML_TYPE_Q4_1 && !fallback) {
-        const bool exact_m512_moe = args.ids_dst != nullptr && args.expert_bounds != nullptr &&
-            args.ncols_max == 512 &&
+        const char * all_m = std::getenv("GGML_CUDA_Q41_MOE_FORCE_J_ALL_M");
+        const bool admit_m = args.ncols_max == 512 ||
+            (args.ncols_max > 8 && all_m != nullptr && std::strcmp(all_m, "1") == 0);
+        const bool exact_moe = args.ids_dst != nullptr && args.expert_bounds != nullptr && admit_m &&
             ((args.ncols_x == 2560 && args.nrows_x == 640) ||
              (args.ncols_x == 640  && args.nrows_x == 2560));
 
-        if (exact_m512_moe) {
+        if (exact_moe) {
             const char * value = std::getenv("GGML_CUDA_Q41_MOE_FORCE_J");
             int requested_J = 128;
             if (value != nullptr) {

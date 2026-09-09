@@ -365,6 +365,14 @@ public:
         return -1;
     }
 
+    bool token_at_position(uint32_t i, llama_seq_id s, llama_pos p, llama_token & tok) const {
+        if (i >= pos.size() || pos[i] != p || !seq[i].test(s)) { return false; }
+        const auto it = seq_pos[s].find(p);
+        if (it == seq_pos[s].end() || it->second != 1) { return false; }
+        tok = ext[i].tok;
+        return true;
+    }
+
     // the minimum position of sequence seq_id currently present in any of the cells
     // return -1 if the sequence is not present
     llama_pos seq_pos_min(llama_seq_id seq_id) const {

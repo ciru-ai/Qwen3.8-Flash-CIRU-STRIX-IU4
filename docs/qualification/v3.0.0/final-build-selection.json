@@ -1,0 +1,8 @@
+{
+  "time": 1788918535.353631,
+  "selected_binaries": "v3-pre-q5/bin restored to runtime-build/bin",
+  "reference_protocol": "runs/v3-mtp-screen-2/protocol.lock.json",
+  "source_patch_sha256": "47711a875f7b5a56395ca4825f8ebfa80a36c0f2987bfe02e4f4f531a1d8cbf6",
+  "rejected_candidate": "q5-three-column",
+  "verification": "Every inference binary/library hash equals the pre-candidate reference; all source/profile hashes match final-source-identity.json."
+}

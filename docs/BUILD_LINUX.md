@@ -4,7 +4,7 @@
 
 | Environment | Status | Notes |
 |---|---|---|
-| NixOS x86-64 + TheRock ROCm + gfx1151 | **v2.0.1 runtime validated** | Matched incremental GPU build; correctness and performance regression checks |
+| NixOS x86-64 + TheRock ROCm + gfx1151 | **v3 GPU build validated** | ROCm 10 / gfx1151; see v3 qualification for measured scope |
 | Ubuntu 24.04 container + isolated ROCm 10.0.0 | **v2.0.1 clean build and GPU smoke validated** | ELF checks; 66 QSA cases and 30 batch tests; 520-token completion and MTP counts matched; NixOS host GPU driver |
 | Ubuntu 26.04 + isolated TheRock ROCm 10.0.0 SDK | **Historical v1.1.1 build-validated** | Clean container, all three binaries; GPU inference remains unvalidated on this distro |
 | Other Ubuntu/Debian + ROCm | Unvalidated | Requires a complete, matching SDK with gfx1151 support |
@@ -12,6 +12,8 @@
 | Arch + ROCm | Source-compatible, unvalidated | Rolling packages can change behavior |
 | Ubuntu under WSL2 + ROCDXG | Experimental, unvalidated | Verify `/dev/dxg`; store PLE on WSL ext4 |
 | Linux CPU-only | **v2.0.1 clean build validated** | 66 QSA mapping/state cases and batch-allocation test |
+
+V3 validation is on NixOS. Ubuntu and CPU-only rows below describe earlier releases; they are not new v3 certification. See [v3 qualification](V3_RELEASE.md).
 
 The performance comparisons use NixOS; Ubuntu qualification is a separate compatibility check. v2.0.1 passed a clean Ubuntu 24.04 / ROCm 10.0.0 build on Dunamis, plus ELF/help checks and the existing 66 QSA mapping/state cases and 30 batch-allocation tests (198 assertions). No prior build cache was imported. The build used the documented helper, with `GGML_NATIVE=OFF`, AVX2/F16C/FMA/BMI2 on and AVX512/VNNI off because Dunamis has an Intel CPU; the final compile commands verify these portable settings.
 
@@ -100,7 +102,7 @@ BUILD_DIR="$PWD/build-gfx1151-sdk" \
 
 ## Build the gfx1151 release runtime
 
-If you already have a complete ROCm/TheRock SDK, use the lower-level build script from this extracted v2.0.1 source directory. The v1.1.1 SDK setup fixes are retained.
+If you already have a complete ROCm/TheRock SDK, use the lower-level build script from this extracted v3 source directory. The v1.1.1 SDK setup fixes are retained.
 
 ~~~bash
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh

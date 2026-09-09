@@ -1,12 +1,18 @@
 # Release provenance
 
+## v3.0.0 source and build identity
+
+V3 is based on qualified v2.0.1 commit `9ea2390a71ae9f3d1cab519bbe099eb4ee06380e`. The release is identified by the v3.0.0 tag and its external git-source.json record. The selective transfer uses retained hybrid checkpoint archive SHA256 `8ed4b4aba5f0423cac7daf5770e7f23b558d651affb32364199b1c5234c7d355`. It preserves model weights and omits external-GPU ownership and placement machinery.
+
+[Source identity](qualification/v3.0.0/source-identity.json) records the changed inference/test files and profile hashes; the adjacent patch applies to the exact base above. [Qualification](V3_RELEASE.md) records the tested runtime scope. The external source archive manifest records every packaged file, executable mode and symlink against the release Git tree. Binaries report `0-unknown` because the remote build snapshot has no Git metadata; use recorded source and binary hashes for identity.
+
+The v3 GPU build is NixOS / ROCm 10 / gfx1151. It is not a repeat of the historical Ubuntu qualification below. The previous release manifest is preserved at [v2.0.1/CIRU_RELEASE.json](qualification/v2.0.1/CIRU_RELEASE.json).
+
 ## v2.0.1 source and build identity
 
-v2.0.1 is the qualified QSA source release. The named archive and external source identity record identify its exact Git tree.
+The v2.0.1 base is locally qualified source at `9ea2390a71ae9f3d1cab519bbe099eb4ee06380e`. Public GitHub and Hugging Face tags inspected on 2026-09-09 UTC still stop at v2.0; a public v2.0.1 tag or release asset is not claimed. Its qualification and manifest are preserved in this source package. The published v2.0 model revision `aa3ed2b0d0429034740c13c783d463e0f6872783` contains the same target, PLE and MTP weights used for v3.
 
-At publication, the [v2.0.1 Git tag](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v2.0.1) and named `ciru-runtime-v2.0.1-source.tar.gz` release asset identify the same file contents, executable modes and symlinks. The [release](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v2.0.1) supplies the archive, SHA256SUMS and `git-source.json` with the exact commit/tree IDs and archive hash. [Compare v2.0 to v2.0.1](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/compare/v2.0...v2.0.1).
-
-The focused backport preserves Daniel Han's authorship for upstream [#27941](https://github.com/ggml-org/llama.cpp/pull/27941), commit `36b10154383b60eb15baac2c7a40d2a5f784faa7`. Ciru adds the guarded canonical-stream implementation and regression fixtures. `CIRU_RELEASE.json` records the five changed core files and tested library identities. Weights and HIP sources are unchanged. The retained NixOS HIP binary is unchanged; the clean Ubuntu 24.04 / ROCm 10 build has a separate binary hash map. See [qualification](QSA_BACKPORT_STATUS.md) for the 66 QSA / 30 batch-test results, later Sozo 8K and Ciru 64K serving comparisons, and Ubuntu GPU output/count match with verified device and binary identities. The earlier Sozo slowdown and failed profiler attachment remain documented.
+The focused backport preserves Daniel Han's authorship for upstream [#27941](https://github.com/ggml-org/llama.cpp/pull/27941), commit `36b10154383b60eb15baac2c7a40d2a5f784faa7`. Ciru adds the guarded canonical-stream implementation and regression fixtures. The [v2.0.1 manifest](qualification/v2.0.1/CIRU_RELEASE.json) records the five changed core files and tested library identities. Weights and HIP sources are unchanged. The retained NixOS HIP binary is unchanged; the clean Ubuntu 24.04 / ROCm 10 build has a separate binary hash map. See [qualification](QSA_BACKPORT_STATUS.md) for the 66 QSA / 30 batch-test results, later Sozo 8K and Ciru 64K serving comparisons, and Ubuntu GPU output/count match with verified device and binary identities. The earlier Sozo slowdown and failed profiler attachment remain documented.
 
 Original v1.1.1/v2.0 tags and the original v2.0 source archive retain their identities. The historical source record follows.
 

@@ -58,8 +58,8 @@ args=(
     -sm none
     --fit off
     -c "${CONTEXT_SIZE:-262144}"
-    -b "${BATCH_SIZE:-2048}"
-    -ub "${UBATCH_SIZE:-512}"
+    -b "${BATCH_SIZE:-1024}"
+    -ub "${UBATCH_SIZE:-1024}"
     --parallel "${PARALLEL_SLOTS:-1}"
     -t "${THREADS:-8}"
     -tb "${BATCH_THREADS:-8}"

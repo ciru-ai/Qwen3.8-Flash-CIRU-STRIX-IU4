@@ -1,5 +1,6 @@
 #include <climits>
 #include <cstdlib>
+#include <cstring>
 
 #include "argsort.cuh"
 #include "top-k.cuh"
@@ -192,6 +193,120 @@ static __global__ void top_k_qsa_blocks_f32_i32(
     }
 }
 
+static __global__ void ciru_top_k_radix_cells(
+        const float * src, int * dst, const int ncols, const int k) {
+    const int tid = threadIdx.x;
+    const float * row_src = src + (int64_t) blockIdx.x*ncols;
+    const int dst_width = k;
+    int * row_dst = dst + (int64_t) blockIdx.x*dst_width;
+    const int neligible = ncols;
+
+    __shared__ int histogram[256];
+    __shared__ int scan[256];
+    __shared__ int selected[4096];
+    __shared__ uint32_t prefix;
+    __shared__ int rank;
+    __shared__ int emitted;
+
+    if (tid == 0) {
+        prefix = 0;
+        rank = k - 1;
+    }
+    __syncthreads();
+
+#pragma unroll
+    for (int pass = 0; pass < 4; ++pass) {
+        histogram[tid] = 0;
+        __syncthreads();
+
+        const int shift = 24 - 8*pass;
+        const uint32_t prefix_mask = pass == 0 ? 0u : (0xffffffffu << (32 - 8*pass));
+        for (int col = tid; col < neligible; col += blockDim.x) {
+            const uint32_t key = qsa_ordered_f32(row_src[col]);
+            if ((key & prefix_mask) == prefix) {
+                atomicAdd(&histogram[(key >> shift) & 0xffu], 1);
+            }
+        }
+        __syncthreads();
+
+        if (tid == 0) {
+            int skipped = 0;
+            for (int bucket = 255; bucket >= 0; --bucket) {
+                const int count = histogram[bucket];
+                if (rank < skipped + count) {
+                    prefix |= (uint32_t) bucket << shift;
+                    rank -= skipped;
+                    break;
+                }
+                skipped += count;
+            }
+        }
+        __syncthreads();
+    }
+
+    if (tid == 0) {
+        emitted = 0;
+    }
+    __syncthreads();
+
+    // Deterministic block-wide compaction in source-position order.
+    for (int mode = 0; mode < 2; ++mode) {
+        for (int base = 0; base < neligible && emitted < k; base += blockDim.x) {
+            const int col = base + tid;
+            const uint32_t key = col < neligible ? qsa_ordered_f32(row_src[col]) : 0u;
+            const bool take = col < neligible && (mode == 0 ? key > prefix : key == prefix);
+            const int lane = tid & 31;
+            const int warp = tid >> 5;
+            const unsigned long long votes = __ballot(take);
+            if (lane == 0) scan[warp] = __popcll(votes);
+            __syncthreads();
+            int rank_in_tile = __popcll(votes & ((1ull << lane) - 1));
+            for (int w = 0; w < warp; ++w) rank_in_tile += scan[w];
+            const int out = emitted + rank_in_tile;
+            if (take && out < k) selected[out] = col;
+            __syncthreads();
+            if (tid == 0) {
+                int count = 0;
+                for (int w = 0; w < 8; ++w) count += scan[w];
+                emitted = min(k, emitted + count);
+            }
+            __syncthreads();
+        }
+    }
+
+    for (int i = tid; i < 4096; i += blockDim.x) {
+        if (i >= k) {
+            selected[i] = INT_MAX;
+        }
+    }
+    __syncthreads();
+
+    // Position-sort a fixed 4096-wide shared tile.  Padding sorts to the end.
+#pragma unroll
+    for (int size = 2; size <= 4096; size <<= 1) {
+#pragma unroll
+        for (int stride = size >> 1; stride > 0; stride >>= 1) {
+            for (int i = tid; i < 4096; i += blockDim.x) {
+                const int j = i ^ stride;
+                if (j > i) {
+                    const bool ascending = (i & size) == 0;
+                    const int lhs = selected[i];
+                    const int rhs = selected[j];
+                    if ((ascending && lhs > rhs) || (!ascending && lhs < rhs)) {
+                        selected[i] = rhs;
+                        selected[j] = lhs;
+                    }
+                }
+            }
+            __syncthreads();
+        }
+    }
+
+    for (int i = tid; i < k; i += blockDim.x) {
+        row_dst[i] = selected[i];
+    }
+}
+
 static void top_k_qsa_blocks_f32_i32_launch(
         const float * src, const int32_t * positions, int * dst,
         const int ncols, const int nrows, const int k, const int ratio,
@@ -241,6 +356,7 @@ static __device__ __forceinline__ void h109c_heap_adjust_f32(
 // H109C reuses H49's exact GCC-15.2 heap semantics for the legacy expanded
 // cell scores.  One wave owns a row; lane zero intentionally owns all heap
 // comparisons so four-way score ties retain the exact H101 cell membership.
+template<bool warp_scan>
 static __global__ void h109c_top_k_cells_heap_exact(
         const float * src, int * dst, const int ncols, const int k) {
     const int row = blockIdx.x;
@@ -265,15 +381,37 @@ static __global__ void h109c_top_k_cells_heap_exact(
                 --parent;
             }
         }
-        for (int i = k; i < ncols; ++i) {
-            if (h109c_heap_comp_f32(row_src, i, heap[0])) {
-                h109c_heap_adjust_f32(row_src, heap, 0, k, i);
+        if constexpr (!warp_scan) {
+            for (int i = k; i < ncols; ++i) {
+                if (h109c_heap_comp_f32(row_src, i, heap[0])) {
+                    h109c_heap_adjust_f32(row_src, heap, 0, k, i);
+                }
             }
         }
         // Membership is the only consumer contract. Sorting the selected heap
         // and GGML's final slot swap change order only, not the selected set.
     }
     __syncthreads();
+
+    if constexpr (warp_scan) {
+        for (int base = k; base < ncols; base += 32) {
+            const int i = base + threadIdx.x;
+            // The minimum retained score only increases. A rejected candidate
+            // cannot become eligible after an earlier lane updates the heap.
+            unsigned int candidates = __ballot_sync(0xffffffffffffffffULL,
+                    i < ncols && h109c_heap_comp_f32(row_src, i, heap[0]));
+            if (threadIdx.x == 0) {
+                while (candidates) {
+                    const int candidate = base + __ffs(candidates) - 1;
+                    candidates &= candidates - 1;
+                    if (h109c_heap_comp_f32(row_src, candidate, heap[0])) {
+                        h109c_heap_adjust_f32(row_src, heap, 0, k, candidate);
+                    }
+                }
+            }
+            __syncthreads();
+        }
+    }
 
     for (int i = threadIdx.x; i < k; i += blockDim.x) {
         row_dst[i] = heap[i];
@@ -283,8 +421,14 @@ static __global__ void h109c_top_k_cells_heap_exact(
 static void h109c_top_k_cells_heap_exact_launch(
         const float * src, int * dst, const int ncols, const int nrows,
         const int k, cudaStream_t stream) {
-    h109c_top_k_cells_heap_exact<<<dim3(nrows), dim3(WARP_SIZE), k*sizeof(int), stream>>>(
-        src, dst, ncols, k);
+    const char * scan = std::getenv("CIRU_QSA_WARP_SCAN");
+    if (scan && std::strcmp(scan, "1") == 0) {
+        h109c_top_k_cells_heap_exact<true><<<dim3(nrows), dim3(32), k*sizeof(int), stream>>>(
+            src, dst, ncols, k);
+    } else {
+        h109c_top_k_cells_heap_exact<false><<<dim3(nrows), dim3(WARP_SIZE), k*sizeof(int), stream>>>(
+            src, dst, ncols, k);
+    }
 }
 
 static __global__ void h111_top_k_identity(int * dst, const int ncols, const int total) {
@@ -435,6 +579,21 @@ bool ggml_cuda_supports_mtp_top_k(const ggml_tensor * dst) {
 #endif
 }
 
+bool ggml_cuda_qsa_prefill_rows_supported(int64_t nrows) {
+    static const bool all_rows = [] {
+        const char * value = std::getenv("GGML_QSA_ALL_ROWS");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    if (all_rows && nrows >= 1 && nrows <= 2048) {
+        return true;
+    }
+    static const bool wide_prefill = [] {
+        const char * value = std::getenv("GGML_QSA_PREFILL_WIDE");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return nrows == 512 || (wide_prefill && nrows > 8 && nrows <= 2048 && nrows % 4 == 0);
+}
+
 void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     const ggml_tensor * src0   = dst->src[0];
     const float *       src0_d = (const float *) src0->data;
@@ -480,6 +639,16 @@ void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
             ncols, nrows, k_blocks, ratio, cell_base, end_pos, stream);
         return;
     }
+    if (ggml_cuda_info().devices[ctx.device].warp_size == 32 &&
+            ncols > k && k == 2051 && nrows <= 2048 &&
+            (std::getenv("CIRU_QSA_RADIX_SELECT") && std::strcmp(std::getenv("CIRU_QSA_RADIX_SELECT"), "1") == 0)) {
+        // Same top-k score budget; ties prefer earlier positions and output
+        // is position-sorted. This differs from legacy heap tie/list order.
+        ciru_top_k_radix_cells<<<dim3(nrows), dim3(256), 0, stream>>>(
+            src0_d, dst_d, ncols, k);
+        CUDA_CHECK(cudaGetLastError());
+        return;
+    }
     if (ncols > 1024) {
         static bool h109c_reported = false;
         if (!h109c_reported) {
@@ -487,7 +656,8 @@ void ggml_cuda_op_top_k(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
                     (long long) ncols, (long long) k, (long long) nrows);
             h109c_reported = true;
         }
-        GGML_ASSERT(src0->ne[1] == 512 && nrows == 512);
+        // Heap storage is per query; increasing rows only increases the block count.
+        GGML_ASSERT(src0->ne[1] == nrows && ggml_cuda_qsa_prefill_rows_supported(nrows));
         GGML_ASSERT(ncols <= 262144 && k == std::min<int64_t>(ncols, 2051));
         GGML_ASSERT(ggml_is_contiguous(dst));
         if (ncols == k) {

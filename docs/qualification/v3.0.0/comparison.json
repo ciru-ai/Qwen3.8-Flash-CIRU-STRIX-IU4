@@ -1,0 +1,371 @@
+{
+  "optional_mtp2": {
+    "4096": {
+      "rows": 4,
+      "PP": 453.08718324929157,
+      "TG": 29.386021312616883,
+      "TG_range": [
+        28.85317053177984,
+        29.90677798267714
+      ],
+      "TTFP_s": 9.292197465896606,
+      "request_s": 13.615030109882355,
+      "drafted": 448,
+      "accepted": 284,
+      "idle_ram_GiB": 102.58193302154541,
+      "peak_ram_GiB": 105.33094024658203,
+      "peak_GTT_GiB": 89.85221862792969,
+      "peak_VRAM_GiB": 0.5273895263671875,
+      "max_delta_ram_GiB": 2.2389984130859375
+    },
+    "65536": {
+      "rows": 2,
+      "PP": 373.0762034331891,
+      "TG": 24.880485510349693,
+      "TG_range": [
+        24.87814118364711,
+        24.882830278916934
+      ],
+      "TTFP_s": 175.76338636875153,
+      "request_s": 180.8699688911438,
+      "drafted": 232,
+      "accepted": 136,
+      "idle_ram_GiB": 102.45176124572754,
+      "peak_ram_GiB": 103.16925811767578,
+      "peak_GTT_GiB": 89.85221862792969,
+      "peak_VRAM_GiB": 0.5229873657226562,
+      "max_delta_ram_GiB": 0.7927474975585938
+    }
+  },
+  "coding_workload_rates": {
+    "Previous CIRU": {
+      "rows": 20,
+      "PP": 148.5313314164119,
+      "TG": 53.327449701233775,
+      "TG_range": [
+        47.918969023381464,
+        57.79477805890751
+      ],
+      "TTFP_s": 0.811668586730957,
+      "request_s": 3.774738335609436,
+      "drafted": 3162,
+      "accepted": 2664,
+      "idle_ram_GiB": 105.73584384918213,
+      "peak_ram_GiB": 108.11417388916016,
+      "peak_GTT_GiB": 88.58134460449219,
+      "peak_VRAM_GiB": 0.5263214111328125,
+      "max_delta_ram_GiB": 0.6338348388671875,
+      "generated_tokens": 3179,
+      "prompt_seconds": 15.181982,
+      "generation_seconds": 59.237784999999995,
+      "total_request_seconds": 75.49476671218872
+    },
+    "CIRU v3 MTP6": {
+      "rows": 20,
+      "PP": 219.50646380829988,
+      "TG": 53.2389694088275,
+      "TG_range": [
+        48.25151585152767,
+        57.44670920116761
+      ],
+      "TTFP_s": 0.5656813144683838,
+      "request_s": 3.533544683456421,
+      "drafted": 3162,
+      "accepted": 2664,
+      "idle_ram_GiB": 107.95920333862304,
+      "peak_ram_GiB": 110.46823501586914,
+      "peak_GTT_GiB": 90.29296112060547,
+      "peak_VRAM_GiB": 0.5336418151855469,
+      "max_delta_ram_GiB": 0.4556770324707031,
+      "generated_tokens": 3179,
+      "prompt_seconds": 10.273046,
+      "generation_seconds": 59.336235,
+      "total_request_seconds": 70.67089366912842
+    },
+    "CIRU v3 MTP2": {
+      "rows": 20,
+      "PP": 226.2516078412486,
+      "TG": 39.63335865299028,
+      "TG_range": [
+        36.41629100986472,
+        41.0896075498267
+      ],
+      "TTFP_s": 0.5504455924034118,
+      "request_s": 4.578490233421325,
+      "drafted": 2180,
+      "accepted": 2119,
+      "idle_ram_GiB": 107.43915119171143,
+      "peak_ram_GiB": 109.95774841308594,
+      "peak_GTT_GiB": 89.85222625732422,
+      "peak_VRAM_GiB": 0.530792236328125,
+      "max_delta_ram_GiB": 0.4302635192871094,
+      "generated_tokens": 3212,
+      "prompt_seconds": 9.96678,
+      "generation_seconds": 80.538216,
+      "total_request_seconds": 91.56980466842651
+    },
+    "Halo MTP3": {
+      "rows": 20,
+      "PP": 176.1027271635372,
+      "TG": 49.48345935868638,
+      "TG_range": [
+        46.09872313796549,
+        51.46158955201079
+      ],
+      "TTFP_s": 0.701993727684021,
+      "request_s": 3.9575579285621645,
+      "drafted": 2502,
+      "accepted": 2415,
+      "idle_ram_GiB": 106.45168437957764,
+      "peak_ram_GiB": 109.05359268188477,
+      "peak_GTT_GiB": 91.11787796020508,
+      "peak_VRAM_GiB": 1.8333740234375,
+      "max_delta_ram_GiB": 0.5126419067382812,
+      "generated_tokens": 3241,
+      "prompt_seconds": 12.805026,
+      "generation_seconds": 65.092458,
+      "total_request_seconds": 79.15115857124329
+    }
+  },
+  "speed": {
+    "Previous CIRU": {
+      "4096": {
+        "rows": 2,
+        "PP": 392.00366125294556,
+        "TG": 22.51733524535651,
+        "TG_range": [
+          22.05163555418191,
+          23.003129150072414
+        ],
+        "TTFP_s": 10.69582200050354,
+        "request_s": 16.336945295333862,
+        "drafted": 588,
+        "accepted": 156,
+        "idle_ram_GiB": 100.72896957397461,
+        "peak_ram_GiB": 103.4262580871582,
+        "peak_GTT_GiB": 88.57872772216797,
+        "peak_VRAM_GiB": 0.5218048095703125,
+        "max_delta_ram_GiB": 2.1545333862304688
+      },
+      "65536": {
+        "rows": 1,
+        "PP": 284.4915510098569,
+        "TG": 13.332401115050645,
+        "TG_range": [
+          13.332401115050644,
+          13.332401115050644
+        ],
+        "TTFP_s": 230.45938777923584,
+        "request_s": 239.98778319358826,
+        "drafted": 283,
+        "accepted": 79,
+        "idle_ram_GiB": 100.59429168701172,
+        "peak_ram_GiB": 101.31758499145508,
+        "peak_GTT_GiB": 88.57872772216797,
+        "peak_VRAM_GiB": 0.5173988342285156,
+        "max_delta_ram_GiB": 0.7232933044433594
+      }
+    },
+    "CIRU v3": {
+      "4096": {
+        "rows": 6,
+        "PP": 455.6541833933926,
+        "TG": 24.599275541650545,
+        "TG_range": [
+          23.714691718344156,
+          25.19420366676837
+        ],
+        "TTFP_s": 9.245681206385294,
+        "request_s": 14.40951939423879,
+        "drafted": 1680,
+        "accepted": 480,
+        "idle_ram_GiB": 103.05811818440755,
+        "peak_ram_GiB": 106.01566696166992,
+        "peak_GTT_GiB": 90.2929458618164,
+        "peak_VRAM_GiB": 0.5292892456054688,
+        "max_delta_ram_GiB": 2.4259910583496094
+      },
+      "65536": {
+        "rows": 3,
+        "PP": 369.80548798995795,
+        "TG": 24.219011568105987,
+        "TG_range": [
+          24.166916898916444,
+          24.30324323910564
+        ],
+        "TTFP_s": 177.32060686747232,
+        "request_s": 182.56692719459534,
+        "drafted": 717,
+        "accepted": 258,
+        "idle_ram_GiB": 102.90898895263672,
+        "peak_ram_GiB": 103.66057205200195,
+        "peak_GTT_GiB": 90.2929458618164,
+        "peak_VRAM_GiB": 0.5248832702636719,
+        "max_delta_ram_GiB": 0.7370414733886719
+      }
+    },
+    "Halo": {
+      "4096": {
+        "rows": 4,
+        "PP": 381.49292683846284,
+        "TG": 35.30120650212089,
+        "TG_range": [
+          34.77293274914806,
+          35.57767783656343
+        ],
+        "TTFP_s": 11.094179451465607,
+        "request_s": 14.69240266084671,
+        "drafted": 528,
+        "accepted": 328,
+        "idle_ram_GiB": 102.4269323348999,
+        "peak_ram_GiB": 104.8825912475586,
+        "peak_GTT_GiB": 93.07597351074219,
+        "peak_VRAM_GiB": 1.85498046875,
+        "max_delta_ram_GiB": 2.7664871215820312
+      },
+      "65536": {
+        "rows": 2,
+        "PP": 263.42074609163245,
+        "TG": 23.278333535262185,
+        "TG_range": [
+          23.22488713070601,
+          23.33202649489396
+        ],
+        "TTFP_s": 248.91091644763947,
+        "request_s": 254.3688863515854,
+        "drafted": 276,
+        "accepted": 160,
+        "idle_ram_GiB": 103.14214324951172,
+        "peak_ram_GiB": 103.72273635864258,
+        "peak_GTT_GiB": 93.17262649536133,
+        "peak_VRAM_GiB": 1.9886512756347656,
+        "max_delta_ram_GiB": 0.597412109375
+      }
+    }
+  },
+  "quality": {
+    "Previous CIRU": {
+      "label": "v2-final-before",
+      "tasks": 20,
+      "base_pass": 20,
+      "plus_pass": 20,
+      "failed_tasks": [],
+      "recall": {
+        "8192": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 7947
+        },
+        "65536": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 65291
+        }
+      }
+    },
+    "CIRU v3": {
+      "label": "v3-final-C1",
+      "tasks": 20,
+      "base_pass": 20,
+      "plus_pass": 20,
+      "failed_tasks": [],
+      "recall": {
+        "8192": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 7947
+        },
+        "65536": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 65291
+        }
+      }
+    },
+    "Halo": {
+      "label": "halo-selected-A1-mtp3",
+      "tasks": 20,
+      "base_pass": 20,
+      "plus_pass": 20,
+      "failed_tasks": [],
+      "recall": {
+        "8192": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 7947
+        },
+        "65536": {
+          "keys_present": true,
+          "cached_keys_present": true,
+          "exact_replay": true,
+          "cached_tokens": 65291
+        }
+      }
+    }
+  },
+  "change_vs": {
+    "Previous CIRU": {
+      "4096": {
+        "PP_percent": 16.23722644247847,
+        "TG_percent": 9.245944396210781,
+        "request_time_reduction_percent": 11.797957734764408
+      },
+      "65536": {
+        "PP_percent": 29.988214650756074,
+        "TG_percent": 81.65528743930224,
+        "request_time_reduction_percent": 23.92657460928912
+      }
+    },
+    "Halo": {
+      "4096": {
+        "PP_percent": 19.43974614929942,
+        "TG_percent": -30.31604871586294,
+        "request_time_reduction_percent": 1.925371044735702
+      },
+      "65536": {
+        "PP_percent": 40.385863101807075,
+        "TG_percent": 4.041002468749988,
+        "request_time_reduction_percent": 28.2274928301358
+      }
+    }
+  },
+  "full_capacity": {
+    "rows": 1,
+    "PP": 257.4360682269633,
+    "TG": 17.99524727099241,
+    "TG_range": [
+      17.99524727099241,
+      17.99524727099241
+    ],
+    "TTFP_s": 1017.3788130283356,
+    "request_s": 1024.442313671112,
+    "drafted": 214,
+    "accepted": 90,
+    "idle_ram_GiB": 102.63951873779297,
+    "peak_ram_GiB": 104.53916549682617,
+    "peak_GTT_GiB": 90.98435974121094,
+    "peak_VRAM_GiB": 0.5237464904785156,
+    "max_delta_ram_GiB": 1.8996467590332031
+  },
+  "scope": "local-custom; nonthinking; identical speed token input and published sampler; each package own profile; 262144 capacity; external speed input4096/65536; CIRU-only261888 full-capacity check",
+  "positions": {
+    "Previous CIRU": [
+      "v2-final-before"
+    ],
+    "CIRU v3": [
+      "v3-final-C1",
+      "v3-final-C2",
+      "v3-default6-confirm"
+    ],
+    "Halo": [
+      "halo-selected-A1-mtp3",
+      "halo-selected-A2-mtp3"
+    ]
+  },
+  "release_gate": "PASS: tested quality/correctness and both measured before/after rates improve; CIRU whole-request latency below Halo at both measured input lengths. See separate generation-rate tradeoffs."
+}

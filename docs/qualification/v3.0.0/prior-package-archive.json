@@ -1,0 +1,6 @@
+{
+  "archive": "qsa-v2.0.1-prior-package.tar.gz",
+  "bytes": 80157489,
+  "sha256": "ae5b199b97981efddf8c649e183b169b2720e175d8a378d28d3a4299adfb3b06",
+  "scope": "Original READY.md plus exact release-ready and HF stages, including both checksum trees; historical qualification, not new v3 Ubuntu certification"
+}

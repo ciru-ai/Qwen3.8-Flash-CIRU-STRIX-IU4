@@ -1,0 +1,10 @@
+{
+  "status": "included",
+  "ready_source_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+  "all_QSA_changes_inherited": true,
+  "original_archives_verified": true,
+  "original_tag_not_pushed": "v2.0.1",
+  "delivery": "Combined v3 release; preserve v2.0 tags/weights/assets",
+  "prior_source_sha256": "28b2194323ba1105921f2c52639cc28cce8b8336f4f0a3a54349c249823fa7c5",
+  "prior_evidence_sha256": "a032e4731db988b2b787563a4094ae662e73b3ad44488fda089c998998e1db66"
+}

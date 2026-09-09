@@ -5,13 +5,13 @@
 ```bash
 python -m pip install -U "huggingface_hub[cli]"
 hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --revision v2.0.1 --local-dir ./model
+  --revision aa3ed2b0d0429034740c13c783d463e0f6872783 --local-dir ./model
 cd model
 sha256sum -c checksums.sha256
 cd ..
 ```
 
-The primary GGUF and the complete `ple/` directory are mandatory. The MTP draft is required for the headline generation profile.
+V3 uses the unchanged published v2.0 model weights above, pinned to the exact Hugging Face revision. The locally qualified v2.0.1 runtime also uses these weights. The primary GGUF and the complete `ple/` directory are mandatory. The MTP draft is required for the headline generation profile.
 
 ## 2. Launch the audited public profile
 
@@ -25,14 +25,9 @@ BUILD_DIR="$PWD/build-gfx1151-sdk" \
 The setup helper uses `build-gfx1151-sdk/`; for a manual SDK build, select `build-gfx1151/` instead. Keep the SDK directory used at build time in place. The script expands to this release profile (shown with the manual build directory):
 
 ```bash
-export GGML_CUDA_Q41_MOE_FORCE_J=32
-export GGML_QWEN4EXP_PLE_WORKERS=16
-export GGML_QWEN4EXP_PLE_STRICT_SHA=0
-export ROCBLAS_USE_HIPBLASLT=1
-export GGML_QSA_LONG_TOPK=1
-export GGML_QSA_RESTORE_FAST=1
-export CIRU_MTP_TOPK10=1
-export CIRU_MTP_SHORTLIST=32768
+set -a
+source profiles/strix-halo-production.env
+set +a
 unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE CIRU_MTP_GPU_CONF_MIN CIRU_MOE_EXPERT_REUSE CIRU_MTP_TRACE CIRU_MTP_CONF_TRACE LD_PRELOAD
 
 ./build-gfx1151/bin/llama-server \
@@ -43,7 +38,7 @@ unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE C
   --ple-cache-mib 4096 \
   --slot-save-path ./slot-state \
   -ngl all -sm none --fit off \
-  -c 262144 -b 2048 -ub 512 --parallel 1 \
+  -c 262144 -b 1024 -ub 1024 --parallel 1 \
   -t 8 -tb 8 -ctk f16 -ctv f16 -fa on \
   --cont-batching \
   --cache-prompt --cache-ram 8192 --cache-idle-slots \
@@ -61,9 +56,11 @@ unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE C
 
 `GGML_QWEN4EXP_PLE_STRICT_SHA=0` avoids hashing the 52.4 GB payload at every launch. Run `sha256sum -c checksums.sha256` after download or transfer before using that setting.
 
+V3 enables the portable QSA selector, indexed decode, derived history cache, direct PLE lookup and wider prefill path. Each new environment switch accepts an explicit `0` override, for example `CIRU_QSA_POOL_CACHE=0`. `BATCH_SIZE` and `UBATCH_SIZE` override the 1024 defaults. The optional `CIRU_MTP_ATTENTION_WINDOW` remains `0`; its 8192 setting is experimental and is excluded from the qualified profile. See [v3 scope and qualification](V3_RELEASE.md).
+
 ## Confirm the MTP profile and choose a draft depth
 
-`scripts/ciru/run-server.sh` loads and exports `profiles/strix-halo-production.env`, including `CIRU_MTP_SHORTLIST=32768` and `CIRU_MTP_TOPK10=1`. Building v2.0 and passing `--spec-draft-n-max 6` directly to `llama-server` does not enable these environment-controlled optimizations. For a direct launch, use the complete environment and command above.
+`scripts/ciru/run-server.sh` loads and exports `profiles/strix-halo-production.env`, including `CIRU_MTP_SHORTLIST=32768` and `CIRU_MTP_TOPK10=1`. Launching the runtime and passing `--spec-draft-n-max 6` directly to `llama-server` does not enable these environment-controlled optimizations. For a direct launch, use the complete environment and command above.
 
 With MTP enabled, confirm this line appears in the startup log:
 
@@ -73,14 +70,16 @@ CIRU MTP shortlist enabled: 32768 / 248320 vocabulary rows; full target verifica
 
 The shortlist restricts draft output projection; target verification still uses the full vocabulary. An absent line means the run has not confirmed the released shortlist configuration.
 
-**Maximum depth 6 is the released default, not a guarantee of the best speed on every prompt.** A deeper draft can waste work when later tokens are rejected. Depth 3 may be faster for a particular interactive workload with low acceptance. To select it while retaining the rest of the v2.0 profile, restart the server with:
+**Maximum depth 6 remains the general v3 default.** The published-sampler 4K/128 screen measured 28.88 tok/s at depth 2, 27.94 at depth 3, 26.04 at depth 4 and approximately 24.7 at depth 6. However, the 20 short coding requests measured 53.24 generation tok/s at depth 6 versus 39.63 at depth 2. Both passed the same 20/20 base and extended tests. Higher acceptance can make deeper drafting worthwhile; the smaller depth is not a universal improvement.
+
+For the tested long-prompt, lower-acceptance workload, select the qualified depth-2 option while retaining the rest of the profile:
 
 ```bash
-MTP_DEPTH=3 BUILD_DIR="$PWD/build-gfx1151-sdk" \
+MTP_DEPTH=2 BUILD_DIR="$PWD/build-gfx1151-sdk" \
   MODEL_DIR=/absolute/path/to/model ./scripts/ciru/run-server.sh
 ```
 
-The headline 42.28–42.31 tok/s was measured on a non-thinking coding probe with 57 prompt tokens, 520 generated tokens, greedy sampling, one slot, 16K configured context and the performance CPU governor. It does not establish that six is optimal for short chat, long contexts or batched serving. No adaptive depth selection is enabled. The MTP-off context sweep cannot establish an optimal MTP depth.
+The historical v2.0 headline 42.28–42.31 tok/s used a 57-token coding prompt, 520 generated tokens, greedy sampling, one slot, 16K configured context and the performance CPU governor. It is a different workload from the v3 comparison. No adaptive depth selection is enabled. The new depth checks do not establish the optimum for every prompt or thinking-mode request.
 
 For a useful comparison, retain the exact source/build identity, launch command and exported profile, shortlist startup line, request JSON and effective sampling settings (including min-p), thinking mode, actual prompt/output counts, cache state, drafted/accepted counts and timing definition. Report generation rate separately from time to first token and end-to-end latency. A single sampled completion is directional evidence; acceptance percentage alone does not determine speed or show that one runtime is generally faster. Compare depths within the same runtime version with all other settings held fixed; when comparing versions, record each version's supported profile explicitly.
 
@@ -150,7 +149,7 @@ This reduces disk and memory pressure but gives up the published speculative-dec
 
 ## Parallel requests and unified KV cache
 
-**The MTP shortlist still supports exactly one slot in v2.0.1.** The launcher rejects multi-slot MTP before model load. For two slots, disable MTP explicitly:
+**The MTP shortlist still supports exactly one slot in v3.** The launcher rejects multi-slot MTP before model load. For two slots, disable MTP explicitly:
 
 ```bash
 ENABLE_MTP=0 PARALLEL_SLOTS=2 CONTEXT_SIZE=524288 \
@@ -158,7 +157,7 @@ ENABLE_MTP=0 PARALLEL_SLOTS=2 CONTEXT_SIZE=524288 \
   ./scripts/ciru/run-server.sh --no-kv-unified
 ```
 
-For unified KV on **v2.0.1**, replace `--no-kv-unified` with `--kv-unified`. Both modes passed the bounded concurrency, isolation and recall checks. Rebuild the v2.0.1 source before using unified multi-slot serving; the original v2.0 runtime is missing this fix.
+For unified KV on **v2.0.1 or later**, replace `--no-kv-unified` with `--kv-unified`. Both modes passed the bounded concurrency, isolation and recall checks. Rebuild the v2.0.1 source before using unified multi-slot serving; the original v2.0 runtime is missing this fix.
 
 With separate KV, `524288` is the total context allocation: **262144 tokens per slot**, not 512K per agent. Unified KV shares the pool; this runtime still caps each slot at the model's 262144-token training context. Inspect `/slots` for actual limits.
 

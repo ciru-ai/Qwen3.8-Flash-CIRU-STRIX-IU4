@@ -69,7 +69,7 @@ llama_qsa_block_cache::llama_qsa_block_cache(
             throw std::runtime_error("failed to create QSA block-cache context");
         }
 
-        ggml_tensor * k = ggml_new_tensor_2d(ctx, GGML_TYPE_F16, key_dim, n_blocks);
+        ggml_tensor * k = ggml_new_tensor_2d(ctx, (std::getenv("CIRU_QSA_POOL_CACHE") && std::strcmp(std::getenv("CIRU_QSA_POOL_CACHE"), "1") == 0) ? GGML_TYPE_F32 : GGML_TYPE_F16, key_dim, n_blocks);
         ggml_format_name(k, "cache_idx_block_k_l%d", il);
         map_layer_ids[il] = layers.size();
         layers.push_back({ il, k });
@@ -272,6 +272,9 @@ bool llama_memory_hybrid_idx::seq_rm(llama_seq_id seq_id, llama_pos p0, llama_po
     if (result) {
         if (p0 < 0 && p1 < 0) {
             reset_qsa_blocks();
+        } else if (p0 >= 0 && p1 < 0 && mem_idx_blocks && (std::getenv("CIRU_QSA_POOL_CACHE") && std::strcmp(std::getenv("CIRU_QSA_POOL_CACHE"), "1") == 0)) {
+            mem_idx_blocks->valid_blocks = std::min(mem_idx_blocks->valid_blocks, (uint32_t) p0/4);
+            qsa_blocks_fast = false;
         } else {
             invalidate_qsa_blocks();
         }
@@ -407,12 +410,68 @@ llama_qsa_block_cache * llama_memory_hybrid_idx::get_mem_idx_blocks() const {
 }
 
 void llama_memory_hybrid_idx::reset_qsa_blocks() {
+    if (mem_idx_blocks) {
+        mem_idx_blocks->valid_blocks = 0;
+        mem_idx_blocks->valid_base = -1;
+        mem_idx_blocks->valid_seq = -1;
+    }
     qsa_blocks_fast = true;
     qsa_blocks_cell_base = -1;
 }
 
 void llama_memory_hybrid_idx::invalidate_qsa_blocks() {
+    if (mem_idx_blocks) {
+        mem_idx_blocks->valid_blocks = 0;
+        mem_idx_blocks->valid_base = -1;
+        mem_idx_blocks->valid_seq = -1;
+    }
     qsa_blocks_fast = false;
+}
+
+llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_cached_pool(
+        const llama_ubatch & ubatch, const llama_kv_cache::slot_info & sinfo, uint32_t ratio) {
+    llama_qsa_block_plan plan;
+    if (!(std::getenv("CIRU_QSA_POOL_CACHE") && std::strcmp(std::getenv("CIRU_QSA_POOL_CACHE"), "1") == 0) || !mem_idx_blocks || ratio != 4 ||
+            ubatch.n_tokens < 1 || ubatch.n_tokens > 8 || !ubatch.pos ||
+            !ubatch.seq_id || !ubatch.n_seq_id || sinfo.n_stream() != 1 ||
+            sinfo.size() != ubatch.n_tokens || !sinfo.is_contiguous()) {
+        return plan;
+    }
+    const llama_pos p0 = ubatch.pos[0];
+    const llama_seq_id seq = ubatch.seq_id[0][0];
+    const int64_t base = (int64_t) sinfo.idxs[0][0] - p0;
+    if (p0 < 0 || base < 0) { return plan; }
+    for (uint32_t i = 0; i < ubatch.n_tokens; ++i) {
+        if (ubatch.pos[i] != p0 + (llama_pos) i || ubatch.n_seq_id[i] != 1 ||
+                ubatch.seq_id[i][0] != seq || sinfo.idxs[0][i] != base + p0 + i) {
+            return plan;
+        }
+    }
+    const bool same_history = mem_idx_blocks->valid_base == base && mem_idx_blocks->valid_seq == seq;
+    if (!same_history) {
+        const auto & cells = get_mem_idx()->get_cells(seq);
+        const auto & attn = get_mem_attn()->get_cells(seq);
+        const uint32_t end = cells.used_max_p1();
+        if (cells.get_has_shift() || attn.get_has_shift() || cells.used_min() != base ||
+                cells.get_used() != end - base || attn.get_used() != cells.get_used()) { return plan; }
+        for (uint32_t i = base; i < end; ++i) {
+            if (cells.is_empty(i) || attn.is_empty(i) || cells.seq_count(i) != 1 ||
+                    attn.seq_count(i) != 1 || !cells.seq_has(i, seq) || !attn.seq_has(i, seq) ||
+                    cells.pos_get(i) != i - base || attn.pos_get(i) != i - base) { return plan; }
+        }
+    }
+    plan.total_blocks = (get_mem_idx()->get_n_kv(sinfo) + ratio - 1)/ratio;
+    plan.first_block = same_history ?
+            std::min(mem_idx_blocks->valid_blocks, (uint32_t) p0/ratio) : 0;
+    if (plan.first_block >= plan.total_blocks || plan.total_blocks > mem_idx_blocks->capacity()) { return {}; }
+    // Match KV padding so decode graphs retain one suffix shape between growth steps.
+    plan.first_block = (plan.first_block/64)*64;
+    plan.new_blocks = plan.total_blocks - plan.first_block;
+    plan.cell_base = base;
+    plan.seq_id = seq;
+    plan.ratio = ratio;
+    plan.enabled = true;
+    return plan;
 }
 
 llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_blocks(
@@ -420,8 +479,14 @@ llama_qsa_block_plan llama_memory_hybrid_idx::plan_qsa_blocks(
         const llama_kv_cache::slot_info & sinfo,
         uint32_t ratio) {
     llama_qsa_block_plan plan;
+    static const bool wide_prefill = [] {
+        const char * value = std::getenv("GGML_QSA_PREFILL_WIDE");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    const bool supported_rows = ubatch.n_tokens == 512 ||
+        (wide_prefill && ubatch.n_tokens > 8 && ubatch.n_tokens <= 2048 && ubatch.n_tokens % 4 == 0);
     if (!mem_idx_blocks || ratio != 4 || !ubatch.pos ||
-            ubatch.n_tokens != 512 || ubatch.n_tokens % ratio != 0 ||
+            !supported_rows || ubatch.n_tokens % ratio != 0 ||
             sinfo.n_stream() != 1 || sinfo.size() != ubatch.n_tokens || !sinfo.is_contiguous()) {
         return plan;
     }
@@ -1001,6 +1066,11 @@ llama_qsa_block_plan llama_memory_hybrid_idx_context::plan_qsa_blocks(
         return {};
     }
     return mem->plan_qsa_blocks(ubatch, get_idx()->get_slot_info(), ratio);
+}
+
+llama_qsa_block_plan llama_memory_hybrid_idx_context::plan_qsa_cached_pool(
+        const llama_ubatch & ubatch, uint32_t ratio) const {
+    return mem->plan_qsa_cached_pool(ubatch, get_idx()->get_slot_info(), ratio);
 }
 
 uint32_t llama_memory_hybrid_idx_context::get_n_stream() const {

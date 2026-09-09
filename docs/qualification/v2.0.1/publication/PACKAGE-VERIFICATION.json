@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "publication": "Not uploaded; local staging only",
+  "git_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+  "git_tree": "e060b9fce2a1ad3abee390fffe1c33ba02945e3b",
+  "source_archive": {
+    "filename": "ciru-runtime-v2.0.1-source.tar.gz",
+    "sha256": "28b2194323ba1105921f2c52639cc28cce8b8336f4f0a3a54349c249823fa7c5",
+    "bytes": 36780030,
+    "prefix": "ciru-runtime-v2.0.1/",
+    "tracked_files_verified": 3593,
+    "verification": "Each Git blob content, regular-file mode and symlink target matches the named tar archive."
+  },
+  "evidence_archive": {
+    "filename": "qsa-v2.0.1-evidence.tar.gz",
+    "sha256": "a032e4731db988b2b787563a4094ae662e73b3ad44488fda089c998998e1db66",
+    "bytes": 3644697,
+    "manifest_entries": 606
+  },
+  "github_hf_source_bytes_identical": true,
+  "historical_checksums_unchanged": true,
+  "full_and_runtime_only_checksum_checks": "PASS",
+  "source_code_hashes": "PASS",
+  "independent_smoke_checks": 24,
+  "evidence_originals_preserved": true
+}

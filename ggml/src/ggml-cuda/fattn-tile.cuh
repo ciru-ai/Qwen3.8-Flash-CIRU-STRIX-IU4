@@ -762,7 +762,7 @@ static __device__ __forceinline__ void flash_attn_tile_iter(
                 const int selected = k_VKQ_0 + i_KQ;
                 const uint64_t desc = qsa_desc ? qsa_desc[1 + selected/4] : 0;
                 const int cell = qsa_desc ? int(uint32_t(desc)) + selected%4 : (cell_ids ? cell_ids[selected] : selected);
-                const int tail_valid = cell_ids && !qsa_desc ? ((positions[j] + 1) & 3) : 3;
+                const int tail_valid = cell_ids && !qsa_desc && positions ? ((positions[j] + 1) & 3) : 3;
                 const int query_in_group = (jc0 + (threadIdx.y / np)*cpw)/ncols2;
                 const bool grouped_selected = !qsa_desc ||
                     ((uint16_t(desc >> 32) >> (4*(selected%4) + query_in_group)) & 1u) != 0;
@@ -1419,7 +1419,7 @@ static void ggml_cuda_flash_attn_ext_tile_indexed_qsa(
         (const char *) V->data,
         (const char *) mask->data,
         (const char *) cell_ids->data,
-        (const int *) positions->data,
+        ggml_get_op_params_i32(dst, 4) == 1 ? nullptr : (const int *) positions->data,
         (float *) dst->data,
         (float2 *) nullptr,
         scale, max_bias, m0, m1, n_head_log2, logit_softcap,

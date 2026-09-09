@@ -4,6 +4,7 @@
 #include "fattn-tile.cuh"
 #include "fattn-vec.cuh"
 #include "fattn.cuh"
+#include "top-k.cuh"
 
 template <int DKQ, int DV, int ncols2>
 static void ggml_cuda_flash_attn_ext_mma_f16_switch_ncols1(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
@@ -364,10 +365,12 @@ static bool ggml_cuda_fattn_indexed_qsa_supported(const int device, const ggml_t
     const int cc = ggml_cuda_info().devices[device].cc;
     const int indexed_layout = ggml_get_op_params_i32(dst, 4);
     return GGML_CUDA_CC_IS_AMD(cc) && GGML_CUDA_CC_IS_RDNA(cc) &&
-        (indexed_layout & 0xff) == 4 && (indexed_layout >> 8) >= 0 &&
+        ((indexed_layout == 1 && Q->ne[1] <= 8) ||
+         ((indexed_layout & 0xff) == 4 && (indexed_layout >> 8) >= 0 && Q->ne[1] % 4 == 0)) &&
         Q->type == GGML_TYPE_F32 && K->type == GGML_TYPE_F16 && V->type == GGML_TYPE_F16 &&
         mask->type == GGML_TYPE_F16 && cell_ids->type == GGML_TYPE_I32 && positions->type == GGML_TYPE_I32 &&
-        Q->ne[0] == 256 && K->ne[0] == 256 && V->ne[0] == 256 && Q->ne[1] == 512 && Q->ne[3] == 1 &&
+        Q->ne[0] == 256 && K->ne[0] == 256 && V->ne[0] == 256 &&
+        ggml_cuda_qsa_prefill_rows_supported(Q->ne[1]) && Q->ne[3] == 1 &&
         Q->ne[2] == 24 && K->ne[2] == 2 && V->ne[2] == 2 &&
         Q->nb[0] == sizeof(float) && K->nb[0] == sizeof(half) && V->nb[0] == sizeof(half) &&
         K->ne[1] == V->ne[1] && K->ne[3] == V->ne[3] &&
@@ -625,7 +628,11 @@ void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context & ctx, ggml_tensor * dst
                     (long long) dst->src[0]->ne[1]);
             h102_indexed_qsa_reported = true;
         }
-        ggml_cuda_flash_attn_ext_tile_group4_qsa(ctx, dst);
+        if (ggml_get_op_params_i32(dst, 4) == 1) {
+            ggml_cuda_flash_attn_ext_tile_indexed_qsa(ctx, dst);
+        } else {
+            ggml_cuda_flash_attn_ext_tile_group4_qsa(ctx, dst);
+        }
         return;
     }
     if (ggml_flash_attn_ext_has_indexed_kv(dst) && dst->src[5]->ne[0] == 2051) {

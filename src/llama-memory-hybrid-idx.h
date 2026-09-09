@@ -24,6 +24,9 @@ public:
       const llama_memory_i::layer_filter_cb & filter);
 
     uint32_t capacity() const;
+    uint32_t valid_blocks = 0;
+    int32_t valid_base = -1;
+    llama_seq_id valid_seq = -1;
 
     ggml_tensor * get(ggml_context * ctx, int32_t il, uint32_t n_blocks) const;
     ggml_tensor * get_range(ggml_context * ctx, int32_t il, uint32_t first, uint32_t count) const;
@@ -51,6 +54,8 @@ struct llama_qsa_block_plan {
     uint32_t new_blocks = 0;
     uint32_t total_blocks = 0;
     int32_t cell_base = -1;
+    uint32_t first_block = 0;
+    llama_seq_id seq_id = -1;
 };
 
 // llama_memory_hybrid plus a third cache with one indexer key per token, for block-sparse attention (qwen4exp QSA)
@@ -128,6 +133,9 @@ public:
             const llama_ubatch & ubatch,
             const llama_kv_cache::slot_info & sinfo,
             uint32_t ratio);
+    llama_qsa_block_plan plan_qsa_cached_pool(
+            const llama_ubatch & ubatch,
+            const llama_kv_cache::slot_info & sinfo, uint32_t ratio);
 
 private:
     // forget seq_id (all of it if seq_id < 0) in every cache at once, so a failed restore cannot leave the caches out of step
@@ -189,6 +197,7 @@ public:
     llama_qsa_block_cache * get_idx_blocks() const;
 
     llama_qsa_block_plan plan_qsa_blocks(const llama_ubatch & ubatch, uint32_t ratio) const;
+    llama_qsa_block_plan plan_qsa_cached_pool(const llama_ubatch & ubatch, uint32_t ratio) const;
 
     // streams in the current slot info, the `ns` of get_k/get_v; 1 if unified
     uint32_t get_n_stream() const;

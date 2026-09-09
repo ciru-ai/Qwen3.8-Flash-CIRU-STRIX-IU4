@@ -1,0 +1,189 @@
+{
+  "version": "2.0.1",
+  "weights_changed": false,
+  "base_public_commit": "145187f6aefb3ce8a39b32f06eeed3f85bea3e3b",
+  "base_runtime_release": "v2.0",
+  "runtime_candidate": "qwen38-qsa-fix-20260906/candidate-fast",
+  "upstream_backport": {
+    "pr": "https://github.com/ggml-org/llama.cpp/pull/27941",
+    "commit": "36b10154383b60eb15baac2c7a40d2a5f784faa7",
+    "author": "Daniel Han",
+    "scope": "QSA sequence-set grouping, indexer copy/update, raw-key rope policy, saved spatial metadata, pooled normalization shape; unrelated metadata validation and tensor-parallel policy omitted"
+  },
+  "ciru_addition": "Guarded canonical-stream QSA input construction; exact four-tensor equivalence across 288 cases; 66 mapping/state regression cases",
+  "core_patch_sha256": "44fe4186507d48df7659ab7429d2170e2e71946f32adbbc97ff4f143aa3d9c17",
+  "changed_core_sha256": {
+    "src/llama-memory-hybrid-idx.h": "4170f62854c1d8567b7d7fb15e673f4b6a242eaa1baab691944c1e3f4349e3ce",
+    "src/llama-kv-cells.h": "40c212f007a32047dad913dc20a090b8645556b3a2b32118e40cab2fb885ac09",
+    "src/llama-kv-cache.cpp": "d102bba0320cf786694119e1daa6681c1765bee6bde7559a7544143dce9e3280",
+    "src/llama-memory-hybrid-idx.cpp": "08971777e41badf654cf764f3b7e217304c19d94f1216c14e02abc5e14e1f3fd",
+    "src/models/qwen4exp.cpp": "6faf43e7693f6cebfb48a257f7a8fc6dab5cadeae88b712c048dac80d3aa268a"
+  },
+  "tested_runtime_hashes": {
+    "bin/libgcc_s.so.1": "c2a120787046d833987189639ef707747f2840ec821b21456523c070030feb57",
+    "bin/libggml-base.so.0.22.0": "277018e8a2c6653d5daa72a864d7b79f8cd82657fa28269689897a4b0082183a",
+    "bin/libggml-cpu.so.0.22.0": "a5e48e3c50f174b25bf369f363db852dacd1f384a8e10dfaf18a392a2fd7aaaa",
+    "bin/libggml-hip.so.0.22.0": "f60bfe62b7dfab548c5a30dcf7728f47b85f142c39ca9ae7377cc340b71c19d4",
+    "bin/libggml.so.0.22.0": "0d80d5364e47fbf30304f754e0bc4dec514c8440e35e430f074a557344bd0df2",
+    "bin/libgomp.so.1": "789f657765b7e6ea2bbc18408adf8bc123b1ea5b44ecb60f6673dd673effc953",
+    "bin/libllama-bench-impl.so": "01feac4d93741273116ff4f5afc6e8398b3149983f0b68d94fa2511d60f7fd55",
+    "bin/libllama-cli-impl.so": "6cad49e306929067c603477d53d56a5fcef13daef8ece5b30eeda804a11c3b17",
+    "bin/libllama-common.so.0.3.0": "8961513d3c8d0d3df48e7197b4711a91c3f0da4da51db39b805a2825affcc3f4",
+    "bin/libllama-server-impl.so": "c2d05f74db8da91d0e905778474d9bdfe554305441dece2117e12c4c617fddb7",
+    "bin/libllama.so.0.3.0": "4a70e051c953617fe6a13d60444073dd2a5e7be1a9f707896841156939d3992c",
+    "bin/libmtmd.so.0.3.0": "fd0ce09eacd67eb8475facbe70d4cfe5d7a6e8593b3fe358f5857a2b43f65f3e",
+    "bin/libstdc++.so.6": "91df7131df8e14c525527e436d7ea43f7d96ed880b5f3d650b09f8f9a4e53dd6",
+    "bin/llama-bench": "0978408dcdd5d8a016d7072a6ea1f9466f2c5e637a6e6d61c45dc3ac6f9c3d84",
+    "bin/llama-cli": "1276218095861368432ee7b8c9bbf8ddf58e74f16a204557747989ee4ca68b78",
+    "bin/llama-server": "d522ca837e78a06347622b64d4e8f329c2bc1224675367331a20d561911aa5a8"
+  },
+  "scope": "QSA-only source patch. Matched NixOS ROCm 10/gfx1151 runtime: only libllama replaced; later Sozo 8K and Ciru 64K served performance gates passed. Clean Ubuntu 24.04/ROCm 10 build passed 66 QSA cases and 30 batch tests/198 assertions. Ubuntu 520-token output and 674 drafted / 400 accepted matched; GPU device identity and 15 binary hashes verified. NixOS performance and Ubuntu-container compatibility are distinct.",
+  "evidence": "docs/qualification/v2.0.1/FINAL-QUALIFICATION.json",
+  "unchanged": [
+    "target weights",
+    "draft weights",
+    "PLE sidecars",
+    "HIP kernel sources and retained NixOS HIP binary",
+    "sampling defaults",
+    "MTP depth/shortlist policy"
+  ],
+  "limitations": [
+    "earlier Sozo 64K served pair failed its loss gate and remains unexplained; later Ciru 64K pair passes, not pooled across hosts",
+    "ROCm profiler attachment failed before cached diagnostic requests; no kernel/API causal trace obtained",
+    "MTP shortlist requires one slot",
+    "bounded tests do not fill 512K context",
+    "physical cache layouts may change floating-point results",
+    "no new full task-quality suite",
+    "Ubuntu userspace compatibility uses a NixOS host GPU driver; not native Ubuntu host certification",
+    "HIP host-buffer proposal #25863 excluded"
+  ],
+  "model_artifacts": [
+    {
+      "rfilename": "Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+      "size": 79397818720,
+      "lfs": {
+        "size": 79397818720,
+        "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0",
+        "pointer_size": 136
+      }
+    },
+    {
+      "rfilename": "mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+      "size": 4135893248,
+      "lfs": {
+        "size": 4135893248,
+        "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642",
+        "pointer_size": 135
+      }
+    },
+    {
+      "rfilename": "ple/ple.manifest.json",
+      "size": 115213,
+      "lfs": null
+    },
+    {
+      "rfilename": "ple/ple.payload.bin",
+      "size": 52429053952,
+      "lfs": {
+        "size": 52429053952,
+        "sha256": "687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2",
+        "pointer_size": 136
+      }
+    },
+    {
+      "rfilename": "ple/ple.scale.bf16",
+      "size": 2,
+      "lfs": null
+    }
+  ],
+  "release_status": "qualified for focused QSA v2.0.1 source release",
+  "performance_qualification": {
+    "context": 262144,
+    "slots": 1,
+    "mtp_depth": 6,
+    "shortlist": 32768,
+    "short_sozo_mtp_pooled_tg_change_percent": 0.10079194713958906,
+    "sozo_8k_confirmation": {
+      "prompt_tokens": 8192,
+      "generated_tokens": 128,
+      "pp_change_percent": 4.699006735082145,
+      "tg_change_percent": 1.2031817171471504,
+      "same_tokens_and_counts": true,
+      "gate_pass": true,
+      "evidence": "docs/qualification/v2.0.1/short-context-confirmation/"
+    },
+    "ciru_64k_confirmation": {
+      "prompt_tokens": 65536,
+      "generated_tokens": 128,
+      "pp_change_percent": 2.1206494168475754,
+      "tg_change_percent": -0.44880462382312913,
+      "drafted": 225,
+      "accepted": 89,
+      "same_tokens_and_counts": true,
+      "gate_pass": true,
+      "telemetry": "GPU clock/power/temperature, CPU/memory pressure and process I/O sampled 0.25s; independent review found no material anomaly",
+      "profiler": "Attachment failed: missing ROCP_TOOL_ATTACH=1 at startup; no cached diagnostic request or kernel/API trace",
+      "evidence": "docs/qualification/v2.0.1/causal64k/"
+    },
+    "earlier_sozo_64k": {
+      "pp_change_percent": -2.6147,
+      "tg_change_percent": -6.8649,
+      "gate_pass": false,
+      "cause": "unresolved; original records retained"
+    }
+  },
+  "ubuntu_clean_build": {
+    "source_commit": "bf0bf4b795e112bb1b4af0101640b8fdb250365f",
+    "source_files_verified": 3566,
+    "environment": "Ubuntu 24.04 container / ROCm 10.0.0 SDK; built on Dunamis Intel i9-14900KF without GPU access",
+    "cpu_portability": "GGML_NATIVE=OFF; AVX2/F16C/FMA/BMI2 enabled; AVX512/VNNI disabled",
+    "tests": {
+      "qsa_mapping_state_cases": 66,
+      "batch_tests": 30,
+      "batch_assertions": 198,
+      "failures": 0
+    },
+    "binary_sha256": {
+      "libggml-base.so.0.22.0": "050337fda35c3583569c6de08db017956d3de7920f05fb056c5d953ec7ae09f1",
+      "libggml-cpu.so.0.22.0": "b5cac94caa935e2474d840fa804ca18896472f5c8aa0bb2e30050d2a2c1061ba",
+      "libggml-hip.so.0.22.0": "7955750301284227e36a558195fc4830ec1a521fed19e412159f3ac56a9629a9",
+      "libggml.so.0.22.0": "9ca6ba9ecf95039f7e654069ad11eb584e92ea58c564a4e869edd522ed4cdf1a",
+      "libllama-bench-impl.so": "0bc0289578c8bbd0389da61906ab9a9aa4e28a9fb15d2ce7fb6248e60e7aa38f",
+      "libllama-cli-impl.so": "9284f3ecffca07ea489dd21cf8f53a55d90d5a35ab009949823634e77c7a0d9d",
+      "libllama-common.so.0.3.0": "a53615b86767dffc5178057de44568a54726b784b0f9e0765970d0a39db269d6",
+      "libllama-server-impl.so": "e2b7fdd9a3c8500adacac96d095645c9f22380a601f5be1b73df5498892c9f6e",
+      "libllama.so.0.3.0": "7d4f28ed7578e242a744b27e12d7a2a1d9256a1dbe6bb97a91b9b362be23066e",
+      "libmtmd.so.0.3.0": "bdfd9a4c735f320454ece0c2b808dcebd79bad467c259a96bbcff0def99a64ac",
+      "llama-bench": "21f36a0d7f8f7ab1389134576c8ff459af785845272cbade2728737ec4749ef3",
+      "llama-cli": "a328c99d5d2113aa7fc71f42dfbc3ff971c089eb9b18897933b0ada1d0a95f7b",
+      "llama-server": "5a2903840a6607d4f69c1c76639653603b98c4255a0b6b9ad73204d19dc8bda4",
+      "test-batch-alloc": "1b1305021d84bb8182d541835277fde00db9eee27f623c61ada1666ea188c28b",
+      "test-qsa-sequence": "e3f92fd5a840a4f1e7d34b96720beabd3b5797bf6cd2139e3c02e582d025d0de"
+    },
+    "gpu_smoke": {
+      "status": "PASS",
+      "userspace": "Ubuntu 24.04 container",
+      "gpu_host": "Ciru, NixOS host GPU driver",
+      "context": 262144,
+      "prompt_tokens": 57,
+      "generated_tokens": 520,
+      "drafted": 674,
+      "accepted": 400,
+      "all_output_tokens_match": true,
+      "binary_hashes_verified": 15,
+      "device_identity": "Same built binary enumerates ROCm0 Radeon 8060S; sole GPU KFD gfx_target_version=110501; actual RDNA3.5 kernel execution logged",
+      "original_verifier_status_preserved": {
+        "status": "FAIL",
+        "error": "gfx1151 identification not found",
+        "context_allocation": 262144,
+        "scope": "One unretried build/inference smoke attempt; inspect preserved artifacts."
+      },
+      "adjudication": "Original inference passed exact tokens and native counts. The original verifier incorrectly required the literal gfx1151 in a verbosity-3 server log. The same built binary enumerates ROCm0 as Radeon 8060S; the sole GPU KFD node is gfx_target_version=110501 and the actual inference log records RDNA3.5 kernel execution. No inference was repeated.",
+      "inference_repeated": false,
+      "cleanup_restored": true,
+      "evidence": "docs/qualification/v2.0.1/ubuntu24-gpu-smoke/REVIEWED-RESULT.json"
+    },
+    "evidence": "docs/qualification/v2.0.1/ubuntu24-build/"
+  },
+  "execution_description": "Existing IU4 artifact name retained. Standard launcher uses ordinary GGUF types; Q4_1 matrix path expands to byte lanes and uses IU8 WMMA. Separate native IU4/E3 bank path is not activated."
+}

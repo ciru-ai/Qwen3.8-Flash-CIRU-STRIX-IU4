@@ -1,0 +1,29 @@
+{
+  "scope": "Inert recording executable, no GPU; four existing launcher tests also pass",
+  "launcher_sha256": "d29677489306037a21d2d5ab06db5eacdf2883b084529a3cc2dced0a10094864",
+  "checks": [
+    {
+      "case": "default",
+      "exit": 0,
+      "shortlist": "32768",
+      "batch": "1024",
+      "ubatch": "1024",
+      "depth": "6",
+      "parallel": "1"
+    },
+    {
+      "case": "optional_depth2",
+      "exit": 0,
+      "shortlist": "32768",
+      "batch": "1024",
+      "ubatch": "1024",
+      "depth": "2",
+      "parallel": "1"
+    },
+    {
+      "case": "unsupported_parallel",
+      "exit": 2,
+      "error": "The CIRU MTP shortlist requires exactly one slot (--parallel 1).\nFor parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2.\nSee docs/RUNNING.md: Parallel requests and unified KV cache.\n"
+    }
+  ]
+}

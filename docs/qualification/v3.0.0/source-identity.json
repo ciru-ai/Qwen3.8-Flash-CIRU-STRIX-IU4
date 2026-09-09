@@ -1,0 +1,36 @@
+{
+  "base_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+  "patch_sha256": "47711a875f7b5a56395ca4825f8ebfa80a36c0f2987bfe02e4f4f531a1d8cbf6",
+  "files": {
+    "ggml/src/ggml-cuda/fattn-tile.cuh": "89afad4509e4829281156795a8bc6252f2988b8def7b23726ff2bf11df2f5e3a",
+    "ggml/src/ggml-cuda/fattn.cu": "f65d5aa062af32cf623ba8831cb23ac97997a4813931bd4253b327dd292554a9",
+    "ggml/src/ggml-cuda/getrows.cu": "45eeb1beceeb8a80b1b8db42be413b6a7564b87177ab1d8828c9cb498e3e7bff",
+    "ggml/src/ggml-cuda/ggml-cuda.cu": "500f6c9fbb25558bde3a1705e39d801c46cc0feb343185672fb8ec74c6919247",
+    "ggml/src/ggml-cuda/mmq.cuh": "b45c2902c4e9170f85e058493f928719eed7f8b50348e652988ba05b59a86c6f",
+    "ggml/src/ggml-cuda/top-k.cu": "3362a25540fdb304e9ba91707a6dee874665ea4d8da61d74820a5284c31f39d8",
+    "ggml/src/ggml-cuda/top-k.cuh": "45566445c41b406a3f1b6e4c37b05c9e9dcc770f3b23b65ccb83ba6575316996",
+    "src/llama-graph.cpp": "c20fb02a4b29e2c06967f57126236d2d5532e59cc318e1f4629c4c83d713f176",
+    "src/llama-kv-cache.cpp": "a789d3e2a0d062fbe43f292da0fc27e3a1134ee5e4a199d44a03d2f0f6c88643",
+    "src/llama-kv-cells.h": "8a3f84c8ed9b7b9a004c6eb803ac6bf7d1ce104c84bf9104f399bdb059bca2e9",
+    "src/llama-memory-hybrid-idx.cpp": "19ea11aae77a927c1d2eebfb6357e6f01e562976077f9dafe5a0df6a56df0d44",
+    "src/llama-memory-hybrid-idx.h": "209f04181f581936070575c1195dedab607bc519c5f897022e8f32de368a3ae0",
+    "src/models/qwen4exp.cpp": "397b0748df4a622f5082cc6e6f4813bcf65e55d249f071e328a6bd37cb682069",
+    "tests/test-backend-ops.cpp": "a74be2d6c593734beaeadec04052794adb73bca3093dae42798dc318efd92883",
+    "tests/test-qsa-sequence.cpp": "8d14609998dc731dfb3f28ad07c2360c4e81213dfd9abc34b10f06e1e6d30a24"
+  },
+  "profile_files": {
+    "profiles/strix-halo-production.env": "7051ecb38492291dc93b0564807c6c60c837dae2a444acdb92b8fd39bbf822aa",
+    "scripts/ciru/run-server.sh": "d29677489306037a21d2d5ab06db5eacdf2883b084529a3cc2dced0a10094864"
+  },
+  "scope": "Compiled inference sources and focused tests; release docs and archive identity are recorded separately.",
+  "excluded_hybrid_components": [
+    "CIRU_KV_DEVICE",
+    "CIRU_QSA_HISTORY_OWNER",
+    "CIRU_QSA_PREFILL_OWNER",
+    "CIRU_QSA_PEER_KV",
+    "hot/cold expert ownership",
+    "scheduler overlap",
+    "CIRU_QSA_POOL_CACHE_PREFILL",
+    "CIRU_QSA_COMPACT_MASK"
+  ]
+}
