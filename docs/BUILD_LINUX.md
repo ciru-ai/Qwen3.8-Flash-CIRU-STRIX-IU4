@@ -47,7 +47,7 @@ hipconfig --full
 ## Build the gfx1151 release runtime
 
 ```bash
-git clone --branch v1.0.0-h121 \
+git clone --branch v3.0.0 \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
 cd Qwen3.8-Flash-CIRU-STRIX-IU4
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh

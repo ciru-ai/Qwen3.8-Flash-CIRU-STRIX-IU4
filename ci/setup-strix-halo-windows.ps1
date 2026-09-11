@@ -15,21 +15,29 @@ manual step that must happen before the next phase is allowed.
   -Phase model       section 4: model download + sha256 verify
   -Phase service     section 5: server unit + self-keeper unit
   -Phase portproxy   section 6: LAN exposure                     [admin]
+  -Phase upgrade     section 8: side-by-side upgrade to a new tag
   -Phase all         preflight through service, stopping at gates
 
-Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, ROCm 10.0,
-rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151), 128 GB unified.
+Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, runtime v3.0.0,
+ROCm 10.0, rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151), 128 GB unified.
 #>
 [CmdletBinding()]
 param(
-    [ValidateSet('preflight', 'wsl', 'rocm', 'build', 'model', 'service', 'portproxy', 'all')]
+    [ValidateSet('preflight', 'wsl', 'rocm', 'build', 'model', 'service', 'portproxy', 'upgrade', 'all')]
     [string]$Phase = 'preflight',
     [string]$Distro = 'Ubuntu-26.04',
-    [string]$RepoTag = 'v1.1',
+    [string]$RepoTag = 'v3.0.0',
     [string]$RepoRoot = '/opt/runtime',
+    # empty = derive '<RepoRoot>-v<major>' from -RepoTag in the upgrade phase
+    [string]$UpgradeRoot = '',
+    # stop the upgrade phase after staging the unit (build+verify only)
+    [switch]$WhatIfUpgrade,
     [string]$ModelDir = '/models/Qwen3.8-Flash-CIRU-STRIX-IU4',
     # 0 = derive from the ROCm pool (see Get-AutoContext)
     [int]$ContextSize = 0,
+    # 0 = nproc for a fresh build; derived from free RAM in the upgrade
+    # phase (a loaded server already holds most of the VM)
+    [int]$BuildJobs = 0,
     # 0 = derive as (total RAM GB - 100), floored at 16
     [int]$WslMemoryGB = 0,
     # 0 = every logical processor
@@ -317,8 +325,10 @@ function Invoke-BuildPhase {
         Write-Bad 'clone failed'; exit 1
     }
 
+    $jobsEnv = ''
+    if ($BuildJobs -gt 0) { $jobsEnv = "BUILD_JOBS=$BuildJobs " }
     Write-Host 'Building (this takes a while)...'
-    if (-not (Invoke-Wsl "cd $RepoRoot && ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh")) { Write-Bad 'build failed; see the output above'; exit 1 }
+    if (-not (Invoke-Wsl "cd $RepoRoot && ROCM_ROOT=/opt/rocm ${jobsEnv}./scripts/ciru/build-linux-amd.sh")) { Write-Bad 'build failed; see the output above'; exit 1 }
 
     $v = Invoke-WslText "LD_LIBRARY_PATH=$RepoRoot/build-gfx1151/bin $RepoRoot/build-gfx1151/bin/llama-server --version 2>/dev/null | head -1"
     if (-not $v) { Write-Bad 'llama-server --version failed'; exit 1 }
@@ -401,6 +411,97 @@ WantedBy=multi-user.target
     } else { Write-Bad "unit not active: server=$a1 keeper=$a2 (journalctl -u <unit> to inspect)"; exit 1 }
 }
 
+# Side-by-side upgrade, the flow run for v1.1 -> v3.0.0: build the new
+# tag in its own tree while the current server keeps serving, verify the
+# new binaries, swap units. -WhatIfUpgrade stops after staging the unit
+# (no cutover); the old release stays at $RepoRoot for rollback.
+function Invoke-UpgradePhase {
+    Write-Step 'Section 8: side-by-side upgrade'
+    if ((Invoke-WslText 'test -x /opt/rocm/bin/rocminfo && echo yes || echo no') -ne 'yes') {
+        Write-Bad 'ROCm missing: run -Phase rocm first'; exit 1
+    }
+    $ctx = Get-ContextForUnits
+    $maj = ($RepoTag -split '\.')[0].TrimStart('v')
+    $new = if ($UpgradeRoot) { $UpgradeRoot } else { "$RepoRoot-v$maj" }
+
+    # The build competes with the running server for VM RAM. HIP compile
+    # jobs peak around 2.2 GiB each; size the pool from what is free.
+    $jobs = $BuildJobs
+    if ($jobs -le 0) {
+        $availMb = 0
+        $mb = Invoke-WslText 'free -m | sed -n 2p | tr -s '' '' | cut -d'' '' -f7'
+        if ($mb -match '^\d+$') { $availMb = [int]$mb }
+        $jobs = [Math]::Max(2, [Math]::Min([int]($availMb / 2200), 32))
+    }
+    Write-Host "  build jobs: $jobs"
+
+    Write-Step "Upgrade: clone $RepoTag into $new (current server stays up)"
+    if ((Invoke-WslText "test -d $new/.git && echo yes || echo no") -eq 'yes') {
+        Write-Ok "$new already cloned"
+    } elseif (-not (Invoke-Wsl "git clone --branch $RepoTag $RepoUrl $new")) {
+        Write-Bad 'clone failed'; exit 1
+    }
+
+    Write-Host 'Building (this takes a while)...'
+    if (-not (Invoke-Wsl "cd $new && ROCM_ROOT=/opt/rocm BUILD_JOBS=$jobs ./scripts/ciru/build-linux-amd.sh")) { Write-Bad 'upgrade build failed; the current server is untouched'; exit 1 }
+    $v = Invoke-WslText "LD_LIBRARY_PATH=$new/build-gfx1151/bin $new/build-gfx1151/bin/llama-server --version 2>/dev/null | head -1"
+    if (-not $v) { Write-Bad 'llama-server --version failed'; exit 1 }
+    Write-Ok "llama-server built: $v"
+
+    Write-Step 'Upgrade: check weights for this tag'
+    # Releases can ship identical weights across runtime tags. Compare
+    # the tag's checksums file against the installed one before paying
+    # for a ~136 GiB download.
+    $shaOk = $false
+    $dl = Invoke-Wsl "/opt/hf-venv/bin/hf download $ModelRepo checksums.sha256 --revision $RepoTag --local-dir /tmp/ciru-sha-$RepoTag"
+    if ($dl) {
+        $same = Invoke-WslText "cmp -s /tmp/ciru-sha-$RepoTag/checksums.sha256 $ModelDir/checksums.sha256 && echo same || echo differ"
+        if ($same -eq 'same') { Write-Ok 'tag checksums match the installed model files; no download needed'; $shaOk = $true }
+    }
+    if (-not $shaOk) {
+        # Invoke-ModelPhase exits the process on failure, exits nothing extra
+        # on success; it also (re)creates /opt/hf-venv when missing.
+        Invoke-ModelPhase
+    }
+
+    $unitName = "qwen-ciru-server-v$maj.service"
+    Write-Unit $unitName @"
+[Unit]
+Description=Qwen3.8-Flash-CIRU-STRIX-IU4 llama-server $RepoTag (gfx1151)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+Environment=LD_LIBRARY_PATH=$new/build-gfx1151/bin
+Environment=MODEL_DIR=$ModelDir
+Environment=HOST=0.0.0.0
+Environment=CONTEXT_SIZE=$ctx
+WorkingDirectory=$new
+ExecStart=$new/scripts/ciru/run-server.sh
+
+[Install]
+WantedBy=multi-user.target
+"@
+    if (-not (Invoke-Wsl 'systemctl daemon-reload')) { Write-Bad 'daemon-reload failed'; exit 1 }
+
+    if ($WhatIfUpgrade) {
+        Write-Ok "new build verified, $unitName staged (not started); rerun without -WhatIfUpgrade to cut over"
+        return
+    }
+    # Only one server can own 8080 and the GPU pool at a time: the cutover
+    # is a short outage (~6-8 minutes of model load). Do not run it while
+    # anything depends on the current server.
+    Write-Step 'Upgrade: cutover (current server stops; model reload takes ~6-8 min)'
+    $cmd = "systemctl stop qwen-ciru-server.service; systemctl disable qwen-ciru-server.service; systemctl enable --now $unitName"
+    if (-not (Invoke-Wsl $cmd)) { Write-Bad "cutover failed (journalctl -u $unitName to inspect)"; exit 1 }
+    if ((Invoke-WslText "systemctl is-active $unitName") -eq 'active') {
+        Write-Ok "$unitName active (CONTEXT_SIZE=$ctx); old unit stopped+disabled; boot task and keeper follow the enabled unit unchanged"
+    } else { Write-Bad "$unitName not active (journalctl -u $unitName to inspect)"; exit 1 }
+}
+
 function Invoke-PortproxyPhase {
     Require-Admin 'The portproxy phase'
     Write-Step 'Section 6: expose the server on the LAN (optional)'
@@ -456,6 +557,7 @@ switch ($Phase) {
     'model'     { Invoke-ModelPhase }
     'service'   { Invoke-ServicePhase }
     'portproxy' { Invoke-PortproxyPhase }
+    'upgrade'   { Invoke-UpgradePhase }
     'all' {
         Invoke-Preflight
         Invoke-WslPhase

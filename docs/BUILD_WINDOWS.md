@@ -20,6 +20,7 @@ Verified environment for the WSL2 path:
 | Distro | Ubuntu 26.04.1 LTS ("resolute") - verified; 26+ recommended, 24.04 probably works |
 | ROCm | 10.0.0 (amdgpu-install 31.50, `--no-dkms`) |
 | ROCDXG | rocdxg-roct 1.2.2 (librocdxg) |
+| Runtime tag | v3.0.0 (cut over from v1.1 via the section 8 upgrade flow) |
 | GPU pool seen by ROCm | 117,076,066 KB (~111.7 GiB) |
 
 A scripted version of every section below ships with this repository as
@@ -37,7 +38,7 @@ carve-out, reboot, driver, HF login) before the phase that depends on it:
 ```
 
 Individual phases (`wsl`, `rocm`, `build`, `model`, `service`,
-`portproxy`) can be re-run independently; long downloads resume.
+`portproxy`, `upgrade`) can be re-run independently; long downloads resume.
 
 ## 1. Install WSL2 and a distro
 
@@ -88,7 +89,7 @@ vmIdleTimeout=-1
 does NOT work around the WSL 2.6+ idle regression; it must be `-1`.
 
 Keep the cap a few GiB below the Windows-visible total: while the model
-loads (10-12 minutes) the VM climbs toward its cap, and Windows will kill
+loads (6-8 minutes) the VM climbs toward its cap, and Windows will kill
 foreground apps if there is no room left.
 
 Note: even with the VM kept alive, WSL 2.6.1+ (confirmed regression
@@ -152,13 +153,15 @@ Expected: `/dev/dxg` exists and rocminfo lists `Agent 2: gfx1151` with a
 ## 3. Build the runtime
 
 ```bash
-git clone --branch v1.1 https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git /opt/runtime
+git clone --branch v3.0.0 https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git /opt/runtime
 cd /opt/runtime
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh
 ```
 
 The script configures HIP on, VMM off, graphs on, MFMA on, and
 `GPU_TARGETS=gfx1151` (see the script and [BUILD_LINUX.md](BUILD_LINUX.md)).
+The compile pool defaults to `nproc`; cap it with `BUILD_JOBS=n` only when
+a loaded server is already competing for the same WSL VM RAM (section 8).
 
 Requires ROCm's `amdclang++` or `hipcc` on `ROCM_ROOT/bin`; the ROCm 10
 install provides `amdclang++`.
@@ -327,7 +330,7 @@ re-points the portproxy at the fresh NAT IP. `-Phase portproxy` of the
 installer script writes this keeper and registers/starts the task for you.
 After each reboot: the task boots the VM, systemd starts both enabled units,
 the keeper holds the session, and the server answers again once the model has
-loaded (~10-12 minutes). Interactive auto-login is not required by this
+loaded (6-8 minutes measured). Interactive auto-login is not required by this
 chain; use it only if other Startup-folder items must run unattended.
 
 ## 7. Smoke test
@@ -343,6 +346,55 @@ curl http://127.0.0.1:8080/v1/chat/completions \
 The model is a thinking model by default; give it a generous `max_tokens`
 budget or the reasoning pass consumes the whole budget and `content` comes
 back empty.
+
+## 8. Upgrading to a new runtime tag
+
+A new release tag builds while the current server keeps serving, so the
+upgrade is one short restart instead of a re-setup. This is the flow run on
+this host for `v1.1` -> `v3.0.0`; the scripted version is `-Phase upgrade`
+(add `-WhatIfUpgrade` to stop after staging the new unit, before cutover).
+
+Clone the new tag into its own tree and build with the compile pool sized to
+the RAM the running server leaves free - HIP compile jobs peak around
+2.2 GiB each, and this host completed 492 objects in about 5 minutes with
+`BUILD_JOBS=8` while the old server served requests the whole time:
+
+```bash
+git clone --branch v3.0.0 \
+  https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git /opt/runtime-v3
+cd /opt/runtime-v3
+ROCM_ROOT=/opt/rocm BUILD_JOBS=8 ./scripts/ciru/build-linux-amd.sh
+```
+
+Before paying for another ~136 GiB download, check whether the tag actually
+changed the weights. v3.0.0's `checksums.sha256` is byte-identical to
+v1.1's (the release notes say the same), so the installed model files were
+reused as-is:
+
+```bash
+/opt/hf-venv/bin/hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
+  checksums.sha256 --revision v3.0.0 --local-dir /tmp/v3-sha
+cmp -s /tmp/v3-sha/checksums.sha256 \
+  /models/Qwen3.8-Flash-CIRU-STRIX-IU4/checksums.sha256 && echo weights unchanged
+```
+
+Install a second unit for the new tree: the section 5 unit with every
+`/opt/runtime` path replaced by `/opt/runtime-v3` (name it
+`qwen-ciru-server-v3.service`, keep the same `CONTEXT_SIZE`), then cut over.
+Only one server can hold port 8080 and the GPU pool at a time:
+
+```bash
+systemctl daemon-reload
+systemctl stop qwen-ciru-server.service
+systemctl disable qwen-ciru-server.service
+systemctl enable --now qwen-ciru-server-v3.service
+```
+
+`/health` reaches green in about 6 minutes after the cutover (357 s
+measured). Leave the old unit stopped but its tree on disk: rollback is the
+same command in reverse. The boot keeper and the keeper unit are
+name-agnostic - they start the distro, and systemd starts whichever server
+unit is enabled - so reboot persistence needs no changes after an upgrade.
 
 ## Troubleshooting
 

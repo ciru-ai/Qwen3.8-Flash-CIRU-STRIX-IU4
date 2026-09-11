@@ -63,7 +63,7 @@ The target GGUF and every file under `ple/` are mandatory. The MTP file is optio
 The validated fast path is Linux x86-64, AMD ROCm, and `gfx1151` on a Ryzen AI Max+ 395 / Radeon 8060S:
 
 ```bash
-git clone --branch v1.1 \
+git clone --branch v3.0.0 \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git
 cd Qwen3.8-Flash-CIRU-STRIX-IU4
 ROCM_ROOT=/opt/rocm ./scripts/ciru/build-linux-amd.sh

@@ -63,7 +63,7 @@ The server is configured for 262,144 tokens, but the measured ladder ends at 131
 
 ## Windows (WSL2 + ROCDXG) verification
 
-The following rows were measured on a production Windows 11 host in August 2026: Windows 11 Pro 25H2 (build 26200), WSL 2.7.12 (kernel 6.18.33.2), Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50, `--no-dkms`), `rocdxg-roct` 1.2.2, and `CONTEXT_SIZE=131072`. All rows used the same released weights and the public server profile (MTP depth 3, F16 target KV, Q8_0 draft KV, 4 GiB PLE cache, batch 2,048, microbatch 512, one slot) with uncached prompts and 128 generated tokens. The WSL2/ROCDXG path is experimental; treat these as verification numbers, not leaderboard claims.
+The following rows were measured on a production Windows 11 host in August 2026: Windows 11 Pro 25H2 (build 26200), WSL 2.7.12 (kernel 6.18.33.2), Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50, `--no-dkms`), `rocdxg-roct` 1.2.2, runtime tag `v1.1`, and `CONTEXT_SIZE=131072`. All rows used the same released weights and the public server profile (MTP depth 3, F16 target KV, Q8_0 draft KV, 4 GiB PLE cache, batch 2,048, microbatch 512, one slot) with uncached prompts and 128 generated tokens. The WSL2/ROCDXG path is experimental; treat these as verification numbers, not leaderboard claims.
 
 | Prompt tokens | Prefill tok/s | Generation tok/s | TTFP | Wall | MTP acceptance |
 |---:|---:|---:|---:|---:|---:|
