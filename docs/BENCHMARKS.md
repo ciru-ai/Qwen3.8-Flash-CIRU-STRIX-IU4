@@ -63,7 +63,9 @@ The server is configured for 262,144 tokens, but the measured ladder ends at 131
 
 ## Windows (WSL2 + ROCDXG) verification
 
-The following rows were measured on a production Windows 11 host in August 2026: Windows 11 Pro 25H2 (build 26200), WSL 2.7.12 (kernel 6.18.33.2), Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50, `--no-dkms`), `rocdxg-roct` 1.2.2, runtime tag `v1.1`, and `CONTEXT_SIZE=131072`. All rows used the same released weights and the public server profile (MTP depth 3, F16 target KV, Q8_0 draft KV, 4 GiB PLE cache, batch 2,048, microbatch 512, one slot) with uncached prompts and 128 generated tokens. The WSL2/ROCDXG path is experimental; treat these as verification numbers, not leaderboard claims.
+Both ladders below were measured on a production Windows 11 host: Windows 11 Pro 25H2 (build 26200), WSL 2.7.12 (kernel 6.18.33.2), Ubuntu 26.04.1, ROCm 10.0 (`amdgpu-install` 31.50, `--no-dkms`), `rocdxg-roct` 1.2.2, `CONTEXT_SIZE=131072`. All rows used the same released weights and the public server profile (MTP depth 3, F16 target KV, Q8_0 draft KV, 4 GiB PLE cache, batch 2,048, microbatch 512, one slot) with uncached prompts and 128 generated tokens. The WSL2/ROCDXG path is experimental; treat these as verification numbers, not leaderboard claims.
+
+### Runtime v1.1 (August 2026)
 
 | Prompt tokens | Prefill tok/s | Generation tok/s | TTFP | Wall | MTP acceptance |
 |---:|---:|---:|---:|---:|---:|
@@ -73,14 +75,55 @@ The following rows were measured on a production Windows 11 host in August 2026:
 | 16,436 | 371.5 | 17.7 | 44.24 s | 51.5 s | 61/197 (31.0%) |
 | 32,820 | 291.0 | 14.4 | 112.78 s | 121.7 s | 56/213 (26.3%) |
 
+### Runtime v3.0.0 (September 2026)
+
+The identical protocol was re-measured on the same host after the
+side-by-side upgrade to runtime tag `v3.0.0`: same weights, same profile,
+`CONTEXT_SIZE=131072`, uncached prompts, 128 decode tokens. Values are the
+mean of two full ladder passes.
+
+| Prompt tokens | Prefill tok/s | Generation tok/s | TTFP | Wall | MTP acceptance |
+|---:|---:|---:|---:|---:|---:|
+| 564 | 300.9 | 18.8 | 1.88 s | 17.9 s | 136/690 (19.7%) |
+| 2,100 | 454.9 | 19.6 | 4.62 s | 11.1 s | 143/648 (22.1%) |
+| 8,244 | 504.1 | 17.2 | 16.35 s | 22.9 s | 115/644 (17.9%) |
+| 16,436 | 475.6 | 21.0 | 34.56 s | 40.9 s | 151/596 (25.3%) |
+| 32,820 | 406.3 | 17.3 | 80.78 s | 88.2 s | 138/677 (20.4%) |
+
+Deltas against the v1.1 ladder (v3 means):
+
+| Prompt tokens | Prefill | Generation | TTFP |
+|---:|---:|---:|---:|
+| 564 | +246.6% | -12.4% | -71.2% |
+| 2,100 | +19.7% | -0.5% | -16.5% |
+| 8,244 | +10.3% | -19.2% | -9.4% |
+| 16,436 | +28.0% | +18.9% | -21.9% |
+| 32,820 | +39.6% | +20.1% | -28.4% |
+
+- Prefill is the clear, reproducible win: faster at every size (+10% to
+  +247%) and repeatable to within ~1% between passes (the 564-row spread,
+  4.2%, was the cold first request). TTFP dropped 9-71% at all sizes;
+  long-context prefill gained most (32K: 291 -> 406 tok/s).
+- Generation does not reproduce as well as prefill: the same 16,436 row
+  measured 25.2 tok/s in one pass and 16.9 tok/s in the other. Read the
+  generation deltas as ranges, not point estimates: roughly parity at 2K,
+  down ~12-19% at 564 and 8K, and up on the mean at 16K/32K - though a
+  single 16K pass dipped slightly below the v1.1 row. End-to-end wall time
+  improved at 2K, 16K, and 32K on the mean.
+- v3 proposes far more draft tokens per generated token (~1.9-3.1 vs
+  ~1.4-1.7 on v1.1), so its acceptance *rate* reads lower at equal or
+  better throughput; the MTP shortlist changed the draft strategy and the
+  acceptance columns are not directly comparable across the two runtimes.
+
 Notes:
 
 - The host's large GPU carve-out leaves a ~95.8 GiB GPU pool; the full
   262,144-token profile OOMs when loading the MTP draft on such machines.
-  `CONTEXT_SIZE=131072` (28.1 GiB total KV) was used for this ladder.
-- Generation held 20-21 tok/s up to 16K context and stayed usable at 32K,
-  within ~35% of the native-Linux 30.8 tok/s headline despite the DXG
-  translation layer.
+  `CONTEXT_SIZE=131072` (28.1 GiB total KV) was used for both ladders.
+- On v1.1, generation held 20-21 tok/s up to 16K context and stayed usable
+  at 32K, within ~35% of the native-Linux 30.8 tok/s headline despite the
+  DXG translation layer. v3.0.0 trades some short-prompt generation for the
+  prefill and long-context gains above.
 - Prefill was prompt-cache-cold; the first request's context-load time is
   included in TTFP. See [BUILD_WINDOWS.md](BUILD_WINDOWS.md) for the full
   recipe and lifecycle notes (WSL 2.6+ idle regression and the
