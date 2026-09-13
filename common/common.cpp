@@ -1688,11 +1688,13 @@ struct llama_model_params common_model_params_to_llama(common_params & params) {
     mparams.main_gpu        = params.main_gpu;
     mparams.split_mode      = params.split_mode;
     mparams.load_mode       = params.load_mode;
-    mparams.tensor_read_lazy = params.tensor_read_lazy;
+    mparams.lazy_mode = params.lazy_mode;
     mparams.tensor_split    = params.tensor_split;
     mparams.check_tensors   = params.check_tensors;
     mparams.use_extra_bufts = !params.no_extra_bufts;
     mparams.no_host         = params.no_host;
+    mparams.ple_sidecar     = params.ple_sidecar.empty() ? nullptr : params.ple_sidecar.c_str();
+    mparams.ple_cache_bytes = params.ple_cache_bytes;
 
     if (params.kv_overrides.empty()) {
         mparams.kv_overrides = NULL;
@@ -1712,8 +1714,6 @@ struct llama_model_params common_model_params_to_llama(common_params & params) {
     mparams.progress_callback_user_data = params.load_progress_callback_user_data;
     mparams.no_alloc                    = params.no_alloc;
     mparams.load_mtp                    = std::find(params.speculative.types.begin(), params.speculative.types.end(), COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params.speculative.types.end();
-    mparams.ple_sidecar                 = params.ple_sidecar.empty() ? nullptr : params.ple_sidecar.c_str();
-    mparams.ple_cache_bytes             = params.ple_cache_bytes;
 
     return mparams;
 }

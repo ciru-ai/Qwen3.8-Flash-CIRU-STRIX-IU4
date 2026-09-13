@@ -3,60 +3,11 @@
 #include "llama-memory-hybrid.h"
 
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 //
 // llama_memory_hybrid_idx
 //
-
-// Derived QSA cache: one normalized/rotated F16 key for each completed
-// four-token compression block.  The raw indexer KV remains the state-save
-// authority; this cache is an append-only p1 acceleration and is invalidated
-// on any non-append sequence operation.
-class llama_qsa_block_cache {
-public:
-    llama_qsa_block_cache(
-            const llama_model & model,
-                     uint32_t   key_dim,
-                     uint32_t   kv_size,
-                         bool   offload,
-      const llama_memory_i::layer_filter_cb & filter);
-
-    uint32_t capacity() const;
-    uint32_t valid_blocks = 0;
-    int32_t valid_base = -1;
-    llama_seq_id valid_seq = -1;
-
-    ggml_tensor * get(ggml_context * ctx, int32_t il, uint32_t n_blocks) const;
-    ggml_tensor * get_range(ggml_context * ctx, int32_t il, uint32_t first, uint32_t count) const;
-
-    std::map<ggml_backend_buffer_type_t, size_t> memory_breakdown() const;
-
-private:
-    struct layer {
-        uint32_t il;
-        ggml_tensor * k;
-    };
-
-    const uint32_t key_dim;
-    const uint32_t n_blocks;
-
-    std::vector<std::pair<ggml_context_ptr, ggml_backend_buffer_ptr>> ctxs_bufs;
-    std::vector<layer> layers;
-    std::unordered_map<int32_t, int32_t> map_layer_ids;
-};
-
-struct llama_qsa_block_plan {
-    bool enabled = false;
-    bool sparse_attention = false;
-    uint32_t ratio = 0;
-    uint32_t new_blocks = 0;
-    uint32_t total_blocks = 0;
-    int32_t cell_base = -1;
-    uint32_t first_block = 0;
-    llama_seq_id seq_id = -1;
-};
 
 // llama_memory_hybrid plus a third cache with one indexer key per token, for block-sparse attention (qwen4exp QSA)
 // the indexer is a side buffer over the attention cells: same size, padding, streams and slots, so cell j is one token in both
@@ -124,20 +75,26 @@ public:
 
     llama_kv_cache * get_mem_idx() const;   // nullptr when the model carries no indexer
 
+    // block-compressed sparse attention (qwen4exp QSA) over the cells of the indexer cache.
+    // Blocks cut the position line, not the cell array, so no caller assumes a contiguous layout:
+    //   cell_blk  I32 [n_kv, ns]           block each cell belongs to
+    //   blk_cells I32 [ratio*n_blocks, ns] cells making up each block
+    //   blk_pos   I32 [4*n_blocks*ns]      mrope position rows of each block's first token
+    //   bias      F32 [n_kv, n_tokens/ns, ns] -inf where invisible, large where always visible
+    // blk_bias asks for the bias per block instead: [n_blocks, n_tokens/ns, ns]
+    // the caller then adds the attention mask, the only part of the bias that varies within a block
     void set_input_qsa(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
                        ggml_tensor * bias, const llama_ubatch * ubatch, uint32_t ratio,
                        bool blk_bias) const;
-    llama_qsa_block_cache * get_mem_idx_blocks() const;
-
-    llama_qsa_block_plan plan_qsa_blocks(
-            const llama_ubatch & ubatch,
-            const llama_kv_cache::slot_info & sinfo,
-            uint32_t ratio);
-    llama_qsa_block_plan plan_qsa_cached_pool(
-            const llama_ubatch & ubatch,
-            const llama_kv_cache::slot_info & sinfo, uint32_t ratio);
+    void set_input_qsa_blocks(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
+                             ggml_tensor * bias, ggml_tensor * tail_idxs,
+                             const llama_ubatch * ubatch, uint32_t ratio) const;
 
 private:
+    void set_input_qsa_impl(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
+                            ggml_tensor * bias, ggml_tensor * tail_idxs,
+                            const llama_ubatch * ubatch, uint32_t ratio, bool blk_bias) const;
+
     // forget seq_id (all of it if seq_id < 0) in every cache at once, so a failed restore cannot leave the caches out of step
     // seq_id < 0 drops the whole context, as the caches themselves do on a failed restore
     void state_drop(llama_seq_id seq_id);
@@ -147,13 +104,6 @@ private:
     llama_hparams hparams_idx;
 
     const std::unique_ptr<llama_kv_cache> mem_idx;
-    const std::unique_ptr<llama_qsa_block_cache> mem_idx_blocks;
-
-    bool qsa_blocks_fast = true;
-    int32_t qsa_blocks_cell_base = -1;
-
-    void reset_qsa_blocks();
-    void invalidate_qsa_blocks();
 };
 
 class llama_memory_hybrid_idx_context : public llama_memory_hybrid_context {
@@ -194,37 +144,21 @@ public:
 
     // nullptr with no indexer
     const llama_kv_cache_context * get_idx() const;
-    llama_qsa_block_cache * get_idx_blocks() const;
-
-    llama_qsa_block_plan plan_qsa_blocks(const llama_ubatch & ubatch, uint32_t ratio) const;
-    llama_qsa_block_plan plan_qsa_cached_pool(const llama_ubatch & ubatch, uint32_t ratio) const;
 
     // streams in the current slot info, the `ns` of get_k/get_v; 1 if unified
     uint32_t get_n_stream() const;
+    bool qsa_scalar_visibility(const llama_ubatch & ubatch) const;
+    bool qsa_position_prefix(const llama_ubatch & ubatch) const;
 
-    // block-compressed sparse attention (qwen4exp QSA) over the cells of the indexer cache.
-    // Blocks cut the position line, not the cell array, so no caller assumes a contiguous layout:
-    //   cell_blk  I32 [n_kv, ns]           block each cell belongs to
-    //   blk_cells I32 [ratio*n_blocks, ns] cells making up each block
-    //   blk_pos   I32 [4*n_blocks*ns]      mrope position rows of each block's first token
-    //   bias      F32 [n_kv, n_tokens/ns, ns] -inf where invisible, large where always visible
-    // blk_bias asks for the bias per block instead: [n_blocks, n_tokens/ns, ns]
-    // the caller then adds the attention mask, the only part of the bias that varies within a block
     void set_input_qsa(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
                        ggml_tensor * bias, const llama_ubatch * ubatch, uint32_t ratio,
                        bool blk_bias) const;
-
-    // H102 append-only p1 path.  All work is O(new blocks + selected-map
-    // metadata), with no scan over historical cache cells and no dense bias.
-    void set_input_qsa_blocks(
-            ggml_tensor * new_blk_cells,
-            ggml_tensor * new_blk_pos,
-            ggml_tensor * new_blk_ids,
-            const llama_ubatch * ubatch,
-            const llama_qsa_block_plan & plan) const;
+    void set_input_qsa_blocks(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
+                             ggml_tensor * bias, ggml_tensor * tail_idxs,
+                             const llama_ubatch * ubatch, uint32_t ratio) const;
 
 private:
-    llama_memory_hybrid_idx * mem = nullptr;
+    const llama_memory_hybrid_idx * mem = nullptr;
 
     // streams per ubatch, read from the slot infos before ctx_idx takes them
     // declared first, so it is initialised while sinfos_idx is still intact

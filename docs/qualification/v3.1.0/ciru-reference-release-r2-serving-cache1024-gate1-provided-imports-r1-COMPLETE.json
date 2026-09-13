@@ -1,0 +1,9 @@
+{
+  "tasks": 8,
+  "base_pass": 8,
+  "plus_pass": 8,
+  "original_standalone_base_pass": 7,
+  "original_standalone_plus_pass": 7,
+  "generated_answers_unchanged": true,
+  "rule": "Prepend only original task prompt top-level import statements uniformly to every saved sanitized answer. No regeneration or answer edits. Original standalone7/8 remains unchanged."
+}

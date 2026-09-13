@@ -1,5 +1,11 @@
 # Release provenance
 
+## v3.1.0 reference integration
+
+The engine is pinned to pwilkin reference commit `f5daaa3cfa6358e5dd398911ec741813745a5440`, with CIRUPLE1 compatibility, typed Q4_1 expert paths, MTP pending-state/reset and external-draft parameter fixes. Model and projector bytes are unchanged. See [exact source/build identity](qualification/v3.1.0/source-identity.json) and [qualification](qualification/v3.1.0/QUALIFICATION.md). The published Git history continues from v3.0.0; all source licenses and upstream credits are retained. The source archive manifest independently anchors the complete release Git tree.
+
+Thanks to [pwilkin](https://pwilkin.github.io/strix-halo/) for the reference kernels and public reproduction details. The measured runtime uses stock TheRock ROCm 10; the author's separate custom runtime is not bundled. The optional image path is qualified with MTP disabled.
+
 ## v3.0.0 source and build identity
 
 V3 is based on qualified v2.0.1 commit `9ea2390a71ae9f3d1cab519bbe099eb4ee06380e`. The release is identified by the v3.0.0 tag and its external git-source.json record. The selective transfer uses retained hybrid checkpoint archive SHA256 `8ed4b4aba5f0423cac7daf5770e7f23b558d651affb32364199b1c5234c7d355`. It preserves model weights and omits external-GPU ownership and placement machinery.

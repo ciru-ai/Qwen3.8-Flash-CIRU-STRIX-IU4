@@ -1,0 +1,10 @@
+{
+  "status": "PASS_EXACT_RETAINED_CAPACITY_REQUEST_IMPORTED",
+  "requests": 1,
+  "requested_context": 262144,
+  "actual_prompt_tokens": 261888,
+  "generated_tokens": 128,
+  "model_quality_claim": false,
+  "services_changed": false,
+  "time": 1789325242.2062638
+}

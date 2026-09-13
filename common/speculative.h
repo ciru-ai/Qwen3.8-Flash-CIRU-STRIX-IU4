@@ -61,7 +61,7 @@ struct common_speculative_draft_params {
     // can be used to constraint the max draft based on the remaining context size
     int32_t n_max = -1;
 
-    llama_pos   n_past;
+    llama_pos   pos0;
     llama_token id_last;
 
     // TODO: remove in the future by keeping track of the prompt from the _begin() call and the consecutive accept calls
@@ -84,9 +84,6 @@ void common_speculative_draft(common_speculative * spec);
 
 // informs the speculative context that n_accepted tokens were accepted by the target model
 void common_speculative_accept(common_speculative * spec, llama_seq_id, uint16_t n_accepted);
-
-// restore the implementation's per-sequence state captured at the last draft entry
-void common_speculative_rollback(common_speculative * spec, llama_seq_id seq_id);
 
 // (optional) get/set internal state
 bool common_speculative_get_state(common_speculative * spec, llama_seq_id seq_id, std::vector<uint8_t> & data);

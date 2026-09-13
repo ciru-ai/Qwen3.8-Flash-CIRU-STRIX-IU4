@@ -270,7 +270,7 @@ struct common_params_sampling {
         COMMON_SAMPLER_TYPE_TEMPERATURE,
     };
 
-    common_grammar              grammar;      // optional grammar constraint (user / output-format / tool-calls)
+    common_grammar                      grammar;          // optional grammar constraint (user / output-format / tool-calls)
     bool                                grammar_lazy = false;
     std::vector<common_grammar_trigger> grammar_triggers; // optional triggers (for lazy grammars)
     std::set<llama_token>               preserved_tokens;
@@ -392,20 +392,11 @@ struct common_params_speculative {
     }
 
     uint32_t need_n_rs_seq() const {
-        const bool needs_full_depth_rs = std::any_of(types.begin(), types.end(), [&](auto t) {
-            return t == COMMON_SPECULATIVE_TYPE_DRAFT_EAGLE3 || t == COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH || t == COMMON_SPECULATIVE_TYPE_DRAFT_DSPARK;
+        bool needs_rs_seq = std::any_of(types.begin(), types.end(), [&](auto t) {
+            return t == COMMON_SPECULATIVE_TYPE_DRAFT_MTP || t == COMMON_SPECULATIVE_TYPE_DRAFT_EAGLE3 || t == COMMON_SPECULATIVE_TYPE_DRAFT_DFLASH || t == COMMON_SPECULATIVE_TYPE_DRAFT_DSPARK;
         });
 
-        if (needs_full_depth_rs) {
-            return draft.n_max;
-        }
-
-        const bool needs_mtp_rs = std::find(types.begin(), types.end(), COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != types.end();
-        // Qwen4Exp's GDN and both private convolution-state writers already
-        // emit K=n_rs_seq+1 trailing snapshots. Match that allocation to the
-        // configured MTP depth so a rejection at proposal zero can roll back
-        // the complete verification batch without checkpoint restore/replay.
-        return needs_mtp_rs ? (uint32_t) std::max(1, draft.n_max) : 0u;
+        return needs_rs_seq ? draft.n_max : 0u;
     }
 };
 
@@ -492,7 +483,7 @@ struct common_params {
     enum llama_split_mode split_mode = LLAMA_SPLIT_MODE_LAYER; // how to split the model across GPUs
     enum llama_load_mode  load_mode  = LLAMA_LOAD_MODE_AUTO; // how to load the model
 
-    enum llama_tensor_read_lazy tensor_read_lazy = LLAMA_TENSOR_READ_LAZY_AUTO; // on-demand reading of tensors marked by the arch
+    enum llama_lazy_mode lazy_mode = LLAMA_LAZY_MODE_AUTO; // on-demand reading of tensors marked by the arch
 
     common_cpu_params cpuparams;
     common_cpu_params cpuparams_batch;
@@ -517,6 +508,7 @@ struct common_params {
     // architectures that do not consume llama_model_params::ple_sidecar.
     std::string ple_sidecar       = "";
     uint64_t    ple_cache_bytes   = 0;
+
 
     std::set<std::string> model_alias;     // model aliases                                                 // NOLINT
     std::set<std::string> model_tags;      // model tags (informational, not used for routing)              // NOLINT
@@ -671,6 +663,7 @@ struct common_params {
     std::string ssl_file_cert = "";                                                                         // NOLINT
 
     std::map<std::string, std::string> default_template_kwargs;
+    bool preserve_reasoning_specified = false;
 
     // CLI params
     std::string server_base; // if set, connect to this server instead of starting a new one

@@ -1125,11 +1125,6 @@ private:
             {
                 common_params params_dft = common_base_params_to_speculative(params_base);
 
-                // The target's CIRUPLE1 pager is not part of a separate MTP GGUF.
-                // Do not leak target-only PLE ownership into the draft model load.
-                params_dft.ple_sidecar.clear();
-                params_dft.ple_cache_bytes = 0;
-
                 // progress callback
                 params_dft.load_progress_callback           = load_progress_callback;
                 params_dft.load_progress_callback_user_data = &load_progress_spec;
@@ -1498,11 +1493,22 @@ private:
                 auto caps = common_chat_templates_get_caps(chat_params.tmpls.get());
                 auto it = params_base.default_template_kwargs.find("preserve_reasoning");
                 bool supported = caps.at("supports_preserve_reasoning");
-                bool enabled = it != params_base.default_template_kwargs.end();
+                bool specified = params_base.preserve_reasoning_specified;
+                // note: the kwarg is enabled by default if not specified explicitly, so check the value
+                bool enabled = it != params_base.default_template_kwargs.end() && it->second == "true";
+                if (supported) {
+                    SRV_TRC("preserve_reasoning kwarg: %s\n",
+                            it == params_base.default_template_kwargs.end() ? "unset (template default)" : it->second.c_str());
+                } else {
+                    SRV_TRC("%s", "preserve_reasoning kwarg: not supported by template\n");
+                }
+                if (supported && !specified) {
+                    SRV_WRN("%s", "chat template supports preserving reasoning, it is enabled by default (may use more tokens, disable via --no-reasoning-preserve)\n");
+                }
                 if (supported && !enabled) {
                     SRV_INF("%s", "chat template supports preserving reasoning, consider enabling it via --reasoning-preserve\n");
                 }
-                if (!supported && enabled) {
+                if (!supported && specified && enabled) {
                     SRV_WRN("%s", "chat template does NOT support preserving reasoning, --reasoning-preserve has no effect\n");
                 }
             }
@@ -2305,8 +2311,11 @@ private:
 
         // evict checkpoints within min-step of a previous checkpoint, unless they were
         // created by the current task
+        // only when the list is full, otherwise short prompts keep just the oldest checkpoint
         int64_t last = -1;
-        for (auto it = slot.prompt.checkpoints.begin(); it != slot.prompt.checkpoints.end(); ) {
+        for (auto it = slot.prompt.checkpoints.begin();
+                slot.prompt.checkpoints.size() + 1 >= (size_t) params_base.n_ctx_checkpoints &&
+                it != slot.prompt.checkpoints.end(); ) {
             if (it->id_task != id_task && last >= 0 && it->n_tokens <= last + params_base.checkpoint_min_step) {
                 SLT_TRC(slot, "erasing context checkpoint too close to an earlier one (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", size = %.3f MiB)\n",
                         it->pos_min, it->pos_max, it->n_tokens, (float) it->size() / 1024 / 1024);
@@ -2327,6 +2336,19 @@ private:
                     cur.pos_min, cur.pos_max, cur.n_tokens, (float) cur.size() / 1024 / 1024);
 
             slot.prompt.checkpoints.erase(slot.prompt.checkpoints.begin());
+        }
+
+        // replace an existing checkpoint at the same n_tokens instead of appending a duplicate
+        {
+            const int64_t n_tokens_new = slot.prompt.n_tokens() - n_tokens_cur;
+            for (auto it = slot.prompt.checkpoints.begin(); it != slot.prompt.checkpoints.end(); ) {
+                if (it->n_tokens == n_tokens_new) {
+                    SLT_TRC(slot, "superseding context checkpoint at n_tokens = %" PRId64 "\n", it->n_tokens);
+                    it = slot.prompt.checkpoints.erase(it);
+                } else {
+                    ++it;
+                }
+            }
         }
 
         auto & cur = slot.prompt.checkpoints.emplace_back();
@@ -2998,15 +3020,19 @@ private:
                                 llama_memory_seq_pos_max(llama_get_memory(ctx_tgt), slot.id));
 
                         if (use_ckpt_dft) {
-                            slot.spec_ckpt.update_dft(ctx_dft, slot.id,
-                                    LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                            slot.spec_ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                         }
+                        // The target verification may advance MTP's pending row
+                        // before a partial-acceptance checkpoint is restored.
+                        slot.spec_ckpt.data_spec.clear();
+                        common_speculative_get_state(spec.get(), slot.id, slot.spec_ckpt.data_spec);
+
                         slot.spec_prompt = slot.prompt.tokens.get_text_tokens();
 
                         common_speculative_get_draft_params(spec.get(), slot.id) = {
                             /* .drafting = */ true,
                             /* .n_max    = */ n_draft_max,
-                            /* .n_past   = */ slot.prompt.n_tokens(),
+                            /* .pos0     = */ slot.prompt.tokens.pos_next(),
                             /* .id_last  = */ slot.sampled,
                             /* .prompt   = */ &slot.spec_prompt,
                             /* .result   = */ &slot.spec_draft,
@@ -3034,18 +3060,13 @@ private:
 
             // TODO: avoid restoring the draft context and re-evaluating the drafted tokens when not needed [TAG_SPEC_AVOID_DRAFT_REEVAL]
             const bool use_ckpt_dft = ctx_dft_seq_rm_type == COMMON_CONTEXT_SEQ_RM_TYPE_FULL;
-            const bool shifted_mtp_timeline = std::find(
-                    params_base.speculative.types.begin(), params_base.speculative.types.end(),
-                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
 
             if (ctx_dft) {
                 if (use_ckpt_dft) {
-                    ckpt.load_dft(ctx_dft, slot.id,
-                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                    ckpt.load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                 }
 
-                const llama_pos pos_rm_dft = ckpt.pos_max + (shifted_mtp_timeline ? 0 : 1);
-                if (!llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, pos_rm_dft, -1)) {
+                if (!llama_memory_seq_rm(llama_get_memory(ctx_dft), slot.id, ckpt.pos_max + 1, -1)) {
                     GGML_ABORT("failed to remove sequence %d\n", slot.id);
                 }
             }
@@ -3061,8 +3082,7 @@ private:
                 if (use_ckpt_tgt) {
                     //const int64_t t_start = ggml_time_us();
 
-                    ckpt.update_tgt(ctx_tgt, slot.id,
-                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                    ckpt.update_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
 
                     //const int64_t t_total = ggml_time_us() - t_start;
                     //printf("checkpoint total: %f ms\n", t_total / 1000.0);
@@ -3074,8 +3094,7 @@ private:
                 }
 
                 if (use_ckpt_dft) {
-                    ckpt.update_dft(ctx_dft, slot.id,
-                            LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                    ckpt.update_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                 }
             }
         });
@@ -3274,6 +3293,8 @@ private:
                             }
 
                             llama_pos pos_next = slot.prompt.tokens.pos_next(n_past);
+                            const llama_pos prefix_reuse_limit = pos_next;
+                            const size_t prefix_reuse_tokens = n_past;
 
                             // ref: https://github.com/ggml-org/llama.cpp/pull/24110
                             const bool has_new_tokens = (n_past < slot.task->n_tokens());
@@ -3370,31 +3391,36 @@ private:
                                 }
                             }
 
+                            // Qwen4Exp MTP's pending hidden row belongs to the
+                            // same prefix as both KV states. Ordinary prompt
+                            // cache hits can bypass the generic restore above.
+                            std::vector<uint8_t> mtp_state;
                             const bool mtp_cache = spec && ctx_dft && std::find(
                                     params_base.speculative.types.begin(), params_base.speculative.types.end(),
-                                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
+                                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end() &&
+                                    common_speculative_get_state(spec.get(), slot.id, mtp_state);
                             if (mtp_cache && slot.task->params.cache_prompt && n_past > 0) {
                                 const auto it = std::find_if(
-                                        slot.prompt.checkpoints.rbegin(),
-                                        slot.prompt.checkpoints.rend(),
+                                        slot.prompt.checkpoints.rbegin(), slot.prompt.checkpoints.rend(),
                                         [&](const auto & cur) {
-                                            return !cur.data_spec.empty() && cur.n_tokens <= n_past && cur.pos_max <= pos_next;
+                                            // Resume after the saved hidden row, never
+                                            // replay that row with its own hidden state.
+                                            return !cur.data_spec.empty() && cur.n_tokens <= (int64_t) prefix_reuse_tokens &&
+                                                    cur.n_tokens < slot.task->n_tokens() && cur.pos_max < prefix_reuse_limit;
                                         });
-
                                 if (it != slot.prompt.checkpoints.rend()) {
                                     it->load_tgt(ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                                     it->load_dft(ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                                     common_speculative_set_state(spec.get(), slot.id, it->data_spec);
-                                    pos_next = std::min(pos_next, std::max(it->pos_min + 1, it->pos_max));
+                                    pos_next = it->pos_max + 1;
                                     n_past = std::min(slot.prompt.tokens.size_up_to_pos(pos_next), (size_t) it->n_tokens);
-                                    SLT_TRC(slot, "restored MTP cache checkpoint (pos_min = %d, pos_max = %d, n_tokens = %" PRId64 ", n_past = %d)\n",
-                                            it->pos_min, it->pos_max, it->n_tokens, n_past);
+                                    SLT_TRC(slot, "restored MTP prefix state at checkpoint (n_past=%d)\n", n_past);
                                 } else {
                                     slot.mem.seq_rm(slot.id, 0, -1);
                                     common_speculative_set_state(spec.get(), slot.id, {});
                                     pos_next = 0;
                                     n_past = 0;
-                                    SLT_TRC(slot, "%s", "reset MTP cache state because no matching checkpoint was available\n");
+                                    SLT_TRC(slot, "%s", "reset MTP prefix state: no matching checkpoint\n");
                                 }
                             }
 
@@ -3925,27 +3951,11 @@ private:
 
                 GGML_ASSERT(slot.spec_i_batch.size() == n_draft + 1);
                 const auto & synth_probs = common_speculative_get_synth_probs(spec.get());
-                std::vector<llama_token> accepted;
-                if (slot.spec_is_replay && synth_probs.empty()) {
-                    // These tokens were accepted before the full-checkpoint restore. Re-verifying
-                    // them can disagree when logits depend on batch shape and repeatedly restore
-                    // the same checkpoint, so replay only rebuilds state and samples continuation.
-                    accepted = slot.spec_draft;
-                    for (const llama_token id : accepted) {
-                        common_sampler_accept(slot.smpl.get(), id, true);
-                    }
-                    accepted.push_back(common_sampler_sample(
-                            slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch.back()));
-                    common_sampler_accept(slot.smpl.get(), accepted.back(), true);
-                } else if (synth_probs.empty()) {
-                    accepted = common_sampler_sample_and_accept_n(
-                            slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft);
-                } else {
-                    // Retain the newer synthetic-speculation replay semantics already present in H78.
-                    accepted = server_sample_and_accept_synth(
+                auto accepted = synth_probs.empty()
+                    ? common_sampler_sample_and_accept_n(slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft)
+                    : server_sample_and_accept_synth(
                             slot.smpl.get(), slot.ctx_tgt, slot.spec_i_batch, slot.spec_draft,
                             synth_probs, slot.spec_synth_rng, slot.spec_is_replay);
-                }
                 slot.spec_i_batch.clear();
 
                 GGML_ASSERT(accepted.size() >= 1);
@@ -3971,28 +3981,14 @@ private:
 
                         SLT_DBG(slot, "restoring speculative checkpoint (pos_min = %d, pos_max = %d, size = %zu)\n", ckpt.pos_min, ckpt.pos_max, ckpt.size());
 
-                        ckpt.load_tgt(slot.ctx_tgt, slot.id,
-                                LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                        ckpt.load_tgt(slot.ctx_tgt, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
 
                         if (slot.ctx_dft) {
-                            ckpt.load_dft(slot.ctx_dft, slot.id,
-                                    LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY | LLAMA_STATE_SEQ_FLAGS_ON_DEVICE);
+                            ckpt.load_dft(slot.ctx_dft, slot.id, LLAMA_STATE_SEQ_FLAGS_PARTIAL_ONLY);
                         }
-                        common_speculative_rollback(spec.get(), slot.id);
 
-                        const bool shifted_mtp_timeline = std::find(
-                                params_base.speculative.types.begin(), params_base.speculative.types.end(),
-                                COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
-                        if (shifted_mtp_timeline && slot.ctx_dft) {
-                            if (!llama_memory_seq_rm(
-                                        llama_get_memory(slot.ctx_tgt), slot.id, ckpt.pos_max + 1, -1) ||
-                                    !llama_memory_seq_rm(
-                                        llama_get_memory(slot.ctx_dft), slot.id, ckpt.pos_max, -1)) {
-                                GGML_ABORT("failed to remove shifted MTP target/draft sequence %d\n", slot.id);
-                            }
-                        } else {
-                            slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
-                        }
+                        common_speculative_set_state(spec.get(), slot.id, ckpt.data_spec);
+                        slot.mem.seq_rm(slot.id, ckpt.pos_max + 1, -1);
 
                         slot.prompt.tokens.keep_first(ckpt.n_tokens);
                         common_sampler_copy(smpl_save.get(), slot.smpl.get());
@@ -4039,18 +4035,7 @@ private:
             slot.sampled = ids.back(); // last accepted token
             SLT_DBG(slot, "add accepted tokens: sampled=%d, ids.size=%zu, n_draft=%zu\n", slot.sampled, ids.size(), n_draft);
 
-            const llama_pos pos_next = slot.prompt.tokens.pos_next();
-            const bool shifted_mtp_timeline = std::find(
-                    params_base.speculative.types.begin(), params_base.speculative.types.end(),
-                    COMMON_SPECULATIVE_TYPE_DRAFT_MTP) != params_base.speculative.types.end();
-            if (shifted_mtp_timeline && slot.ctx_dft) {
-                if (!llama_memory_seq_rm(llama_get_memory(slot.ctx_tgt), slot.id, pos_next, -1) ||
-                        !llama_memory_seq_rm(llama_get_memory(slot.ctx_dft), slot.id, pos_next - 1, -1)) {
-                    GGML_ABORT("failed to truncate shifted MTP target/draft sequence %d\n", slot.id);
-                }
-            } else {
-                slot.mem.seq_rm(slot.id, pos_next, -1);
-            }
+            slot.mem.seq_rm(slot.id, slot.prompt.tokens.pos_next(), -1);
 
             for (size_t i = 0; i < ids.size(); ++i) {
                 completion_token_output result;

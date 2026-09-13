@@ -25,7 +25,7 @@ done
 rocm_root="${ROCM_ROOT:-${ROCM_PATH:-/opt/rocm}}"
 [[ -d "${rocm_root}" ]] || fail "ROCM_ROOT does not exist: ${rocm_root}"
 rocm_root="$(cd "${rocm_root}" && pwd -P)"
-build_dir="${BUILD_DIR:-${repo_root}/build-gfx1151}"
+build_dir="${BUILD_DIR:-${repo_root}/build-gfx1151-sdk}"
 gpu_target="${GPU_TARGET:-gfx1151}"
 
 hip_compiler=""
@@ -80,7 +80,9 @@ if ! cmake -S "${repo_root}" -B "${build_dir}" -G Ninja \
     -DLLAMA_BUILD_SERVER=ON \
     -DLLAMA_BUILD_TESTS=OFF \
     -DLLAMA_BUILD_MTMD=OFF \
-    -DLLAMA_CURL=OFF \
+    -DLLAMA_OPENSSL=ON \
+    -DLLAMA_BUILD_UI=OFF \
+    -DLLAMA_USE_PREBUILT_UI=OFF \
     -DLLAMA_LLGUIDANCE=OFF \
     -DGGML_BACKEND_DL=OFF \
     -DGGML_HIP=ON \

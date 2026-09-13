@@ -1,0 +1,63 @@
+{
+  "version": "3.0.0",
+  "status": "qualified",
+  "weights_changed": false,
+  "base_source_commit": "9ea2390a71ae9f3d1cab519bbe099eb4ee06380e",
+  "base_runtime_release": "v2.0.1",
+  "retained_checkpoint_archive_sha256": "8ed4b4aba5f0423cac7daf5770e7f23b558d651affb32364199b1c5234c7d355",
+  "source_identity": "docs/qualification/v3.0.0/source-identity.json",
+  "qualification": "docs/V3_RELEASE.md",
+  "previous_manifest": "docs/qualification/v2.0.1/CIRU_RELEASE.json",
+  "target_backend": "ROCm10 gfx1151 / Strix Halo",
+  "unchanged": [
+    "target weights",
+    "PLE sidecars",
+    "MTP weights",
+    "target context"
+  ],
+  "external_comparator": {
+    "repository": "https://github.com/halo-box/strix-llama.cpp",
+    "commit": "5f851647fe5ed795dfd6c0a3fba543114879e874",
+    "source_unchanged": true,
+    "recommended_backend": "Vulkan",
+    "max_mtp_depth": 3,
+    "main_model_revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+    "main_quant": "UD-Q4_K_XL",
+    "mtp_repo": "EasiiX/Qwen3.8-Flash-Next-MTP-Strix-Halo-GGUF",
+    "mtp_revision": "6f7900648b1c6b14f067a182c640e47971e9ab35",
+    "mtp_sha256": "9db03a687670608286e99b563fcc86d0ee76c8dd863f64b2afc0b54eb0eb975d"
+  },
+  "profile": {
+    "context": 262144,
+    "batch": 1024,
+    "microbatch": 1024,
+    "max_mtp_depth": 6,
+    "mtp_shortlist": 32768,
+    "target_kv": "f16",
+    "draft_kv": "q8_0",
+    "draft_attention_window": 0
+  },
+  "comparison": "docs/qualification/v3.0.0/COMPARISON.md",
+  "release_gate": "PASS: tested quality/correctness and both measured before/after rates improve; CIRU whole-request latency below Halo at both measured input lengths. See separate generation-rate tradeoffs.",
+  "binary_hashes": {
+    "libllama-bench-impl.so": "03fac17aad52446e86f42e0fd099f397ac1b64ab2d8adb08e96b932985162050",
+    "libggml.so.0.22.0": "dabccabb93c1f22e9e3275eda95b5edb6613caddf314502763836b59cc764dd4",
+    "libggml-cpu.so.0.22.0": "a290300b1f253986fc2983765dc1f39630f4acd82a50ee28700c7ef756bbc84d",
+    "libggml-hip.so.0.22.0": "4b9372fe8a1224163a79962e2647fee0e6d92131ae8de61288952bb07831ea32",
+    "libllama-server-impl.so": "35943dcee932959eb36d0c12d30cf69b70199fbb1bd40a1230032786fc585af6",
+    "libllama.so.0.3.0": "b2e8bd39d3d989020508e6798ae0b92f22d825dac60e905f62ba15c5fc6bc42e",
+    "llama-server": "71262d4bddd5699b89cef369233ddedd0097e0585d0a4610fca081f4595490e5",
+    "libggml-base.so.0.22.0": "f88012f7cca9127c7119081f842d34f37e34f813b3fee5ae9156a80bf8243659",
+    "libllama-common.so.0.3.0": "075cd447a5ae081a3509be554e8b98e9cd060655bb99c4e7726a916008efaa08",
+    "libmtmd.so.0.3.0": "7a40775c4a5de8c85b03d30a80c4131157dff5fc9207261e16325042c085156c"
+  },
+  "tested_platform": "NixOS x86-64 / ROCm10 / gfx1151",
+  "quality": {
+    "HumanEval_base": "20/20",
+    "HumanEvalPlus": "20/20",
+    "scope": "Canonical first20 tasks, first sample, nonthinking; not a full-suite ranking",
+    "recall": "8K/64K keys and exact cached replay",
+    "capacity": "261888 input +128 output"
+  },
+  "prior_ready_package": "docs/qualification/v2.0.1/publication/READY.md"
+}

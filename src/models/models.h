@@ -11,6 +11,13 @@
 class llama_memory_hybrid_idx_context;
 class qwen4exp_ple_pager;
 
+// ref: https://github.com/ggml-org/llama.cpp/pull/28068
+static inline ggml_tensor * build_gdn_l2_norm(ggml_context * ctx, ggml_tensor * x, float eps) {
+    const float n = x->ne[0];
+
+    return ggml_scale(ctx, ggml_rms_norm(ctx, x, eps/n), 1.0f/sqrtf(n));
+}
+
 //
 // base classes
 //
@@ -857,6 +864,11 @@ struct llama_model_gemma3n : public llama_model_base {
 
 struct llama_model_gemma4 : public llama_model_base {
     llama_model_gemma4(const struct llama_model_params & params) : llama_model_base(params) {}
+
+    // --lazy-mode on-direct: pread() the lazy per-layer table rows
+    // host-side instead of faulting them in through the mmap; see gemma4.cpp
+    const llama_lazy_reader * ple_reader = nullptr;
+
     void load_arch_hparams(llama_model_loader & ml) override;
     void load_arch_tensors(llama_model_loader & ml) override;
 
@@ -1982,6 +1994,69 @@ struct llama_model_hy_v3 : public llama_model_base {
 };
 
 
+struct llama_model_hy_v4 : public llama_model_base {
+    llama_model_hy_v4(const struct llama_model_params & params) : llama_model_base(params) {}
+    void load_arch_hparams(llama_model_loader & ml) override;
+    void load_arch_tensors(llama_model_loader & ml) override;
+
+    struct graph : public llm_graph_context {
+        graph(const llama_model & model, const llm_graph_params & params);
+
+        // iHC (independent Hyper-Connections): pre reduces the hc streams to one and returns the
+        // per-stream post gates, post writes the sublayer output back into the streams, head
+        // collapses the streams before the final norm.
+        ggml_tensor * build_hc_pre(
+                ggml_tensor * x,
+                ggml_tensor * hc_fn,
+                ggml_tensor * hc_scale,
+                ggml_tensor * hc_base,
+                ggml_tensor ** post,
+                int il) const;
+
+        ggml_tensor * build_hc_post(
+                ggml_tensor * x,
+                ggml_tensor * residual,
+                ggml_tensor * post,
+                int il) const;
+
+        ggml_tensor * build_hc_head(
+                ggml_tensor * x,
+                ggml_tensor * hc_fn,
+                ggml_tensor * hc_scale,
+                ggml_tensor * hc_base) const;
+
+        ggml_tensor * build_attention(
+                const llama_model & model,
+                llm_graph_input_attn_k * inp_attn,
+                ggml_tensor * cur,
+                ggml_tensor * inp_pos,
+                float kq_scale,
+                int il) const;
+
+        // DSA lightning indexer: top-k KV positions for this layer. Only "full" layers compute
+        // it, "shared" layers reuse the last preceding full layer result through last_top_k.
+        ggml_tensor * build_indexer_top_k(
+                const llama_model & model,
+                llm_graph_input_attn_k_dsa * inp_attn_dsa,
+                ggml_tensor * cur,
+                ggml_tensor * qr,
+                ggml_tensor * inp_pos,
+                int il) const;
+
+        ggml_tensor * build_attention_dsa(
+                const llama_model & model,
+                llm_graph_input_attn_k_dsa * inp_attn_dsa,
+                ggml_tensor * cur,
+                ggml_tensor * inp_pos,
+                ggml_tensor ** last_top_k,
+                float kq_scale,
+                int il) const;
+    };
+
+    std::unique_ptr<llm_graph_context> build_arch_graph(const llm_graph_params & params) const override;
+};
+
+
 struct llama_model_hunyuan_vl : public llama_model_base {
     llama_model_hunyuan_vl(const struct llama_model_params & params) : llama_model_base(params) {}
     void load_arch_hparams(llama_model_loader & ml) override;
@@ -2276,26 +2351,21 @@ struct llama_model_qwen35 : public llama_model_base {
 };
 
 
-struct qwen4exp_e3_bank_views;
-
 struct llama_model_qwen4exp : public llama_model_base {
     explicit llama_model_qwen4exp(const struct llama_model_params & params);
     ~llama_model_qwen4exp() override;
 
-    class llm_graph_input_qsa;
-
-    // The pager is a model-owned immutable data source/cache. Sequence history
-    // and row IDs remain graph-input/context owned.
+    // CIRUPLE1 owns only immutable PLE data and its decoded-row cache.
     std::string ple_sidecar_path;
     std::unique_ptr<qwen4exp_ple_pager> ple_pager;
+    bool uses_ple_sidecar() const noexcept { return ple_pager != nullptr; }
 
-    bool uses_ple_sidecar() const noexcept {
-        return ple_pager != nullptr;
-    }
+    class llm_graph_input_qsa;
+    class llm_graph_input_qsa_k;
 
-    // Metadata-only layer tensors borrowing the persistent allocation supplied
-    // in llama_model_params. Destruction never frees that allocation.
-    std::unique_ptr<qwen4exp_e3_bank_views> e3_qr05_views;
+    // --lazy-mode on-direct: pread() the lazy PLE table rows
+    // host-side instead of faulting them in through the mmap; see qwen4exp.cpp
+    const llama_lazy_reader * ple_reader = nullptr;
 
     void load_arch_hparams(llama_model_loader & ml) override;
     void load_arch_tensors(llama_model_loader & ml) override;
@@ -2303,7 +2373,6 @@ struct llama_model_qwen4exp : public llama_model_base {
     struct graph : public llm_build_delta_net_base {
         graph(const llama_model & model, const llm_graph_params & params);
     protected:
-        // tag-dispatched ctor for graph_mtp: binds the members without building the trunk
         struct no_build_t {};
         graph(const llama_model & model, const llm_graph_params & params, no_build_t) :
             llm_build_delta_net_base(params), model(model) {}
@@ -2339,17 +2408,19 @@ struct llama_model_qwen4exp : public llama_model_base {
                     ggml_tensor * k_cur,
                     ggml_tensor * v_cur,
                     ggml_tensor * top_k,
-                    ggml_tensor * positions,
                           float   kq_scale,
                             int   il);
 
         // the QSA cache layout inputs do not depend on the layer, only on its compress ratio,
         // so the layers sharing a ratio share one input set
         std::map<uint32_t, llm_graph_input_qsa *> qsa_inps;
+        llm_graph_input_qsa_k * qsa_k_inp = nullptr;
 
-        // H109C: physical base for the exact legacy-cell M512 indexed-FA arm.
-        // Negative means the p1 contiguous planner did not admit this graph.
-        int32_t qsa_indexed_cell_base = -1;
+        void build_qsa_store_k(
+  const llama_memory_hybrid_idx_context * mctx_hyb,
+                    ggml_tensor * cur,
+                            int   il);
+
 
         // QSA: token indices this layer's queries may attend to, or nullptr for dense
         ggml_tensor * build_qsa_top_k(
@@ -2387,9 +2458,12 @@ struct llama_model_qwen4exp : public llama_model_base {
                         int64_t   channels,
                             int   il);
 
+        ggml_tensor * build_inp_ple(
+  const llama_memory_hybrid_idx_context * mctx_hyb);
+
         ggml_tensor * build_ple(
              llm_graph_input_rs * inp,
-  const llama_memory_hybrid_idx_context * mctx_hyb,
+                    ggml_tensor * emb,
                     ggml_tensor * hidden,
                             int   il);
 
@@ -2401,7 +2475,6 @@ struct llama_model_qwen4exp : public llama_model_base {
         const llama_model & model;
     };
 
-    // LLM_GRAPH_TYPE_DECODER_MTP draft head: one HC-wrapped dense-attention + MoE block
     struct graph_mtp : public graph {
         graph_mtp(const llama_model & model, const llm_graph_params & params);
     };
@@ -2568,6 +2641,19 @@ struct llama_model_step35 : public llama_model_base {
 
     struct graph_mtp : public llm_graph_context {
         graph_mtp(const llama_model & model, const llm_graph_params & params);
+    };
+
+    std::unique_ptr<llm_graph_context> build_arch_graph(const llm_graph_params & params) const override;
+};
+
+
+struct llama_model_spark2_5 : public llama_model_base {
+    llama_model_spark2_5(const struct llama_model_params & params) : llama_model_base(params) {}
+    void load_arch_hparams(llama_model_loader & ml) override;
+    void load_arch_tensors(llama_model_loader & ml) override;
+
+    struct graph : public llm_graph_context {
+        graph(const llama_model & model, const llm_graph_params & params);
     };
 
     std::unique_ptr<llm_graph_context> build_arch_graph(const llm_graph_params & params) const override;

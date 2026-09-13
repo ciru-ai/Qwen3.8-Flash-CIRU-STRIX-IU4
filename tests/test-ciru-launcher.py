@@ -20,7 +20,7 @@ class CiruLauncherTests(unittest.TestCase):
         self.server.write_text(
             "#!/usr/bin/env python3\nimport json,os,sys\n"
             "print(json.dumps({'argv':sys.argv[1:],"
-            "'shortlist':os.environ.get('CIRU_MTP_SHORTLIST')}))\n"
+            "'mmb':os.environ.get('LLAMA_MMB')}))\n"
         )
         self.server.chmod(0o755)
         self.model = root / "model"
@@ -31,7 +31,7 @@ class CiruLauncherTests(unittest.TestCase):
             p.parent.mkdir(parents=True, exist_ok=True)
             p.touch()
         self.env = {k: v for k, v in os.environ.items()
-                    if not k.startswith(("CIRU_", "GGML_", "LLAMA_ARG_"))}
+                    if not k.startswith(("CIRU_", "GGML_", "LLAMA_"))}
         self.env.update(SERVER_BIN=str(self.server), MODEL_DIR=str(self.model),
                         SLOT_DIR=str(root / "slots"), ENABLE_MTP="1", PARALLEL_SLOTS="1")
 
@@ -43,7 +43,7 @@ class CiruLauncherTests(unittest.TestCase):
         r = self.launch()
         self.assertEqual(r.returncode, 0, r.stderr)
         result = json.loads(r.stdout)
-        self.assertEqual(result["shortlist"], "32768")
+        self.assertEqual(result["mmb"], "1")
         self.assertIn("draft-mtp", result["argv"])
         self.assertEqual(result["argv"][result["argv"].index("--parallel") + 1], "1")
 
@@ -69,7 +69,8 @@ class CiruLauncherTests(unittest.TestCase):
         r = self.launch("--no-kv-unified", ENABLE_MTP="0", PARALLEL_SLOTS="2")
         self.assertEqual(r.returncode, 0, r.stderr)
         args = json.loads(r.stdout)["argv"]
-        self.assertFalse(any(a.startswith("--spec-") for a in args))
+        self.assertEqual(args[args.index("--spec-type") + 1], "none")
+        self.assertNotIn("--spec-draft-model", args)
         self.assertEqual(args[args.index("--parallel") + 1], "2")
         self.assertIn("--no-kv-unified", args)
 

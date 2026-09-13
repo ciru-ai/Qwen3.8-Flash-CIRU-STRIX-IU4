@@ -747,12 +747,20 @@ static __device__ __forceinline__ float vec_dot_q2_0_q8_1(
         const int u  = get_int_b4(bq8_1_chunk->qs, j*2+0);
         const int v  = get_int_b4(bq8_1_chunk->qs, j*2+1);
 
+#if defined(GGML_USE_HIP)
+        const uint32_t qx_indices = (q & 0x03) | ((q & 0x0C) << 6) | ((q & 0x30) << 12) | ((q & 0xC0) << 18);
+        const uint32_t qy_bits    = q >> 8;
+        const uint32_t qy_indices = (qy_bits & 0x03) | ((qy_bits & 0x0C) << 6) | ((qy_bits & 0x30) << 12) | ((qy_bits & 0xC0) << 18);
+        const int qx = __builtin_amdgcn_perm(0x020100FF, 0x020100FF, qx_indices);
+        const int qy = __builtin_amdgcn_perm(0x020100FF, 0x020100FF, qy_indices);
+#else
         // unpack even and odd crumbs into byte values
         const int qe = __byte_perm(0x020100FF, 0x020100FF, q >> 0);
         const int qo = __byte_perm(0x020100FF, 0x020100FF, q >> 2);
         // unshuffle values
         const int qx = __byte_perm(qe, qo, 0x5140);
         const int qy = __byte_perm(qe, qo, 0x7362);
+#endif // defined(GGML_USE_HIP)
 
         sumi = ggml_cuda_dp4a(u, qx, sumi);
         sumi = ggml_cuda_dp4a(v, qy, sumi);
@@ -798,75 +806,6 @@ static __device__ __forceinline__ float vec_dot_q4_1_q8_1(
     }
 
     return vec_dot_q4_1_q8_1_impl<VDR_Q4_1_Q8_1_MMVQ>(v, u, bq4_1->dm, bq8_1->ds);
-}
-
-// The private IU4_A640 path needs the mixed unsigned/signed contraction that
-// the regular GGML quants do not use. The argument order is deliberately
-// unsigned U4 codes first and signed Q8 payload second. On RDNA3/RDNA4 this
-// maps to v_dot4_i32_iu8; the scalar fallback keeps other builds well-defined.
-static __device__ __forceinline__ int ggml_cuda_dp4a_u8s8(const uint32_t a, const uint32_t b, int c) {
-#if defined(GGML_USE_HIP) && (defined(RDNA3) || defined(RDNA4))
-    return __builtin_amdgcn_sudot4(false, a, true, b, c, false);
-#else
-#pragma unroll
-    for (int i = 0; i < 4; ++i) {
-        const int qu = (a >> (8*i)) & 0xFF;
-        const int qs = int(int8_t((b >> (8*i)) & 0xFF));
-        c += qu * qs;
-    }
-    return c;
-#endif
-}
-
-static __device__ __forceinline__ uint32_t pack_q8_parity(
-        const int8_t * __restrict__ q, const int parity) {
-    return uint32_t(uint8_t(q[parity + 0]))
-        | (uint32_t(uint8_t(q[parity + 2])) << 8)
-        | (uint32_t(uint8_t(q[parity + 4])) << 16)
-        | (uint32_t(uint8_t(q[parity + 6])) << 24);
-}
-
-static __device__ __forceinline__ float vec_dot_iu4_a640_q8_1(
-    const void * __restrict__ vbq, const block_q8_1 * __restrict__ bq8_1, const int & kbx, const int & iqs) {
-
-    const block_iu4_a640 * block = (const block_iu4_a640 *) vbq + kbx;
-    float result = 0.0f;
-
-#pragma unroll
-    for (int slot = iqs; slot < 40; slot += 32) {
-        const int group         = slot / 8;
-        const int lane_in_group = slot % 8;
-        const int q8_block      = group * 4 + lane_in_group / 2;
-        const int q8_half       = lane_in_group % 2;
-        const int code_base     = group * 64 + lane_in_group * 8;
-
-        const block_q8_1 * q8 = bq8_1 + q8_block;
-        const int8_t * q8_values = q8->qs + q8_half * 16;
-        int dot = 0;
-
-#pragma unroll
-        for (int word = 0; word < 2; ++word) {
-            const uint32_t packed = ((const uint32_t *) (block->qs + code_base))[word];
-            const uint32_t codes_even = packed & 0x0F0F0F0Fu;
-            const uint32_t codes_odd  = (packed >> 4) & 0x0F0F0F0Fu;
-            const int8_t * q8_word = q8_values + word * 8;
-            const uint32_t q8_even = pack_q8_parity(q8_word, 0);
-            const uint32_t q8_odd  = pack_q8_parity(q8_word, 1);
-            dot = ggml_cuda_dp4a_u8s8(codes_even, q8_even, dot);
-            dot = ggml_cuda_dp4a_u8s8(codes_odd,  q8_odd,  dot);
-        }
-
-        const float scale  = __half2float(block->scale[group]);
-        const float offset = __half2float(block->offset[group]);
-        const float d      = __low2float(q8->ds);
-        const float s      = __high2float(q8->ds);
-        result += scale * (d * float(dot));
-        if (q8_half == 0) {
-            result += offset * s;
-        }
-    }
-
-    return result;
 }
 
 static __device__ __forceinline__ float vec_dot_q5_0_q8_1(
@@ -997,16 +936,20 @@ static __device__ __forceinline__ float vec_dot_q4_K_q8_1(
     v[0] = q4[0];
     v[1] = q4[4];
 
+    // branchless so nvcc can hoist this out of the ncols_dst loop
     const uint16_t * scales = (const uint16_t *)bq4_K->scales;
+    const int j  = bq8_offset/2;
+    const int jm = j & 1;
+
+    const uint32_t s0 = scales[jm + 0];
+    const uint32_t s2 = scales[jm + 2];
+    const uint32_t s4 = scales[jm + 4];
+
+    const uint32_t hi = (uint32_t) -(int32_t) (j >= 2);
+
     uint16_t aux[2];
-    const int j = bq8_offset/2;
-    if (j < 2) {
-        aux[0] = scales[j+0] & 0x3f3f;
-        aux[1] = scales[j+2] & 0x3f3f;
-    } else {
-        aux[0] = ((scales[j+2] >> 0) & 0x0f0f) | ((scales[j-2] & 0xc0c0) >> 2);
-        aux[1] = ((scales[j+2] >> 4) & 0x0f0f) | ((scales[j-0] & 0xc0c0) >> 2);
-    }
+    aux[0] = (uint16_t) (((s0 & 0x3f3f) & ~hi) | ((((s4 >> 0) & 0x0f0f) | ((s0 & 0xc0c0) >> 2)) & hi));
+    aux[1] = (uint16_t) (((s2 & 0x3f3f) & ~hi) | ((((s4 >> 4) & 0x0f0f) | ((s2 & 0xc0c0) >> 2)) & hi));
     const uint8_t * sc = (const uint8_t *)aux;
     const uint8_t * m  = sc + 2;
 
@@ -1042,16 +985,21 @@ static __device__ __forceinline__ float vec_dot_q5_K_q8_1(
     vh[0] = qh[0] >> bq8_offset;
     vh[1] = qh[4] >> bq8_offset;
 
+    // same as q4_K
     const uint16_t * scales = (const uint16_t *)bq5_K->scales;
+    const int j  = bq8_offset/2;
+    const int jm = j & 1;
+
+    const uint32_t s0 = scales[jm + 0];
+    const uint32_t s2 = scales[jm + 2];
+    const uint32_t s4 = scales[jm + 4];
+
+    const uint32_t hi = (uint32_t) -(int32_t) (j >= 2);
+
     uint16_t aux[2];
-    const int j = bq8_offset/2;
-    if (j < 2) {
-        aux[0] = scales[j+0] & 0x3f3f;
-        aux[1] = scales[j+2] & 0x3f3f;
-    } else {
-        aux[0] = ((scales[j+2] >> 0) & 0x0f0f) | ((scales[j-2] & 0xc0c0) >> 2);
-        aux[1] = ((scales[j+2] >> 4) & 0x0f0f) | ((scales[j-0] & 0xc0c0) >> 2);
-    }
+    aux[0] = (uint16_t) (((s0 & 0x3f3f) & ~hi) | ((((s4 >> 0) & 0x0f0f) | ((s0 & 0xc0c0) >> 2)) & hi));
+    aux[1] = (uint16_t) (((s2 & 0x3f3f) & ~hi) | ((((s4 >> 4) & 0x0f0f) | ((s2 & 0xc0c0) >> 2)) & hi));
+
     const uint8_t * sc = (const uint8_t *)aux;
     const uint8_t * m  = sc + 2;
 
@@ -1066,64 +1014,6 @@ static __device__ __forceinline__ float vec_dot_q5_K_q8_1(
     }
 
     return vec_dot_q5_K_q8_1_impl_vmmq(vl, vh, u, sc, m, bq5_K->dm, d8);
-}
-
-// Q5_K input-side state shared by the four target-verification columns in the
-// H101 MTP M=4 path.  Keeping this separate from vec_dot_q5_K_q8_1 preserves
-// the established scalar/vector path for every other shape while allowing one
-// lane to decode each Q5_K block once instead of once per verification column.
-struct q5_K_mmvq_x_state {
-    int      vl[2];
-    int      vh[2];
-    uint16_t aux[2];
-    half2    dm;
-};
-
-static __device__ __forceinline__ q5_K_mmvq_x_state load_q5_K_mmvq_x_state(
-        const void * __restrict__ vbq, const int & kbx, const int & iqs) {
-    const block_q5_K * bq5_K = (const block_q5_K *) vbq + kbx;
-    const int bq8_offset = QR5_K * ((iqs/2) / (QI8_1/2));
-    const int * ql = (const int *)(bq5_K->qs + 16 * bq8_offset + 4 * ((iqs/2)%4));
-    const int * qh = (const int *)(bq5_K->qh + 4 * ((iqs/2)%4));
-    const uint16_t * scales = (const uint16_t *) bq5_K->scales;
-
-    q5_K_mmvq_x_state x;
-    x.vl[0] = ql[0];
-    x.vl[1] = ql[4];
-    x.vh[0] = qh[0] >> bq8_offset;
-    x.vh[1] = qh[4] >> bq8_offset;
-
-    const int j = bq8_offset/2;
-    if (j < 2) {
-        x.aux[0] = scales[j+0] & 0x3f3f;
-        x.aux[1] = scales[j+2] & 0x3f3f;
-    } else {
-        x.aux[0] = ((scales[j+2] >> 0) & 0x0f0f) | ((scales[j-2] & 0xc0c0) >> 2);
-        x.aux[1] = ((scales[j+2] >> 4) & 0x0f0f) | ((scales[j-0] & 0xc0c0) >> 2);
-    }
-    x.dm = bq5_K->dm;
-    return x;
-}
-
-static __device__ __forceinline__ float vec_dot_q5_K_q8_1_from_x_state(
-        const q5_K_mmvq_x_state & x, const block_q8_1 * __restrict__ bq8_1, const int & iqs) {
-    int   u[2*QR5_K];
-    float d8[QR5_K];
-    const int bq8_offset = QR5_K * ((iqs/2) / (QI8_1/2));
-
-#pragma unroll
-    for (int i = 0; i < QR5_K; ++i) {
-        const block_q8_1 * bq8i = bq8_1 + bq8_offset + i;
-        d8[i] = __low2float(bq8i->ds);
-
-        const int * q8 = (const int *)bq8i->qs + ((iqs/2)%4);
-        u[2*i+0] = q8[0];
-        u[2*i+1] = q8[4];
-    }
-
-    const uint8_t * sc = (const uint8_t *) x.aux;
-    const uint8_t * m  = sc + 2;
-    return vec_dot_q5_K_q8_1_impl_vmmq(x.vl, x.vh, u, sc, m, x.dm, d8);
 }
 
 static __device__ __forceinline__ float vec_dot_q6_K_q8_1(

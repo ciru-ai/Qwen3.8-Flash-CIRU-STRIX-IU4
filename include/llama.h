@@ -60,7 +60,6 @@ extern "C" {
 
     struct llama_vocab;
     struct llama_model;
-    struct llama_e3_qr05_model;
     struct llama_context;
     struct llama_sampler;
 
@@ -215,10 +214,11 @@ extern "C" {
     LLAMA_API const char * llama_load_mode_name(enum llama_load_mode load_mode);
     LLAMA_API enum llama_load_mode llama_load_mode_from_str(const char * str);
 
-    enum llama_tensor_read_lazy {
-        LLAMA_TENSOR_READ_LAZY_OFF  = 0, // always read the whole tensor up front
-        LLAMA_TENSOR_READ_LAZY_AUTO = 1, // lazy only for marked tensors larger than 4 GiB (requires mmap)
-        LLAMA_TENSOR_READ_LAZY_ON   = 2, // read the rows of tensors marked by the arch on demand (requires mmap)
+    enum llama_lazy_mode {
+        LLAMA_LAZY_MODE_OFF  = 0, // always read the whole tensor up front
+        LLAMA_LAZY_MODE_AUTO = 1, // lazy only for marked tensors larger than 4 GiB (requires mmap)
+        LLAMA_LAZY_MODE_ON   = 2, // read the rows of tensors marked by the arch on demand (requires mmap)
+        LLAMA_LAZY_MODE_DIRECT = 3,
     };
 
     enum llama_context_type {
@@ -322,7 +322,7 @@ extern "C" {
         enum llama_split_mode split_mode; // how to split the model across multiple GPUs
         enum llama_load_mode  load_mode;  // how to load the model
 
-        enum llama_tensor_read_lazy tensor_read_lazy; // on-demand reading of tensors marked by the arch
+        enum llama_lazy_mode lazy_mode; // on-demand reading of tensors marked by the arch
 
         // the GPU that is used for the entire model when split_mode is LLAMA_SPLIT_MODE_NONE
         int32_t main_gpu;
@@ -347,12 +347,6 @@ extern "C" {
 
         // Decoded-row cache bytes for CIRUPLE1. Zero keeps the pager default.
         uint64_t ple_cache_bytes;
-
-        // [EXPERIMENTAL] borrowed persistent E3.QR05 bank allocation for the
-        // fixed 48-layer Qwen4Exp mode. The caller owns this buffer and must
-        // keep it alive until after the model is freed. NULL selects the
-        // ordinary GGUF routed-expert tensors.
-        ggml_backend_buffer_t e3_qr05_bank;
 
         // Keep the booleans together to avoid misalignment during copy-by-value.
         bool vocab_only;      // only load the vocabulary, no weights
@@ -542,25 +536,6 @@ extern "C" {
                              const char ** paths,
                                  size_t    n_paths,
               struct llama_model_params    params);
-
-    // Load the fixed Qwen4Exp E3.QR05 bank before the model and keep both in a
-    // single lifetime owner. bank_root must contain the 48 H37 numeric layer
-    // files and receipts. device must be one GPU/IGPU default buffer device;
-    // split mode is not supported. The handle destroys the model first and
-    // frees the one persistent expert allocation second.
-    LLAMA_API struct llama_e3_qr05_model * llama_e3_qr05_model_load_from_file(
-                             const char * path_model,
-                             const char * bank_root,
-                       ggml_backend_dev_t device,
-              struct llama_model_params   params);
-
-    // Borrow the model. Any context made from it must be freed before the
-    // enclosing E3 handle.
-    LLAMA_API struct llama_model * llama_e3_qr05_model_get(
-            struct llama_e3_qr05_model * owner);
-
-    LLAMA_API void llama_e3_qr05_model_free(
-            struct llama_e3_qr05_model * owner);
 
     LLAMA_API void llama_model_save_to_file(
             const struct llama_model * model,
@@ -1390,7 +1365,7 @@ extern "C" {
     LLAMA_API struct llama_sampler * llama_sampler_chain_get(      struct llama_sampler * chain, int32_t i);
 
     // the total number of samplers in the chain
-    LLAMA_API int                    llama_sampler_chain_n  (const struct llama_sampler * chain);
+    LLAMA_API int32_t                llama_sampler_chain_n  (const struct llama_sampler * chain);
 
     // after removing a sampler, the chain will no longer own it, and it will not be freed when the chain is freed
     LLAMA_API struct llama_sampler * llama_sampler_chain_remove(   struct llama_sampler * chain, int32_t i);
@@ -1469,7 +1444,6 @@ extern "C" {
                                 size_t num_trigger_tokens),
         "use llama_sampler_init_grammar_lazy_patterns instead");
 
-
     /// @details Lazy grammar sampler, introduced in https://github.com/ggml-org/llama.cpp/pull/9639
     /// @param trigger_patterns A list of patterns that will trigger the grammar sampler. Pattern will be matched from the start of the generation output, and grammar sampler will be fed content starting from its first match group.
     /// @param trigger_tokens A list of tokens that will trigger the grammar sampler. Grammar sampler will be fed content starting from the trigger token included.
@@ -1481,7 +1455,6 @@ extern "C" {
                             size_t num_trigger_patterns,
                const llama_token * trigger_tokens,
                             size_t num_trigger_tokens);
-
 
     /// NOTE: Avoid using on the full vocabulary as searching for repeated tokens can become slow. For example, apply top-k or top-p sampling first.
     LLAMA_API struct llama_sampler * llama_sampler_init_penalties(

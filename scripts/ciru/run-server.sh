@@ -1,16 +1,46 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-build_dir="${BUILD_DIR:-${repo_root}/build-gfx1151}"
+repo_root="${RUNTIME_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+repo_root="$(cd "$repo_root" && pwd)"
+package_root="$repo_root"
+build_dir="${BUILD_DIR:-${repo_root}/build-gfx1151-sdk}"
 server_bin="${SERVER_BIN:-${build_dir}/bin/llama-server}"
 model_dir="${MODEL_DIR:-${repo_root}/model}"
 model="${model_dir}/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf"
 draft="${model_dir}/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf"
 ple_dir="${model_dir}/ple"
-slot_dir="${SLOT_DIR:-${repo_root}/slot-state}"
+slot_dir="${SLOT_DIR:-${package_root}/slot-state/v3.1.0}"
 
-# The released shortlist has one shared row map and requires exactly one slot.
+# Launcher-only opt-in; remaining arguments are passed to llama-server.
+enable_vision="${ENABLE_VISION:-0}"
+server_args=()
+for arg in "$@"; do
+    case "$arg" in
+        --vision) enable_vision=1 ;;
+        *) server_args+=("$arg") ;;
+    esac
+done
+set -- "${server_args[@]}"
+if [[ "$enable_vision" != 0 && "$enable_vision" != 1 ]]; then
+    echo "ENABLE_VISION must be 0 or 1." >&2
+    exit 2
+fi
+mmproj="${MMPROJ:-${model_dir}/vision/mmproj-Qwen3.8-Flash-F16.mmproj}"
+if [[ "$enable_vision" == 1 && ! -f "$mmproj" ]]; then
+    echo "Vision is enabled but its projector is missing: $mmproj" >&2
+    echo "Download vision/mmproj-Qwen3.8-Flash-F16.mmproj from the model repository, or set MMPROJ." >&2
+    exit 2
+fi
+
+# Image batches are qualified with target-only generation.
+enable_mtp="${ENABLE_MTP:-1}"
+if [[ "$enable_vision" == 1 ]]; then
+    enable_mtp=0
+    echo "Vision mode uses target-only generation (MTP disabled)." >&2
+fi
+
+# The release qualifies MTP with exactly one slot; preserve the public guard.
 # Include trailing CLI overrides so --parallel/-np cannot bypass this check.
 parallel_slots="${PARALLEL_SLOTS:-1}"
 extra_args=("$@")
@@ -24,8 +54,8 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
         -np=*) parallel_slots="${extra_args[i]#*=}" ;;
     esac
 done
-if [[ "${ENABLE_MTP:-1}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU MTP shortlist requires exactly one slot (--parallel 1)." >&2
+if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
+    echo "The CIRU v3.1.0 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
@@ -37,6 +67,9 @@ for required in "${server_bin}" "${model}" "${ple_dir}/ple.payload.bin" "${ple_d
         exit 2
     fi
 done
+
+server_bin="$(realpath "${server_bin}")"
+export LD_LIBRARY_PATH="$(dirname "${server_bin}")${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
 mkdir -p "${slot_dir}"
 
@@ -57,9 +90,13 @@ args=(
     -ngl all
     -sm none
     --fit off
+    -lm none
+    -lzm on-direct
+    --no-kv-unified
+    --no-context-shift
     -c "${CONTEXT_SIZE:-262144}"
-    -b "${BATCH_SIZE:-1024}"
-    -ub "${UBATCH_SIZE:-1024}"
+    -b "${BATCH_SIZE:-8192}"
+    -ub "${UBATCH_SIZE:-8192}"
     --parallel "${PARALLEL_SLOTS:-1}"
     -t "${THREADS:-8}"
     -tb "${BATCH_THREADS:-8}"
@@ -68,7 +105,7 @@ args=(
     -fa on
     --cont-batching
     --cache-prompt
-    --cache-ram "${PROMPT_CACHE_MIB:-8192}"
+    --cache-ram "${PROMPT_CACHE_MIB:-1024}"
     --cache-idle-slots
     --ctx-checkpoints "${CTX_CHECKPOINTS:-32}"
     --checkpoint-min-step "${CHECKPOINT_MIN_STEP:-8192}"
@@ -80,7 +117,39 @@ args=(
     --slots
 )
 
-if [[ "${ENABLE_MTP:-1}" != "0" ]]; then
+# External assets preserve the Web UI without rebuilding the inference binary.
+enable_ui="${ENABLE_UI:-1}"
+ui_dir="${UI_DIR:-${repo_root}/ui}"
+for ((i = 0; i < ${#extra_args[@]}; i++)); do
+    case "${extra_args[i]}" in
+        --no-ui|--no-webui) enable_ui=0 ;;
+        --ui|--webui) enable_ui=1 ;;
+        --path)
+            ui_dir="${extra_args[i+1]:-}"
+            ((i += 1))
+            ;;
+        --path=*) ui_dir="${extra_args[i]#*=}" ;;
+    esac
+done
+if [[ "$enable_ui" == 1 ]]; then
+    if [[ ! -f "${ui_dir}/index.html" ]]; then
+        echo "Web UI assets are missing: ${ui_dir}/index.html" >&2
+        echo "Install this runtime's ui/ directory, set UI_DIR, or use ENABLE_UI=0 for API-only serving." >&2
+        exit 2
+    fi
+    args+=(--ui --path "$ui_dir")
+elif [[ "$enable_ui" == 0 ]]; then
+    args+=(--no-ui)
+else
+    echo "ENABLE_UI must be 0 or 1." >&2
+    exit 2
+fi
+
+if [[ "$enable_vision" == 1 ]]; then
+    args+=(--mmproj "$mmproj")
+fi
+
+if [[ "${enable_mtp}" != "0" ]]; then
     if [[ ! -f "${draft}" ]]; then
         echo "MTP is enabled but the draft model is missing: ${draft}" >&2
         exit 2
@@ -90,8 +159,8 @@ if [[ "${ENABLE_MTP:-1}" != "0" ]]; then
         --spec-draft-model "${draft}"
         --spec-draft-ngl all
         --spec-draft-device "${DRAFT_DEVICE:-ROCm0}"
-        --spec-draft-type-k q8_0
-        --spec-draft-type-v q8_0
+        --spec-draft-type-k f16
+        --spec-draft-type-v f16
         --spec-draft-threads "${DRAFT_THREADS:-8}"
         --spec-draft-threads-batch "${DRAFT_BATCH_THREADS:-8}"
         --spec-draft-n-max "${MTP_DEPTH:-6}"
@@ -99,6 +168,8 @@ if [[ "${ENABLE_MTP:-1}" != "0" ]]; then
         --spec-draft-p-min 0.0
         --spec-draft-p-split 0.10
     )
+else
+    args+=(--spec-type none)
 fi
 
 unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE CIRU_MTP_GPU_CONF_MIN CIRU_MOE_EXPERT_REUSE CIRU_MTP_TRACE CIRU_MTP_CONF_TRACE LD_PRELOAD

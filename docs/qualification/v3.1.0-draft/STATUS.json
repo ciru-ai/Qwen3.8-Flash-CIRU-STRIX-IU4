@@ -1,0 +1,40 @@
+{
+  "status": "DRAFT_PENDING_OWN_WEIGHT_SERVING",
+  "proposed_version": "3.1.0",
+  "published": false,
+  "measurements": {
+    "pp": null,
+    "tg": null,
+    "time_to_first_piece": null,
+    "quality": null,
+    "memory": null
+  },
+  "proposed_defaults": {
+    "context": 262144,
+    "batch": 16384,
+    "ubatch": 16384,
+    "mtp_depth": 6,
+    "prompt_cache_mib": 4096,
+    "ple_cache_mib": 4096
+  },
+  "defaults_frozen": false,
+  "note": "Finalize batch and serving defaults from root runtime gates; placeholders are not claims.",
+  "production_sampler": {
+    "temperature": 1.0,
+    "top_p": 0.95,
+    "top_k": 20,
+    "min_p": 0.0,
+    "thinking": "embedded template default"
+  },
+  "old_weight_downloads_required": false,
+  "old_slot_state_preserved": true,
+  "slot_state_default": "slot-state/v3.1.0",
+  "ui": "External pinned-reference assets built locally; pending live API/server smoke",
+  "https": "Diagnostic and retained published Nix binaries both effectively HTTPS-disabled; source builds request OpenSSL and setup installs libssl-dev",
+  "required_before_promotion": [
+    "Root own-weight PLE/MTP/cache/quality/latency/context decision",
+    "Finalize supported defaults and binary/source identity",
+    "Live UI and optional vision compatibility scope",
+    "Relocation plus packaged-asset checks"
+  ]
+}
