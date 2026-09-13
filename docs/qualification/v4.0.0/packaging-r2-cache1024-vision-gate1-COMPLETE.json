@@ -1,0 +1,7 @@
+{
+  "status": "PASS_RELOCATED_BUNDLE_FUNCTIONAL_SMOKE",
+  "mode": "vision",
+  "minimum_available_GiB": 18.829917907714844,
+  "source_revision": "ciru-reference-release-r2",
+  "services_changed": false
+}

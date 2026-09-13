@@ -1,0 +1,23 @@
+{
+  "decision": "PROMOTE_TO_CAPACITY_GATE_WITH_SCORING_SCOPE_DISCLOSED",
+  "strict_original": {
+    "tasks": 8,
+    "base_pass": 7,
+    "plus_pass": 7,
+    "failure": "HumanEval/3 omitted List import that was already supplied in its prompt; original sanitize-only scorer executed the returned function standalone."
+  },
+  "secondary_provided_context": {
+    "tasks": 8,
+    "base_pass": 8,
+    "plus_pass": 8,
+    "all_answers_unchanged": true,
+    "normalization": "Uniformly prepend only top-level import statements already present in each original task prompt; no new generated answers or task-specific patch."
+  },
+  "source_evidence": "serving/ciru-reference-release-r2-serving-cache1024-gate1-provided-imports-r1",
+  "runtime_guardrails": {
+    "recall": "5/5",
+    "cache_and_branch": "3/3",
+    "minimum_available_GiB": 6.815910339355469
+  },
+  "limits": "Small functional screen; not broad quality equivalence. Original standalone7/8 and finite_panel_pass=false are preserved, not relabeled."
+}

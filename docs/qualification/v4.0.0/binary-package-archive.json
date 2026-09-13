@@ -1,0 +1,12 @@
+{
+  "name": "ciru-runtime-v4.0.0-nixos-gfx1151.tar.gz",
+  "sha256": "b06944cd2ce3403161c7c4b95280ff3a8b323bb599f526208edeef5d3e65ee21",
+  "bytes": 28216944,
+  "all_members_verified": true,
+  "inference_binaries_unchanged": true,
+  "metadata_changes": [
+    "README.md",
+    "binary-identity.json",
+    "ui/build.json"
+  ]
+}

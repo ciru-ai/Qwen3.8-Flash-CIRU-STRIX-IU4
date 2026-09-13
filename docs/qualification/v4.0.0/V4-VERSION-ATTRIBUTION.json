@@ -1,0 +1,16 @@
+{
+  "parent_release_commit": "1ecb13fa7c8af45b60693a07af9e835ba81b4df6",
+  "scope": "Release version, attribution, launcher slot directory and UI build-version metadata only; inference binaries and results reused.",
+  "credit_statement": "Credit for the original fast-prefill breakthrough goes to Halogen's creator, [Peonist.ai (`peonist-ai`)](https://github.com/peonist-ai/halogen-flash-server). [pwilkin](https://pwilkin.github.io/strix-halo/) reproduced that performance in an open-source llama.cpp implementation and published the kernels and configuration that CIRU adapted for these existing weights. CIRU's contribution is the compatibility integration and validation.",
+  "attribution_sources": [
+    "https://github.com/peonist-ai/halogen-flash-server",
+    "https://www.reddit.com/r/StrixHalo/comments/1weo5s3/qwen38_flash_next_the_optimized_config_12k_ts/",
+    "https://pwilkin.github.io/strix-halo/"
+  ],
+  "compiled_source_unchanged": true,
+  "binary_sha256_unchanged": true,
+  "ui_application_assets_unchanged": 69,
+  "ui_changed_file": "build.json",
+  "new_benchmark_runs": 0,
+  "services_changed": false
+}

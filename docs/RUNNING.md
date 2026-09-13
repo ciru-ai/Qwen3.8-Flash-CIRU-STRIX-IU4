@@ -1,4 +1,4 @@
-# Running CIRU v3.1.0
+# Running CIRU v4.0.0
 
 Download the unchanged model, all three `ple/` files and the `mtp/` draft from the matching Hugging Face tag. The source archive and repository include the profile, launchers and hashed external `ui/` assets.
 
@@ -22,7 +22,7 @@ Context262144; batch/microbatch 8192; target and draft F16 KV; one slot; MTP dep
 
 The sampler remains temperature 1.0, top-p 0.95, top-k 20 and min-p 0. Thinking follows the embedded template default. Request parameters or `TEMPERATURE`, `TOP_P`, `TOP_K`, `MIN_P` override sampling. Qualification used explicit nonthinking requests with seed 123, temperature 0.7, top-p 0.8, top-k 20, min-p 0, presence 1.5 and repeat 1; those benchmark settings are not production defaults.
 
-`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v3.1.0`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
+`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v4.0.0`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
 
 ## Parallel requests and unified KV cache
 

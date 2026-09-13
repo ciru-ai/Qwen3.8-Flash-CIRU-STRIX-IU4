@@ -1,0 +1,9 @@
+{
+  "status": "PASS_LOCAL_LAUNCHER_MOCK_CHECKS",
+  "checks": [
+    "hf/run-server.sh: default profile/UI/sampler, optional vision, missing files, MTP slot guard, supported overrides",
+    "runtime/scripts/ciru/run-server.sh: default profile/UI/sampler, optional vision, missing files, MTP slot guard, supported overrides"
+  ],
+  "model_or_server_executed": false,
+  "note": "Stub captures only argv/env; this does not qualify real serving or parallel requests."
+}

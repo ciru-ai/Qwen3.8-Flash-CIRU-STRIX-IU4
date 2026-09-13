@@ -1,0 +1,39 @@
+{
+  "status": "SAME_PUBLISHED_OWN_WEIGHT_STAT_IDENTITIES",
+  "source_receipt": "/srv/llm/work/pwilkin-prefill-20260913/BUILD-INTAKE.json",
+  "source_receipt_sha256": "bd157dbad0c776117f022915b8794c6f15538b852011e0e0a69a42f54b67f4d0",
+  "artifacts": [
+    {
+      "path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf",
+      "bytes": 79397818720,
+      "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0",
+      "mtime_ns": 1788008884377941688
+    },
+    {
+      "path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf",
+      "bytes": 4135893248,
+      "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642",
+      "mtime_ns": 1788008885971892625
+    },
+    {
+      "path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.manifest.json",
+      "bytes": 115213,
+      "sha256": "eb7404ce5ef056729452df10ee888e0c300cd0459121444be3313c51788cc171",
+      "mtime_ns": 1787766334187770443
+    },
+    {
+      "path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.payload.bin",
+      "bytes": 52429053952,
+      "sha256": "687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2",
+      "mtime_ns": 1787766534066307056
+    },
+    {
+      "path": "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/ple/ple.scale.bf16",
+      "bytes": 2,
+      "sha256": "c7c58bd6007672362da2106fdbfaf9f50629e4bdf8598169c598027394ef9791",
+      "mtime_ns": 1787764234000000000
+    }
+  ],
+  "verification": "Prior full-SHA256 receipts plus matching current size/mtime; small PLE manifest/scale fully rehashed. No large model reread.",
+  "time": 1789320168.6599536
+}

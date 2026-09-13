@@ -1,0 +1,8 @@
+{
+  "status": "COMPLETE_VALID_SERVING_PANEL_SCORED_AND_IMPORTED",
+  "finite_panel_pass": false,
+  "actual_capacity_qualified": false,
+  "requests": 15,
+  "time": 1789324529.8390071,
+  "services_changed": false
+}

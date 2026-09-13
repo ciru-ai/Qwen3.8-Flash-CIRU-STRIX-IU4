@@ -1,0 +1,134 @@
+{
+  "id": "ciru-reference-release-r2",
+  "source_revision": "ciru-reference-release-r2",
+  "source_manifest_sha256": "df37c370a2625f612ce863543068d48f170580e2cd85dd3e783381dcb91febb4",
+  "prefix": "/srv/llm/work/pwilkin-prefill-20260913/reference/ciru-reference-release-r2",
+  "configure_argv": [
+    "cmake",
+    "-S",
+    "/srv/llm/work/pwilkin-prefill-20260913/reference/ciru-reference-release-r2/source",
+    "-B",
+    "/srv/llm/work/pwilkin-prefill-20260913/reference/ciru-reference-release-r2/build",
+    "-G",
+    "Ninja",
+    "-DGGML_HIP=ON",
+    "-DGPU_TARGETS=gfx1151",
+    "-DGGML_CUDA=OFF",
+    "-DGGML_VULKAN=OFF",
+    "-DLLAMA_BUILD_TESTS=ON",
+    "-DCMAKE_C_COMPILER=/home/crown/.nix-profile/bin/cc",
+    "-DCMAKE_CXX_COMPILER=/home/crown/.nix-profile/bin/c++",
+    "-DCMAKE_HIP_COMPILER=/srv/llm/toolchains/therock-gfx1151-10.0.0/bin/amdclang++",
+    "-DCMAKE_HIP_FLAGS=--gcc-toolchain=/nix/store/qxaq7jz61a6zkr2mq49i0zvqip2m2jj8-gcc-15.2.0 -idirafter /nix/store/15h9askp4k1lx44d9871wid23j2a8ijp-glibc-2.42-61-dev/include -B/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib -B/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib -L/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib -L/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib -Wl,-rpath,/srv/llm/toolchains/therock-gfx1151-10.0.0/lib:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/rocm_sysdeps/lib:/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/llvm/lib:/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib:/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib -Wl,--dynamic-linker,/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib/ld-linux-x86-64.so.2",
+    "-DCMAKE_PREFIX_PATH=/srv/llm/toolchains/therock-gfx1151-10.0.0",
+    "-DGGML_HIP_NO_VMM=ON",
+    "-DGGML_HIP_GRAPHS=ON",
+    "-DGGML_HIP_MMQ_MFMA=ON",
+    "-DGGML_NATIVE=ON",
+    "-DCMAKE_BUILD_TYPE=Release",
+    "-DGGML_HIP_RCCL=OFF",
+    "-DGGML_CUDA_FA=ON",
+    "-DGGML_CUDA_FA_ALL_QUANTS=OFF",
+    "-DCMAKE_INSTALL_PREFIX=/srv/llm/work/pwilkin-prefill-20260913/reference/ciru-reference-release-r2/install",
+    "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
+    "-DLLAMA_BUILD_COMMIT=ciru-reference-release-r2",
+    "-DLLAMA_BUILD_NUMBER=0",
+    "-DLLAMA_BUILD_UI=OFF",
+    "-DLLAMA_USE_PREBUILT_UI=OFF",
+    "-DLLAMA_OPENSSL=OFF"
+  ],
+  "stock_runtime_root": "/srv/llm/toolchains/therock-gfx1151-10.0.0",
+  "author_custom_runtime_used": false,
+  "default_build_jobs": 2,
+  "maximum_build_jobs": 4,
+  "source_changes": [
+    {
+      "description": "CIRUPLE1 sidecar bridge",
+      "patch": "reference-ciruple1-bridge-r1/bridge.patch",
+      "sha256": "c7408f29bb79076bec4c6314183ae656972c609df6dcf997d4e0f7fb525f258c"
+    },
+    {
+      "description": "Bounded Q4_1 routed expert and GLU loaders",
+      "patch": "reference-ciruple1-q41-r1/q41.patch",
+      "sha256": "9057c9e7146f29227c9469615a416bad273038ce85b80925d1bec83aba9fb8f8"
+    },
+    {
+      "description": "Single-slot MTP pending position checkpoint/reset",
+      "patch": "reference-ciruple1-q41-mtp-r1/mtp.patch",
+      "sha256": "c17e8d68e03dee5d93a630d0e16c986debedcf3a0aa3760b12f319f9cff3c9e1"
+    },
+    {
+      "description": "Corrected chain and IQ4 regression test supplement",
+      "patch": "reference-q41-chain-tests-r2/chain-tests.patch",
+      "sha256": "659e0a31e515a4bca20ef1239510043992cb9db5312194d36159a5c1216518d3"
+    },
+    {
+      "description": "Clear target-only PLE path/cache when creating separate draft model parameters",
+      "patch": "reference-ciruple1-q41-mtp-r2/draft-ple.patch",
+      "sha256": "aa7b58e4d40367348152611894630e49e922202d6b971115907a0f9ee04fd062"
+    }
+  ],
+  "build_only_disclosures": [
+    "LLAMA_BUILD_COMMIT contains candidate ID ciru-reference-release-r2, not a Git commit; exact parent and source/patch hashes are recorded.",
+    "Web UI build/prebuilt-download disabled; inference targets unchanged.",
+    "Ciru known-working Nix sysroot/compiler flags and existing ROCm10, not author custom HIP/ROCr.",
+    "LLAMA_OPENSSL=OFF explicitly disables HTTPS for the local-file-only diagnostic; source and inference options unchanged."
+  ],
+  "test_scope": "Build test-backend-ops; execute only CPU scheduler-ring fixture and linked-library checks. GPU numerical and own-weight serving gates follow separately.",
+  "no_install_or_service_commands": true,
+  "prerequisite_paths": [
+    {
+      "path": "/nix/store/qxaq7jz61a6zkr2mq49i0zvqip2m2jj8-gcc-15.2.0",
+      "kind": "directory",
+      "role": "HIP --gcc-toolchain"
+    },
+    {
+      "path": "/nix/store/15h9askp4k1lx44d9871wid23j2a8ijp-glibc-2.42-61-dev/include",
+      "kind": "directory",
+      "role": "HIP -idirafter C headers"
+    },
+    {
+      "path": "/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib",
+      "kind": "directory",
+      "role": "HIP -B/-L and runtime rpath"
+    },
+    {
+      "path": "/nix/store/chqq8mpmpyfi9kgsngya71akv5xicn03-gcc-15.2.0-lib/lib",
+      "kind": "directory",
+      "role": "HIP -B/-L C++/GCC runtime rpath"
+    },
+    {
+      "path": "/nix/store/57iz36553175g3178pvxjij8z5rcsd4n-glibc-2.42-61/lib/ld-linux-x86-64.so.2",
+      "kind": "file",
+      "role": "HIP --dynamic-linker"
+    },
+    {
+      "path": "/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/cmake/hip",
+      "kind": "directory",
+      "role": "required HIP CMake package"
+    },
+    {
+      "path": "/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/cmake/hipblas",
+      "kind": "directory",
+      "role": "required hipBLAS CMake package"
+    },
+    {
+      "path": "/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/cmake/rocblas",
+      "kind": "directory",
+      "role": "required rocBLAS CMake package"
+    },
+    {
+      "path": "/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/rocm_sysdeps/lib",
+      "kind": "directory",
+      "role": "runtime library search path"
+    },
+    {
+      "path": "/srv/llm/toolchains/therock-gfx1151-10.0.0/lib/llvm/lib",
+      "kind": "directory",
+      "role": "runtime library search path"
+    }
+  ],
+  "base_revision": "f5daaa3cfa6358e5dd398911ec741813745a5440",
+  "source_revision_is_git_commit": false,
+  "parent_candidate": "ciru-reference-release-r1"
+}

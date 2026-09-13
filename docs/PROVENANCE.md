@@ -1,10 +1,10 @@
 # Release provenance
 
-## v3.1.0 reference integration
+## v4.0.0 reference integration
 
-The engine is pinned to pwilkin reference commit `f5daaa3cfa6358e5dd398911ec741813745a5440`, with CIRUPLE1 compatibility, typed Q4_1 expert paths, MTP pending-state/reset and external-draft parameter fixes. Model and projector bytes are unchanged. See [exact source/build identity](qualification/v3.1.0/source-identity.json) and [qualification](qualification/v3.1.0/QUALIFICATION.md). The published Git history continues from v3.0.0; all source licenses and upstream credits are retained. The source archive manifest independently anchors the complete release Git tree.
+The engine is pinned to pwilkin reference commit `f5daaa3cfa6358e5dd398911ec741813745a5440`, with CIRUPLE1 compatibility, typed Q4_1 expert paths, MTP pending-state/reset and external-draft parameter fixes. Model and projector bytes are unchanged. See [exact source/build identity](qualification/v4.0.0/source-identity.json) and [qualification](qualification/v4.0.0/QUALIFICATION.md). The published Git history continues from v3.0.0; all source licenses and upstream credits are retained. The source archive manifest independently anchors the complete release Git tree.
 
-Thanks to [pwilkin](https://pwilkin.github.io/strix-halo/) for the reference kernels and public reproduction details. The measured runtime uses stock TheRock ROCm 10; the author's separate custom runtime is not bundled. The optional image path is qualified with MTP disabled.
+Credit for the original fast-prefill breakthrough goes to Halogen's creator, [Peonist.ai (`peonist-ai`)](https://github.com/peonist-ai/halogen-flash-server). [pwilkin](https://pwilkin.github.io/strix-halo/) reproduced that performance in an open-source llama.cpp implementation and published the kernels and configuration that CIRU adapted for these existing weights. CIRU's contribution is the compatibility integration and validation. The order of credit is also supported by [pwilkin’s announcement](https://www.reddit.com/r/StrixHalo/comments/1weo5s3/qwen38_flash_next_the_optimized_config_12k_ts/), which identifies Halogen’s earlier result as the motivation for his reproduction. The measured runtime uses stock TheRock ROCm 10; the author's separate custom runtime is not bundled. The optional image path is qualified with MTP disabled.
 
 ## v3.0.0 source and build identity
 

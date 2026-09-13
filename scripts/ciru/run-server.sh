@@ -10,7 +10,7 @@ model_dir="${MODEL_DIR:-${repo_root}/model}"
 model="${model_dir}/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf"
 draft="${model_dir}/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf"
 ple_dir="${model_dir}/ple"
-slot_dir="${SLOT_DIR:-${package_root}/slot-state/v3.1.0}"
+slot_dir="${SLOT_DIR:-${package_root}/slot-state/v4.0.0}"
 
 # Launcher-only opt-in; remaining arguments are passed to llama-server.
 enable_vision="${ENABLE_VISION:-0}"
@@ -55,7 +55,7 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
     esac
 done
 if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v3.1.0 MTP profile requires exactly one slot (--parallel 1)." >&2
+    echo "The CIRU v4.0.0 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
