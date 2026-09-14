@@ -1,0 +1,105 @@
+{
+  "update": "CIRU runtime v4.1.0 IO32 release",
+  "tested_model": "jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4",
+  "hardware": "Ryzen AI Max+395 / Radeon8060S gfx1151,128GB unified memory, NixOS, TheRock ROCm10",
+  "change": "Optional32-worker CPU PLE bulk-I/O pool;16-worker fallback; no model-weight or GPU-arithmetic change.",
+  "native_PP": {
+    "prompt_tokens": 16384,
+    "threads": 16,
+    "batch": 16384,
+    "ubatch": 16384,
+    "control_PP": 955.9158887879908,
+    "IO32_PP": 998.3936667297681,
+    "gain_percent": 4.443673176688723,
+    "mean_seconds_saved": 0.7298478604999978
+  },
+  "quick_served_TG": {
+    "status": "PASS_QUICK_NO_OBSERVED_TG_LOSS",
+    "measured_requests": 8,
+    "warmups_excluded": 4,
+    "prompt_tokens": [
+      4096,
+      16384
+    ],
+    "generation_cap": 256,
+    "seed": 123,
+    "order": "A1/C1/C2/A2",
+    "context": 262144,
+    "batch": 8192,
+    "ubatch": 8192,
+    "threads": 8,
+    "MTP_depth": 6,
+    "slots": 1,
+    "target_and_draft_KV": "F16",
+    "host_cache_MiB": 1024,
+    "PLE_cache_MiB": 4096,
+    "logging": "Retained diagnostic tracing enabled in both arms",
+    "pairs": [
+      {
+        "prompt_tokens": 4096,
+        "pairs": [
+          {
+            "control": "A1",
+            "candidate": "C1",
+            "control_TG": 22.478603674978434,
+            "candidate_TG": 22.81123310995918,
+            "TG_change_percent": 1.4797602190522285,
+            "control_tokens": 256,
+            "candidate_tokens": 256,
+            "same_output_tokens": true,
+            "pair_pass": true
+          },
+          {
+            "control": "A2",
+            "candidate": "C2",
+            "control_TG": 17.28283122867985,
+            "candidate_TG": 17.562154012652602,
+            "TG_change_percent": 1.6161864932710435,
+            "control_tokens": 256,
+            "candidate_tokens": 256,
+            "same_output_tokens": true,
+            "pair_pass": true
+          }
+        ],
+        "control_geomean_TG": 19.71024894746474,
+        "candidate_geomean_TG": 20.015353833885214
+      },
+      {
+        "prompt_tokens": 16384,
+        "pairs": [
+          {
+            "control": "A1",
+            "candidate": "C1",
+            "control_TG": 16.08252619023623,
+            "candidate_TG": 16.146032058801445,
+            "TG_change_percent": 0.39487495816279417,
+            "control_tokens": 256,
+            "candidate_tokens": 256,
+            "same_output_tokens": true,
+            "pair_pass": true
+          },
+          {
+            "control": "A2",
+            "candidate": "C2",
+            "control_TG": 15.996634559016385,
+            "candidate_TG": 16.15905785215197,
+            "TG_change_percent": 1.0153591528040407,
+            "control_tokens": 256,
+            "candidate_tokens": 256,
+            "same_output_tokens": true,
+            "pair_pass": true
+          }
+        ],
+        "control_geomean_TG": 16.039522881027946,
+        "candidate_geomean_TG": 16.152543642438268
+      }
+    ],
+    "minimum_available_GiB": 7.412532806396484
+  },
+  "scope": [
+    "Small IU4 regression screen, not a universal TG guarantee or a full quality/capacity/vision rerun.",
+    "Orca-specific IO32 performance was not measured.",
+    "The model artifacts are unchanged; v4.0 quality/capacity/vision evidence retains its original scope."
+  ],
+  "credits": "Halogen creator Peonist.ai: original breakthrough; pwilkin: open-source implementation; CIRU: compatibility and validation."
+}

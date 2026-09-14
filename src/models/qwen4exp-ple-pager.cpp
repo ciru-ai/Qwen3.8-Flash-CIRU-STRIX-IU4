@@ -319,7 +319,7 @@ size_t qwen4exp_ple_request::unique_page_count() const noexcept {
 struct qwen4exp_ple_pager::impl {
     using page_data = qwen4exp_ple_request::state::page_data;
     static constexpr size_t read_latency_histogram_us = 10000;
-    static constexpr size_t bulk_worker_count = 16;
+    size_t bulk_worker_count = 16;
 
     struct cache_slot {
         uint64_t  tag;
@@ -352,6 +352,16 @@ struct qwen4exp_ple_pager::impl {
 #endif
 
     explicit impl(const fs::path & payload_path, uint64_t cache_bytes, float scale_f32) : scale_f32(scale_f32) {
+#ifdef __linux__
+        const char * const io_workers = std::getenv("GGML_QWEN4EXP_PLE_IO_WORKERS");
+        if (io_workers != nullptr) {
+            if (std::strcmp(io_workers, "32") == 0) {
+                bulk_worker_count = 32;
+            } else if (std::strcmp(io_workers, "16") != 0) {
+                fail("PLE I/O workers must be 16 or 32");
+            }
+        }
+#endif
         if (cache_bytes % qwen4exp_ple_geometry::page_bytes != 0) {
             fail("cache size must be a multiple of 4096 bytes");
         }

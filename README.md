@@ -1,4 +1,10 @@
-# CIRU runtime v4.0.0
+# CIRU runtime v4.1.0
+
+V4.1 enables 32-worker bulk PLE loading for the existing IU4 and Orca packages, with a 16-worker override. Model files and GPU arithmetic are unchanged. Non-Orca native 16k prefill improved 4.44%; a quick matched MTP6 check found no observed TG loss and identical paired outputs. Orca uses the same runtime; no new Orca speed claim is made.
+
+[Run and upgrade](docs/RUNNING.md) | [Build](docs/BUILD_LINUX.md) | [v4.1 validation](docs/qualification/v4.1.0/QUALIFICATION.md) | [Release downloads](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v4.1.0)
+
+## Previous v4.0.0 release
 
 The pwilkin Strix Halo reference stack now runs with the existing CIRU Qwen3.8 Flash IU4 weights and CIRUPLE1 files. On our Strix Halo host, five cold 30.8K coding prompts measured approximately **992–1,001 prompt tokens/s**; cold 65K recall measured **948 PP**. These are diagnostic serving observations, not a clean repeated before/after comparison. Model weights are unchanged.
 

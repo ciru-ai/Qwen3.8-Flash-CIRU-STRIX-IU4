@@ -1,13 +1,13 @@
 {
-  "version": "4.0.0",
-  "status": "qualified_with_disclosed_scoring_scope",
+  "version": "4.1.0",
+  "status": "qualified_io32_release",
   "weights_changed": false,
   "projector_changed": false,
-  "base_source_commit": "1ecb13fa7c8af45b60693a07af9e835ba81b4df6",
+  "base_source_commit": "19916c28aea2b9730836286249f61cf5684cdc00",
   "reference_engine_commit": "f5daaa3cfa6358e5dd398911ec741813745a5440",
-  "source_identity": "docs/qualification/v4.0.0/source-identity.json",
-  "qualification": "docs/qualification/v4.0.0/QUALIFICATION.md",
-  "previous_manifest": "docs/qualification/v3.1.0/FINAL-QUALIFICATION.json",
+  "source_identity": "docs/qualification/v4.1.0/IO32-VALIDATION.json",
+  "qualification": "docs/qualification/v4.1.0/QUALIFICATION.md",
+  "previous_manifest": "docs/qualification/v4.0.0/FINAL-QUALIFICATION.json",
   "target_backend": "NixOS / stock TheRock ROCm10 / gfx1151",
   "profile": {
     "context": 262144,
@@ -20,9 +20,10 @@
     "draft_kv": "f16",
     "prompt_cache_mib": 1024,
     "ple_cache_mib": 4096,
-    "vision_mtp": false
+    "vision_mtp": false,
+    "ple_io_workers": 32
   },
-  "release_gate": "PASS_SCOPED: numerical22/22, serving15/15 completed, recall5/5, cache3/3, exact capacity and relocated UI/chat/vision smoke; standalone coding7/8 and uniform prompt-import-context8/8 both retained. No broad quality or universal decode claim.",
+  "release_gate": "PASS_SCOPED: byte-identical IO32 components; +4.44% native PP; focused MTP/cache checks; quick matched served-TG pass; final-package UI/chat/cold/cached MTP smoke and both-variant launcher guards.",
   "binary_hashes": {
     "libggml-base.so": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
     "libggml-base.so.0": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
@@ -41,9 +42,9 @@
     "libllama-common.so.0": "022d28184cd4c9d4bd71c2dc05a2eb329133f930b846a6d8ffd483724c5eb740",
     "libllama-common.so.0.4.0": "022d28184cd4c9d4bd71c2dc05a2eb329133f930b846a6d8ffd483724c5eb740",
     "libllama-server-impl.so": "d1610c37ddbaf42bfbd2a458552c8dd8090779c8e86642faeb224ff21b29cddf",
-    "libllama.so": "15a0f9883cb35a16deaa79a2c16ca1a4addee95b86a6c8d54008bd463536ab38",
-    "libllama.so.0": "15a0f9883cb35a16deaa79a2c16ca1a4addee95b86a6c8d54008bd463536ab38",
-    "libllama.so.0.4.0": "15a0f9883cb35a16deaa79a2c16ca1a4addee95b86a6c8d54008bd463536ab38",
+    "libllama.so": "1d8825f363b353b0d524f2ff96d468ad020e12216ba02104e5f74f69543c854e",
+    "libllama.so.0": "1d8825f363b353b0d524f2ff96d468ad020e12216ba02104e5f74f69543c854e",
+    "libllama.so.0.4.0": "1d8825f363b353b0d524f2ff96d468ad020e12216ba02104e5f74f69543c854e",
     "libmtmd.so": "bfd37141ab90aa26024842be5424365658a7dab475e10fa29868f584b2612df6",
     "libmtmd.so.0": "bfd37141ab90aa26024842be5424365658a7dab475e10fa29868f584b2612df6",
     "libmtmd.so.0.4.0": "bfd37141ab90aa26024842be5424365658a7dab475e10fa29868f584b2612df6",
@@ -53,8 +54,8 @@
     "test-backend-sched-ring": "99f898a684ccece9681e1b501d31e4a53f7f567c3f3b975ff42716cb3c1ce0be"
   },
   "source_frozen": true,
-  "performance_classification": "Diagnostic actual serving, one observation per request; historical native comparisons directional, reference weights differ.",
-  "supersedes": "3.1.0",
+  "performance_classification": "Separate native PP and quick served MTP6 protocols; measured on non-Orca IU4, not an Orca performance claim.",
+  "supersedes": "4.0.0",
   "credits": {
     "original_fast_prefill_breakthrough": {
       "name": "Halogen creator / Peonist.ai (peonist-ai)",
@@ -66,5 +67,6 @@
     },
     "CIRU": "Compatibility integration and validation"
   },
-  "version_change_scope": "Release version, attribution, launcher slot directory and UI build-version metadata only; inference binaries and results reused."
+  "version_change_scope": "IO32 CPU pager; default release I/O workers32 with16 override; current launchers, Orca variant selection and UI version metadata.",
+  "binary_candidate": "ciru-v4-ple-io32-r1"
 }

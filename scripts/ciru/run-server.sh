@@ -5,12 +5,28 @@ repo_root="${RUNTIME_DIR:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
 repo_root="$(cd "$repo_root" && pwd)"
 package_root="$repo_root"
 build_dir="${BUILD_DIR:-${repo_root}/build-gfx1151-sdk}"
+if [[ -z "${BUILD_DIR:-}" && -x "${repo_root}/bin/llama-server" ]]; then
+    build_dir="${repo_root}"
+fi
 server_bin="${SERVER_BIN:-${build_dir}/bin/llama-server}"
 model_dir="${MODEL_DIR:-${repo_root}/model}"
-model="${model_dir}/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf"
-draft="${model_dir}/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf"
+case "${MODEL_VARIANT:-IU4}" in
+    IU4)
+        model_name=Qwen3.8-Flash-CIRU-STRIX-IU4
+        projector_name=mmproj-Qwen3.8-Flash-F16.mmproj
+        slot_name=v4.1.0
+        ;;
+    Orca)
+        model_name=Qwen3.8-Flash-CIRU-STRIX-Orca
+        projector_name=mmproj-Qwen3.8-Flash-Orca-F16.mmproj
+        slot_name=orca-v4.1.0
+        ;;
+    *) echo "MODEL_VARIANT must be IU4 or Orca." >&2; exit 2 ;;
+esac
+model="${model_dir}/${model_name}.gguf"
+draft="${model_dir}/mtp/${model_name}-MTP-Q8_0.gguf"
 ple_dir="${model_dir}/ple"
-slot_dir="${SLOT_DIR:-${package_root}/slot-state/v4.0.0}"
+slot_dir="${SLOT_DIR:-${package_root}/slot-state/${slot_name}}"
 
 # Launcher-only opt-in; remaining arguments are passed to llama-server.
 enable_vision="${ENABLE_VISION:-0}"
@@ -26,10 +42,10 @@ if [[ "$enable_vision" != 0 && "$enable_vision" != 1 ]]; then
     echo "ENABLE_VISION must be 0 or 1." >&2
     exit 2
 fi
-mmproj="${MMPROJ:-${model_dir}/vision/mmproj-Qwen3.8-Flash-F16.mmproj}"
+mmproj="${MMPROJ:-${model_dir}/vision/${projector_name}}"
 if [[ "$enable_vision" == 1 && ! -f "$mmproj" ]]; then
     echo "Vision is enabled but its projector is missing: $mmproj" >&2
-    echo "Download vision/mmproj-Qwen3.8-Flash-F16.mmproj from the model repository, or set MMPROJ." >&2
+    echo "Download vision/${projector_name} from the model repository, or set MMPROJ." >&2
     exit 2
 fi
 
@@ -55,7 +71,7 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
     esac
 done
 if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v4.0.0 MTP profile requires exactly one slot (--parallel 1)." >&2
+    echo "The CIRU v4.1.0 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
@@ -80,7 +96,7 @@ set +a
 
 args=(
     --model "${model}"
-    --alias Qwen3.8-Flash-CIRU-STRIX-IU4
+    --alias "${model_name}"
     --host "${HOST:-127.0.0.1}"
     --port "${PORT:-8080}"
     --jinja

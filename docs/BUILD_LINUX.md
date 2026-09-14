@@ -1,4 +1,4 @@
-# Build the v4.0.0 source package
+# Build the v4.1.0 source package
 
 The tested binary is specific to its recorded NixOS and stock TheRock ROCm10 dependencies. It is not a portable Ubuntu binary. Other systems build the matching release source.
 
@@ -15,11 +15,11 @@ The profile uses external UI assets. Inference builds explicitly set `LLAMA_BUIL
 ```bash
 cd tools/ui
 npm ci --ignore-scripts --no-audit --no-fund
-LLAMA_BUILD_NUMBER=ciru-v4.0.0-ui-f5daaa3 npm run build
+LLAMA_BUILD_NUMBER=ciru-v4.1.0-ui-f5daaa3 npm run build
 ```
 
 Copy the resulting `dist/` contents to the release's `ui/` directory and create a new asset manifest. The UI build used Node v26.7.0 and the exact package-lock.json; see UI-PROVENANCE.json for the npm version, hashes and complete file inventory. This local UI build does not alter inference kernels or the server binary.
 
 Keep the complete matched `bin/` executable/shared-library set. Never combine a new server with old `libllama`, `libggml`, `libmtmd` or server implementation libraries. Keep the SDK directory used at build time in place. For a relocated tested Nix package, use its exact recorded dependency paths and put that package's `bin/` ahead of older project libraries in `LD_LIBRARY_PATH`, followed by the SDK library directories as documented in its binary receipt.
 
-The distributed v4 UI reuses the qualified assets; only `ui/build.json` changes its displayed version to `ciru-v4.0.0-ui-f5daaa3`. The original build command and the metadata-only change are recorded in UI-PROVENANCE.json. No inference rebuild or benchmark rerun was needed for the release renumbering.
+The v4.1 UI preserves the qualified application assets and updates only its release version descriptor. The NixOS binary archive contains the tested IO32 CPU-pager library with the otherwise unchanged R2 executable/GPU libraries. Its embedded upstream build text remains R2; CIRU_RELEASE.json and binary-identity.json identify this complete v4.1 package. Source builds use the v4.1 Git revision.

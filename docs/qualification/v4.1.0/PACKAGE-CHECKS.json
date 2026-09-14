@@ -1,0 +1,39 @@
+{
+  "status": "PASS_FINAL_PACKAGE_UI_CHAT_CACHE_MTP",
+  "minimum_available_GiB": 8.589839935302734,
+  "effective_PLE_IO_workers": 32,
+  "checks": [
+    "Shipped launcher uses shipped IO32 libraries",
+    "External UI HTML and version descriptor match",
+    "OpenAI-compatible chat",
+    "Cold recall with MTP6",
+    "Exact cached replay with positive reuse",
+    "Original service restored"
+  ],
+  "variant_launcher_checks": {
+    "status": "PASS",
+    "checks": [
+      {
+        "script": "release-v4.1.0-source/scripts/ciru/run-server.sh",
+        "variant": "IU4",
+        "checks": "default IO32, IO16 override, exact target/draft/alias/slot/projector, vision MTP-off and slot/missing-file guards"
+      },
+      {
+        "script": "release-v4.1.0-source/scripts/ciru/run-orca-server.sh",
+        "variant": "Orca",
+        "checks": "default IO32, IO16 override, exact target/draft/alias/slot/projector, vision MTP-off and slot/missing-file guards"
+      },
+      {
+        "script": "publication-v4.1/hf/IU4/run-server.sh",
+        "variant": "IU4",
+        "checks": "default IO32, IO16 override, exact target/draft/alias/slot/projector, vision MTP-off and slot/missing-file guards"
+      },
+      {
+        "script": "publication-v4.1/hf/Orca/run-server.sh",
+        "variant": "Orca",
+        "checks": "default IO32, IO16 override, exact target/draft/alias/slot/projector, vision MTP-off and slot/missing-file guards"
+      }
+    ],
+    "inference_source_change": "Exact retained IO32 pager only; GPU source unchanged"
+  }
+}
