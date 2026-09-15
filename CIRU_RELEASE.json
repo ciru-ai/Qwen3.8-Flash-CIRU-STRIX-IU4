@@ -1,13 +1,13 @@
 {
-  "version": "4.1.0",
-  "status": "qualified_io32_release",
+  "version": "4.2.0",
+  "status": "scoped_attention_correctness_release",
   "weights_changed": false,
   "projector_changed": false,
-  "base_source_commit": "19916c28aea2b9730836286249f61cf5684cdc00",
+  "base_source_commit": "0715ffbc968056b68fddc2a9de1a626b89567788",
   "reference_engine_commit": "f5daaa3cfa6358e5dd398911ec741813745a5440",
-  "source_identity": "docs/qualification/v4.1.0/IO32-VALIDATION.json",
-  "qualification": "docs/qualification/v4.1.0/QUALIFICATION.md",
-  "previous_manifest": "docs/qualification/v4.0.0/FINAL-QUALIFICATION.json",
+  "source_identity": "docs/qualification/v4.2.0/BUILD-CORRECTION.json",
+  "qualification": "docs/qualification/v4.2.0/QUALIFICATION.md",
+  "previous_manifest": "docs/qualification/v4.1.0/QUALIFICATION.md",
   "target_backend": "NixOS / stock TheRock ROCm10 / gfx1151",
   "profile": {
     "context": 262144,
@@ -20,10 +20,11 @@
     "draft_kv": "f16",
     "prompt_cache_mib": 1024,
     "ple_cache_mib": 4096,
-    "vision_mtp": false,
-    "ple_io_workers": 32
+    "vision_mtp": true,
+    "ple_io_workers": 32,
+    "vision_mtp_qualification": "Launcher arguments verified; combined image inference not newly qualified."
   },
-  "release_gate": "PASS_SCOPED: byte-identical IO32 components; +4.44% native PP; focused MTP/cache checks; quick matched served-TG pass; final-package UI/chat/cold/cached MTP smoke and both-variant launcher guards.",
+  "release_gate": "PASS_SCOPED: 48/48 numerical checks; IU4 and Orca captured medium-effort replay; independent-load IU4 ABBA cost screen. Broad quality/capacity and vision+MTP inference were not rerun.",
   "binary_hashes": {
     "libggml-base.so": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
     "libggml-base.so.0": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
@@ -31,9 +32,9 @@
     "libggml-cpu.so": "f8922ae684d4315767696d6c644a101654d5d204a16539e79e14ed5ff27903b9",
     "libggml-cpu.so.0": "f8922ae684d4315767696d6c644a101654d5d204a16539e79e14ed5ff27903b9",
     "libggml-cpu.so.0.23.0": "f8922ae684d4315767696d6c644a101654d5d204a16539e79e14ed5ff27903b9",
-    "libggml-hip.so": "1547a7cfbade44fc3c7b9622956a2db54b224df3784342e3faef3ce710ad0376",
-    "libggml-hip.so.0": "1547a7cfbade44fc3c7b9622956a2db54b224df3784342e3faef3ce710ad0376",
-    "libggml-hip.so.0.23.0": "1547a7cfbade44fc3c7b9622956a2db54b224df3784342e3faef3ce710ad0376",
+    "libggml-hip.so": "c50f399c93da8bd1eadacff8ee0ec51d437d0ef2b10730a8c1175e3e4134ad43",
+    "libggml-hip.so.0": "c50f399c93da8bd1eadacff8ee0ec51d437d0ef2b10730a8c1175e3e4134ad43",
+    "libggml-hip.so.0.23.0": "c50f399c93da8bd1eadacff8ee0ec51d437d0ef2b10730a8c1175e3e4134ad43",
     "libggml.so": "e0dc0d2f18d97b12c37fe6701763b17e4a23e00b8f55b39ca73e969c4f00e6ae",
     "libggml.so.0": "e0dc0d2f18d97b12c37fe6701763b17e4a23e00b8f55b39ca73e969c4f00e6ae",
     "libggml.so.0.23.0": "e0dc0d2f18d97b12c37fe6701763b17e4a23e00b8f55b39ca73e969c4f00e6ae",
@@ -54,8 +55,8 @@
     "test-backend-sched-ring": "99f898a684ccece9681e1b501d31e4a53f7f567c3f3b975ff42716cb3c1ce0be"
   },
   "source_frozen": true,
-  "performance_classification": "Separate native PP and quick served MTP6 protocols; measured on non-Orca IU4, not an Orca performance claim.",
-  "supersedes": "4.0.0",
+  "performance_classification": "Single-workload IU4 decode -16.9%; repeatable mirrored comparisons, limited generalization. No new Orca speed claim.",
+  "supersedes": "4.1.0",
   "credits": {
     "original_fast_prefill_breakthrough": {
       "name": "Halogen creator / Peonist.ai (peonist-ai)",
@@ -67,6 +68,6 @@
     },
     "CIRU": "Compatibility integration and validation"
   },
-  "version_change_scope": "IO32 CPU pager; default release I/O workers32 with16 override; current launchers, Orca variant selection and UI version metadata.",
-  "binary_candidate": "ciru-v4-ple-io32-r1"
+  "version_change_scope": "Selected-key fallback correction in fattn.cu; version metadata and launchers; carry forward current model-side vision/MTP behavior.",
+  "binary_candidate": "index-fallback-r2"
 }

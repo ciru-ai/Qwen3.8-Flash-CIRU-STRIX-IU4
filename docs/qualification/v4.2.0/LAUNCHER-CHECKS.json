@@ -1,0 +1,175 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "text-default",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "vision-default",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "vision-explicit-on",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "vision-off",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "text-off-io16",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "parallel-guard",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "runtime",
+      "case": "missing-projector",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "text-default",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "vision-default",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "vision-explicit-on",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "vision-off",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "text-off-io16",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "parallel-guard",
+      "pass": true
+    },
+    {
+      "variant": "IU4",
+      "launcher": "model",
+      "case": "missing-projector",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "text-default",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "vision-default",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "vision-explicit-on",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "vision-off",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "text-off-io16",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "parallel-guard",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "runtime",
+      "case": "missing-projector",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "text-default",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "vision-default",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "vision-explicit-on",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "vision-off",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "text-off-io16",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "parallel-guard",
+      "pass": true
+    },
+    {
+      "variant": "Orca",
+      "launcher": "model",
+      "case": "missing-projector",
+      "pass": true
+    }
+  ],
+  "count": 28,
+  "scope": "Final argument and failure-guard checks with mock executable; no inference, GPU load or service modification."
+}

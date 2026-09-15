@@ -1,0 +1,53 @@
+{
+  "prompt_per_second": {
+    "rows": {
+      "C2": 984.1193062414502,
+      "A2": 976.0213543832623,
+      "C1": 990.4286079801034,
+      "A1": 954.2112597223157
+    },
+    "mirror1_percent": 3.7955272366338777,
+    "mirror2_percent": 0.829690028995822,
+    "pooled_percent": 2.301861359732782
+  },
+  "predicted_per_second": {
+    "rows": {
+      "C2": 21.27470983648075,
+      "A2": 25.543194015954445,
+      "C1": 21.19852916224823,
+      "A1": 25.552412147706743
+    },
+    "mirror1_percent": -17.039029271642605,
+    "mirror2_percent": -16.710847424983633,
+    "pooled_percent": -16.8751003082372
+  },
+  "draft_counters": {
+    "C2": {
+      "draft_n": 1085,
+      "draft_n_accepted": 329,
+      "predicted_n": 512
+    },
+    "A2": {
+      "draft_n": 877,
+      "draft_n_accepted": 364,
+      "predicted_n": 512
+    },
+    "C1": {
+      "draft_n": 1085,
+      "draft_n_accepted": 329,
+      "predicted_n": 512
+    },
+    "A1": {
+      "draft_n": 877,
+      "draft_n_accepted": 364,
+      "predicted_n": 512
+    }
+  },
+  "scope": "512-token served API; full 256K/MTP6/F16 KV; same 12960-token prompt; ABBA; warm-ups excluded. Baseline has incorrect attention; no equal-quality speed claim.",
+  "model_variant": "IU4",
+  "mirrored_decode_percent": [
+    -17.039029271642605,
+    -16.710847424983633
+  ],
+  "confidence": "Repeatable on this single prompt and seed; limited generalization, no Orca speed measurement, and no kernel-only attribution."
+}

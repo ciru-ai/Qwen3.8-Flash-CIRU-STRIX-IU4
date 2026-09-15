@@ -728,10 +728,94 @@ size_t ggml_cuda_flash_attn_ext_get_alloc_size(int device, const ggml_tensor * d
     return f16_extra.end - (uintptr_t) dst->data;
 }
 
+static __global__ void flash_attn_index_mask_clear(half * mask, int * nonempty, const size_t n) {
+    const size_t i = (size_t) blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < n) { mask[i] = __float2half(-INFINITY); }
+    if (i < 64) { nonempty[i] = 0; }
+}
+
+static __global__ void flash_attn_index_mask_set(
+        const int32_t * indices, const size_t ids_stride, const int ns, const int nk,
+        const half * original, const size_t mask_stride, half * mask, const size_t stride, int * nonempty) {
+    const int query = blockIdx.y;
+    const int j = blockIdx.x * blockDim.x + threadIdx.x;
+    if (j >= ns) { return; }
+    const int key = indices[(size_t) query * ids_stride + j];
+    if (key >= 0 && key < nk) {
+        const half value = original ? original[(size_t) query * mask_stride + key] : __float2half(0.0f);
+        mask[(size_t) query * stride + key] = value;
+        if (__half2float(value) != -INFINITY) { atomicOr(nonempty + query, 1); }
+    }
+}
+
+static __global__ void flash_attn_index_mask_empty(float * out, const int * nonempty, const int row, const int count) {
+    const int i = blockIdx.x * blockDim.x + threadIdx.x;
+    if (i < row*count && !nonempty[i/row]) { out[i] = 0.0f; }
+}
+
+static void ggml_cuda_flash_attn_ext_index_fallback(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
+    const ggml_tensor * q = dst->src[0];
+    const ggml_tensor * k = dst->src[1];
+    const ggml_tensor * original = dst->src[3];
+    const ggml_tensor * ids = dst->src[5];
+    GGML_ASSERT(ids->type == GGML_TYPE_I32 && ids->nb[0] == sizeof(int32_t));
+    GGML_ASSERT(q->ne[3] == 1 && ids->ne[2] == 1 && ids->ne[3] == 1 && ids->ne[1] >= q->ne[1]);
+    GGML_ASSERT(!original || (original->type == GGML_TYPE_F16 && original->nb[0] == sizeof(half) &&
+        original->ne[0] >= k->ne[1] && original->ne[1] >= q->ne[1] && original->ne[2] == 1 && original->ne[3] == 1));
+    GGML_ASSERT(q->type == GGML_TYPE_F32 && k->type == GGML_TYPE_F16 && dst->src[2]->type == GGML_TYPE_F16);
+    GGML_ASSERT(ggml_is_contiguous(dst));
+    // Bound scratch memory when QSA3 declines a large prefill.
+    constexpr int strip = 64;
+    const int64_t stride = GGML_PAD(k->ne[1], 8);
+    ggml_cuda_pool_alloc<half> storage(ctx.pool(), stride * strip);
+    ggml_cuda_pool_alloc<int> nonempty(ctx.pool(), strip);
+    ggml_tensor mask = {};
+    mask.type = GGML_TYPE_F16;
+    mask.ne[0] = k->ne[1]; mask.ne[1] = strip; mask.ne[2] = mask.ne[3] = 1;
+    mask.nb[0] = sizeof(half); mask.nb[1] = stride * sizeof(half);
+    mask.nb[2] = mask.nb[3] = mask.nb[1] * strip;
+    mask.data = storage.get();
+    for (int64_t first = 0; first < q->ne[1]; first += strip) {
+        const int count = std::min<int64_t>(strip, q->ne[1] - first);
+        const ggml_cuda_kernel_launch_params clear(dim3((stride*strip+255)/256), dim3(256), 0, ctx.stream());
+        ggml_cuda_kernel_launch(flash_attn_index_mask_clear, clear, storage.get(), nonempty.get(), (size_t) stride*strip);
+        const ggml_cuda_kernel_launch_params fill(dim3((ids->ne[0]+255)/256,count), dim3(256), 0, ctx.stream());
+        ggml_cuda_kernel_launch(flash_attn_index_mask_set, fill,
+            (const int32_t *) ((const char *) ids->data + first*ids->nb[1]), ids->nb[1]/sizeof(int32_t),
+            (int) ids->ne[0], (int) k->ne[1],
+            original ? (const half *) ((const char *) original->data + first*original->nb[1]) : nullptr,
+            original ? original->nb[1]/sizeof(half) : 0, storage.get(), (size_t) stride, nonempty.get());
+        CUDA_CHECK(cudaGetLastError());
+        ggml_tensor query = *q;
+        query.ne[1] = count;
+        query.data = (char *) q->data + first*q->nb[1];
+        ggml_tensor output = *dst;
+        output.ne[2] = count;
+        output.data = (char *) dst->data + first*dst->nb[2];
+        output.src[0] = &query; output.src[3] = &mask;
+        output.src[5] = output.src[6] = output.src[7] = nullptr;
+        // Keep F32 accumulation for this F32-precision, 256-wide RDNA3.5 path.
+        if (q->ne[0] == 256 && dst->src[2]->ne[0] == 256 &&
+                GGML_CUDA_CC_IS_RDNA3_5(ggml_cuda_info().devices[ctx.device].cc)) {
+            ggml_cuda_flash_attn_ext_mma_f16(ctx, &output);
+        } else {
+            ggml_cuda_flash_attn_ext(ctx, &output);
+        }
+        const int row = dst->ne[0] * dst->ne[1];
+        const ggml_cuda_kernel_launch_params empty(dim3((row*count+255)/256), dim3(256), 0, ctx.stream());
+        ggml_cuda_kernel_launch(flash_attn_index_mask_empty, empty, (float *) output.data, nonempty.get(), row, count);
+        CUDA_CHECK(cudaGetLastError());
+    }
+}
+
 void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     ggml_cuda_set_device(ctx.device);
     if (ggml_cuda_flash_attn_ext_qsa_supported(ctx, dst)) {
         ggml_cuda_flash_attn_ext_qsa(ctx, dst);
+        return;
+    }
+    if (dst->src[5]) {
+        ggml_cuda_flash_attn_ext_index_fallback(ctx, dst);
         return;
     }
     switch (ggml_cuda_get_best_fattn_kernel(ggml_cuda_get_device(), dst)) {

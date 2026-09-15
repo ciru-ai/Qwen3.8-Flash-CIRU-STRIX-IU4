@@ -1,0 +1,14 @@
+{
+  "status": "complete",
+  "bin_sha256": "c50f399c93da8bd1eadacff8ee0ec51d437d0ef2b10730a8c1175e3e4134ad43",
+  "sources": {
+    "fattn.cu": {
+      "baseline_sha256": "a71ecc275ca3f17f13f21ed313ce6462790c8625587bfac0ecbd041c51a3fcb9",
+      "candidate_sha256": "8c2d3abe9ea373599f7b441281b74aefb42a5e93a9d8b763aa7b1f395ffca0a5"
+    }
+  },
+  "objects": {
+    "fattn.cu.o": "a3976e9d015d96db46a7cbb2d87f010d2b0b8b18f06c29e6d5e58789a1c545c0"
+  },
+  "time": 1789487184.4883862
+}

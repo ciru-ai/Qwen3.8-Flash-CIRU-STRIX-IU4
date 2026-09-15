@@ -1,0 +1,24 @@
+{
+  "scope": "One frozen medium-effort request across IU4 and Orca; emitted calls checked but not executed",
+  "checks": [
+    {
+      "arm": "qsa-fixed-iu4-r2-medium",
+      "valid_tool_calls": 2,
+      "arguments_match_declared_schema": true,
+      "requested_files_exist": true,
+      "prompt_sha256": "b48e6951e50e09eae41cb2a5f827505669854d7170c24519d816bdb600d756d5",
+      "completion_tokens": 1900,
+      "repeats": 1
+    },
+    {
+      "arm": "qsa-fixed-orca-r2-medium",
+      "valid_tool_calls": 2,
+      "arguments_match_declared_schema": true,
+      "requested_files_exist": true,
+      "prompt_sha256": "b48e6951e50e09eae41cb2a5f827505669854d7170c24519d816bdb600d756d5",
+      "completion_tokens": 3180,
+      "repeats": 1
+    }
+  ],
+  "long_thinking": "Not an error criterion; observation caps are incomplete observations."
+}
