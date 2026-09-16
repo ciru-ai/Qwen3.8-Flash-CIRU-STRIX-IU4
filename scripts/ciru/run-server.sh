@@ -87,6 +87,38 @@ done
 server_bin="$(realpath "${server_bin}")"
 export LD_LIBRARY_PATH="$(dirname "${server_bin}")${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
 
+# Check the library selected by the loader, including BUILD_DIR/SERVER_BIN overrides.
+unset LD_PRELOAD
+runtime_fail() {
+    echo "CIRU runtime check: $*" >&2
+    echo "Selected server: ${server_bin}" >&2
+    echo "Updating the model folder or launcher does not update the inference runtime." >&2
+    echo "Build/install CIRU v4.2.0 or newer, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
+    echo "Keep its executable and shared libraries together; no model-weight download is needed." >&2
+    exit 2
+}
+for runtime_tool in ldd grep sha256sum; do
+    command -v "${runtime_tool}" >/dev/null || runtime_fail "Missing runtime-check tool: ${runtime_tool}"
+done
+[[ -z "${GGML_BACKEND_PATH:-}" ]] || runtime_fail "Clear GGML_BACKEND_PATH; an extra backend can bypass this runtime check."
+runtime_dependencies="$(ldd "${server_bin}" 2>&1)" || runtime_fail "Cannot resolve shared libraries for this server. Check the SDK and loader dependencies."
+hip_library=""
+while IFS= read -r runtime_line; do
+    if [[ "${runtime_line}" == *"libggml-hip.so"*" => "* ]]; then
+        hip_library="${runtime_line#* => }"
+        hip_library="${hip_library% (*}"
+    fi
+done <<< "${runtime_dependencies}"
+[[ -n "${hip_library}" && -f "${hip_library}" ]] || runtime_fail "The selected server does not resolve a HIP library. Use the matching CIRU shared-library build."
+hip_library="$(realpath "${hip_library}")"
+for correction_marker in flash_attn_index_mask_clear flash_attn_index_mask_set flash_attn_index_mask_empty; do
+    grep -aFq "${correction_marker}" "${hip_library}" || runtime_fail "The HIP library lacks the v4.2 indexed-attention correction: ${hip_library}"
+done
+hip_sha256="$(sha256sum "${hip_library}")"
+hip_sha256="${hip_sha256%% *}"
+echo "CIRU runtime check: indexed-attention correction detected; HIP SHA256 ${hip_sha256}" >&2
+echo "CIRU runtime check: server ${server_bin}; HIP ${hip_library}" >&2
+
 mkdir -p "${slot_dir}"
 
 set -a

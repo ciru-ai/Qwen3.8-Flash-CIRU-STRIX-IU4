@@ -57,3 +57,9 @@ See [the v4.3 qualification](qualification/v4.3.0/QUALIFICATION.md) for the tuni
 V4.3 changes launch settings and metadata; the v4.2 inference binaries are reused. Fetch the new model-directory `run-server.sh` from its Hugging Face `v4.3.0` tag and run it with `RUNTIME_DIR` pointing to your corrected v4.2 installation. No rebuild or model download is needed. Alternatively use the complete v4.3 source or tested binary package. An older v4.0/v4.1 runtime still needs the v4.2 attention correction.
 
 `MTP_DEPTH=6 LLAMA_MTP_QSA_MIN_T=128` restores the previous speculative settings. Explicit overrides, including `LLAMA_MTP_QSA_MIN_T=0`, remain respected.
+
+## Runtime verification in current launchers
+
+The current main-branch launcher checks the HIP shared library selected by the dynamic loader before loading a model. It requires the v4.2 indexed-attention correction and prints the selected server, HIP library and library SHA256. An old RUNTIME_DIR, BUILD_DIR or SERVER_BIN fails with upgrade instructions; downloading a newer model-directory launcher does not replace those binaries. Clear GGML_BACKEND_PATH when using this supported shared-library launcher.
+
+This startup check was added after the v4.3.0 tag and does not change inference kernels, weights, MTP defaults or sampling. The immutable release archives retain their original launchers. Existing users can fetch run-server.sh and launcher-checksums.sha256 from their Hugging Face model repository at revision main, verify the small checksum file, and run the launcher with their corrected v4.2 or v4.3 runtime. Source builds from main include the check directly. The check detects the correction's compiled kernel names; it does not certify a custom build as byte-identical to the published binaries or prove model quality.

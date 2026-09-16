@@ -1,5 +1,7 @@
 # CIRU runtime v4.3.0
 
+The current main-branch launcher also rejects runtimes missing the v4.2 attention correction before model load. This startup check was added after the immutable v4.3.0 tag; see [runtime verification](docs/RUNNING.md#runtime-verification-in-current-launchers).
+
 V4.3 makes the tested speculative-decoding settings the defaults: **MTP depth 3 for IU4, depth 4 for Orca, and `LLAMA_MTP_QSA_MIN_T=1` for both**. Shorter draft batches reduce discarded speculative work; the lower threshold enables sparse draft attention for small batches. The corrected v4.2 inference binaries and existing model files are retained.
 
 | Model | Hermes mean score /100, passes 1 / 2 | Full-score tasks, passes 1 / 2 | Prompt tok/s | Generation tok/s |
