@@ -1,4 +1,4 @@
-# Running CIRU v4.2.0
+# Running CIRU v4.3.0
 
 Download the unchanged model, all three `ple/` files and the `mtp/` draft from the matching Hugging Face tag. The source archive and repository include the profile, launchers and hashed external `ui/` assets.
 
@@ -18,11 +18,11 @@ Open http://127.0.0.1:8080 for the UI. OpenAI-compatible chat uses `/v1/chat/com
 
 ## Defaults and overrides
 
-Context262144; batch/microbatch 8192; target and draft F16 KV; one slot; MTP depth 6; prompt RAM cache 1024 MiB; PLE cache 4096 MiB; 32 checkpoints with 8192-token minimum step. The historical v4.0 complete 15-request panel retained at least 6.82 GiB available memory on our 128 GB host. Raising batch size or prompt cache exhausted the 4 GiB guard in earlier runs; these settings consume separate memory pools.
+Context262144; batch/microbatch 8192; target and draft F16 KV; one slot; MTP depth 3 for IU4 or 4 for Orca; sparse draft attention from one token; prompt RAM cache 1024 MiB; PLE cache 4096 MiB; 32 checkpoints with 8192-token minimum step. The historical v4.0 complete 15-request panel retained at least 6.82 GiB available memory on our 128 GB host. Raising batch size or prompt cache exhausted the 4 GiB guard in earlier runs; these settings consume separate memory pools.
 
 The sampler remains temperature 1.0, top-p 0.95, top-k 20 and min-p 0. Thinking follows the embedded template default. Request parameters or `TEMPERATURE`, `TOP_P`, `TOP_K`, `MIN_P` override sampling. Historical v4.0 qualification used explicit nonthinking requests with seed 123, temperature 0.7, top-p 0.8, top-k 20, min-p 0, presence 1.5 and repeat 1; those benchmark settings are not production defaults.
 
-`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v4.2.0`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
+`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v4.3.0`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
 
 ## Parallel requests and unified KV cache
 
@@ -40,7 +40,7 @@ Use image data URLs with the tested Nix binary, whose HTTPS fetching is disabled
 
 ## Orca and IO32
 
-Use the existing Orca model directory with the shared v4.2 runtime:
+Use the existing Orca model directory with the shared v4.3 runtime:
 
 ```bash
 MODEL_DIR=/path/to/orca-model bash ./scripts/ciru/run-orca-server.sh
@@ -48,6 +48,12 @@ MODEL_DIR=/path/to/orca-model bash ./scripts/ciru/run-orca-server.sh
 
 The Orca launcher selects its own target, Q8 MTP head, projector and slot directory. Do not pair it with the non-Orca MTP head. The release profile enables 32 bulk PLE I/O workers. Use `GGML_QWEN4EXP_PLE_IO_WORKERS=16` to retain the previous concurrency. `GGML_QWEN4EXP_PLE_WORKERS` remains 16. No model or PLE replacement is required.
 
-## V4.2 correction and evidence
+## V4.3 tuning and evidence
 
-See [the v4.2 qualification](qualification/v4.2.0/QUALIFICATION.md) for the attention fix, scoped model checks and measured decode difference. The earlier broad serving and capacity panels were not rerun for this patch.
+See [the v4.3 qualification](qualification/v4.3.0/QUALIFICATION.md) for the tuning and completed Hermes Agent 20 results. The v4.2 attention correction is retained unchanged.
+
+## Updating an existing v4.2 installation
+
+V4.3 changes launch settings and metadata; the v4.2 inference binaries are reused. Fetch the new model-directory `run-server.sh` from its Hugging Face `v4.3.0` tag and run it with `RUNTIME_DIR` pointing to your corrected v4.2 installation. No rebuild or model download is needed. Alternatively use the complete v4.3 source or tested binary package. An older v4.0/v4.1 runtime still needs the v4.2 attention correction.
+
+`MTP_DEPTH=6 LLAMA_MTP_QSA_MIN_T=128` restores the previous speculative settings. Explicit overrides, including `LLAMA_MTP_QSA_MIN_T=0`, remain respected.

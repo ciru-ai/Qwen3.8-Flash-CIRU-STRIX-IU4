@@ -14,12 +14,14 @@ case "${MODEL_VARIANT:-IU4}" in
     IU4)
         model_name=Qwen3.8-Flash-CIRU-STRIX-IU4
         projector_name=mmproj-Qwen3.8-Flash-F16.mmproj
-        slot_name=v4.2.0
+        slot_name=v4.3.0
+        mtp_depth_default=3
         ;;
     Orca)
         model_name=Qwen3.8-Flash-CIRU-STRIX-Orca
         projector_name=mmproj-Qwen3.8-Flash-Orca-F16.mmproj
-        slot_name=orca-v4.2.0
+        slot_name=orca-v4.3.0
+        mtp_depth_default=4
         ;;
     *) echo "MODEL_VARIANT must be IU4 or Orca." >&2; exit 2 ;;
 esac
@@ -51,6 +53,8 @@ fi
 
 # MTP is independent of vision; ENABLE_MTP=0 selects target-only generation.
 enable_mtp="${ENABLE_MTP:-1}"
+# Apply the tuning when using this launcher with an existing v4.2 profile.
+export LLAMA_MTP_QSA_MIN_T="${LLAMA_MTP_QSA_MIN_T:-1}"
 
 # The release qualifies MTP with exactly one slot; preserve the public guard.
 # Include trailing CLI overrides so --parallel/-np cannot bypass this check.
@@ -67,7 +71,7 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
     esac
 done
 if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v4.2.0 MTP profile requires exactly one slot (--parallel 1)." >&2
+    echo "The CIRU v4.3.0 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
@@ -175,7 +179,7 @@ if [[ "${enable_mtp}" != "0" ]]; then
         --spec-draft-type-v f16
         --spec-draft-threads "${DRAFT_THREADS:-8}"
         --spec-draft-threads-batch "${DRAFT_BATCH_THREADS:-8}"
-        --spec-draft-n-max "${MTP_DEPTH:-6}"
+        --spec-draft-n-max "${MTP_DEPTH:-${mtp_depth_default}}"
         --spec-draft-n-min 0
         --spec-draft-p-min 0.0
         --spec-draft-p-split 0.10

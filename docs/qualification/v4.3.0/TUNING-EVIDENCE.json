@@ -1,0 +1,119 @@
+{
+  "iu4": {
+    "incident": {
+      "baseline_tg": 21.350579495494976,
+      "candidate_tg": 37.67012469837982,
+      "gain_percent": 76.43607615581726,
+      "mirror_gain_percent": [
+        75.26914202822906,
+        77.60025663606757
+      ],
+      "mirror_gap_points": 2.331114607838515,
+      "prompt_tokens": 12960,
+      "acceptance": {
+        "A1": {
+          "accepted": 329,
+          "drafted": 1085
+        },
+        "C1": {
+          "accepted": 362,
+          "drafted": 444
+        },
+        "C2": {
+          "accepted": 362,
+          "drafted": 444
+        },
+        "A2": {
+          "accepted": 329,
+          "drafted": 1085
+        }
+      },
+      "status": "NARROW_PENDING_MODEL_QUALIFICATION"
+    },
+    "source-review": {
+      "baseline_tg": 22.244778256121172,
+      "candidate_tg": 30.954780957141466,
+      "gain_percent": 39.15526871401171,
+      "mirror_gain_percent": [
+        39.62234502629596,
+        38.69308478438438
+      ],
+      "mirror_gap_points": 0.9292602419115781,
+      "prompt_tokens": 3329,
+      "acceptance": {
+        "A1": {
+          "accepted": 324,
+          "drafted": 1121
+        },
+        "C1": {
+          "accepted": 315,
+          "drafted": 583
+        },
+        "C2": {
+          "accepted": 315,
+          "drafted": 583
+        },
+        "A2": {
+          "accepted": 324,
+          "drafted": 1121
+        }
+      },
+      "status": "NARROW_PENDING_MODEL_QUALIFICATION"
+    }
+  },
+  "orca": {
+    "selected": {
+      "depth": 4,
+      "LLAMA_MTP_QSA_MIN_T": 1,
+      "draft_p_min": 0
+    },
+    "workloads": {
+      "incident": {
+        "control_tg": 37.56460367523702,
+        "candidate_tg": 38.30411707417262,
+        "gain_percent": 1.9686442197794252,
+        "control_pp": 991.7686265014659,
+        "candidate_pp": 995.9648820938194,
+        "pair_gains_percent": [
+          2.3038325154211448,
+          1.6338616801269135
+        ],
+        "mirror_gap_points": 0.6699708352942313,
+        "control_acceptance": 0.6623376623376623,
+        "candidate_acceptance": 0.8179916317991632
+      },
+      "source-review": {
+        "control_tg": 24.249480937725053,
+        "candidate_tg": 27.841974293466993,
+        "gain_percent": 14.814722694344674,
+        "control_pp": 854.5405843245323,
+        "candidate_pp": 803.1933752591107,
+        "pair_gains_percent": [
+          13.502375238681918,
+          16.14210887575236
+        ],
+        "mirror_gap_points": 2.6397336370704405,
+        "control_acceptance": 0.32122370936902483,
+        "candidate_acceptance": 0.4199475065616798
+      },
+      "inventory": {
+        "control_tg": 19.58849066156083,
+        "candidate_tg": 24.730783521796663,
+        "gain_percent": 26.25160329645373,
+        "control_pp": 207.92221923165724,
+        "candidate_pp": 218.44565862706233,
+        "pair_gains_percent": [
+          26.364382670543506,
+          26.138606024076672
+        ],
+        "mirror_gap_points": 0.22577664646683537,
+        "control_acceptance": 0.21236959761549926,
+        "candidate_acceptance": 0.31520532741398444
+      }
+    },
+    "qualifier": "Same host, production sampler/context/weights, fixed 512-token probes. Quality validation follows separately.",
+    "metadata_correction": "Historical screen/confirmation output model alias and base profile hash remained IU4; actual Orca model and MTP paths, size/mtime, and native server_props.model_path verify Orca weights. New quality session uses corrected Orca alias and actual profile hash. Raw historical rows preserved.",
+    "geomean_tg_gain_percent": 13.911361508316912,
+    "decision": "Use depth4/sparse for requested full quality and garden runs; deployment awaits quality review. No further sweep."
+  }
+}

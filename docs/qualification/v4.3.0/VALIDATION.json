@@ -1,0 +1,21 @@
+{
+  "status": "PASS",
+  "inference_source_unchanged": true,
+  "binary_hashes_unchanged": true,
+  "inference_base_commit": "f0996a2e50c07c8af562bfe1b8f246410762171e",
+  "changed_tracked_files": [
+    "CIRU_RELEASE.json",
+    "README.md",
+    "docs/BUILD_LINUX.md",
+    "docs/RUNNING.md",
+    "profiles/strix-halo-production.env",
+    "scripts/ciru/run-server.sh",
+    "ui/build.json"
+  ],
+  "new_files_scope": "docs/qualification/v4.3.0",
+  "launcher_checks": 38,
+  "hermes_attempts": 80,
+  "hermes_requests": 449,
+  "inference_validation": "Same binary hashes and effective tuned settings as the completed Hermes runs and ongoing garden sessions; no new inference code.",
+  "service_changes": false
+}

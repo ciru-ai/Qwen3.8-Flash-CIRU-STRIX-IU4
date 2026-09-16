@@ -1,20 +1,19 @@
 {
-  "version": "4.2.0",
-  "status": "scoped_attention_correctness_release",
+  "version": "4.3.0",
+  "status": "validated_speculative_tuning_release",
   "weights_changed": false,
   "projector_changed": false,
-  "base_source_commit": "0715ffbc968056b68fddc2a9de1a626b89567788",
+  "base_source_commit": "f0996a2e50c07c8af562bfe1b8f246410762171e",
   "reference_engine_commit": "f5daaa3cfa6358e5dd398911ec741813745a5440",
   "source_identity": "docs/qualification/v4.2.0/BUILD-CORRECTION.json",
-  "qualification": "docs/qualification/v4.2.0/QUALIFICATION.md",
-  "previous_manifest": "docs/qualification/v4.1.0/QUALIFICATION.md",
+  "qualification": "docs/qualification/v4.3.0/QUALIFICATION.md",
+  "previous_manifest": "docs/qualification/v4.2.0/QUALIFICATION.md",
   "target_backend": "NixOS / stock TheRock ROCm10 / gfx1151",
   "profile": {
     "context": 262144,
     "batch": 8192,
     "microbatch": 8192,
     "threads": 8,
-    "max_mtp_depth": 6,
     "slots": 1,
     "target_kv": "f16",
     "draft_kv": "f16",
@@ -22,9 +21,14 @@
     "ple_cache_mib": 4096,
     "vision_mtp": true,
     "ple_io_workers": 32,
-    "vision_mtp_qualification": "Launcher arguments verified; combined image inference not newly qualified."
+    "vision_mtp_qualification": "Launcher arguments verified; combined image inference not newly qualified.",
+    "max_mtp_depth_by_variant": {
+      "IU4": 3,
+      "Orca": 4
+    },
+    "mtp_qsa_min_t": 1
   },
-  "release_gate": "PASS_SCOPED: 48/48 numerical checks; IU4 and Orca captured medium-effort replay; independent-load IU4 ABBA cost screen. Broad quality/capacity and vision+MTP inference were not rerun.",
+  "release_gate": "80 completed Hermes Agent 20 attempts / 449 requests, native scores and grading notes retained; matched tuning probes; launcher argument checks. Inference binaries match v4.2.",
   "binary_hashes": {
     "libggml-base.so": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
     "libggml-base.so.0": "9b34abd2593986b49302fe9b46def6c899ef120639e062e195c40d4ed5121b44",
@@ -55,8 +59,8 @@
     "test-backend-sched-ring": "99f898a684ccece9681e1b501d31e4a53f7f567c3f3b975ff42716cb3c1ce0be"
   },
   "source_frozen": true,
-  "performance_classification": "Single-workload IU4 decode -16.9%; repeatable mirrored comparisons, limited generalization. No new Orca speed claim.",
-  "supersedes": "4.1.0",
+  "performance_classification": "Hermes pooled PP/TG: IU4 548.5/34.74 tok/s; Orca 551.3/34.44 tok/s. Separate matched tuning gains are workload-specific.",
+  "supersedes": "4.2.0",
   "credits": {
     "original_fast_prefill_breakthrough": {
       "name": "Halogen creator / Peonist.ai (peonist-ai)",
@@ -68,6 +72,6 @@
     },
     "CIRU": "Compatibility integration and validation"
   },
-  "version_change_scope": "Selected-key fallback correction in fattn.cu; version metadata and launchers; carry forward current model-side vision/MTP behavior.",
+  "version_change_scope": "Launch defaults: IU4 MTP3, Orca MTP4, sparse draft threshold 1. Documentation and release metadata. No inference code or weight change.",
   "binary_candidate": "index-fallback-r2"
 }

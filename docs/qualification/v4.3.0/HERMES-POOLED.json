@@ -1,0 +1,32 @@
+{
+  "iu4": {
+    "requests": 222,
+    "prompt_tokens_evaluated": 232304,
+    "cached_tokens": 570648,
+    "generated_tokens": 54246,
+    "prompt_seconds": 423.521318,
+    "generation_seconds": 1555.03609,
+    "draft_tokens": 53301,
+    "accepted_draft_tokens": 36555,
+    "pp_tok_s": 548.5060376582979,
+    "tg_tok_s": 34.74131587518332,
+    "acceptance": 0.6858220296054484,
+    "accepted_per_output": 0.6738745713969694,
+    "case_wall_seconds": 2293.096
+  },
+  "orca": {
+    "requests": 227,
+    "prompt_tokens_evaluated": 214927,
+    "cached_tokens": 527431,
+    "generated_tokens": 43764,
+    "prompt_seconds": 389.890032,
+    "generation_seconds": 1264.316656,
+    "draft_tokens": 49996,
+    "accepted_draft_tokens": 31353,
+    "pp_tok_s": 551.2503074200163,
+    "tg_tok_s": 34.435202441879404,
+    "acceptance": 0.6271101688135051,
+    "accepted_per_output": 0.7164107485604606,
+    "case_wall_seconds": 1955.5880000000002
+  }
+}

@@ -1,0 +1,156 @@
+{
+  "iu4": {
+    "protocol_classification": "local-custom",
+    "benchmark": {
+      "benchmark_commit": "57d7766bf3db8c40696e3ed937d43c8c85f4cd6c",
+      "hermes_commit": "ea74f61d983ebdfd6a863c45761d1b38081f1d08",
+      "image": "sha256:0b31533676ee1ec57b0f60dc60ee757dbd750bac7675056829fb6b0a7401698c",
+      "files": {
+        "README.md": "f82f096f463f3a03a3346d4211203cf66c4dfeefc111acff2418f0b6bdb98147",
+        "METHODOLOGY.md": "90df553dcdf5c81711a2e1a6c4bf98c000733e07a9b4bd1feb9f1336feb4df09",
+        "package.json": "c4080bcca29e12786aab4c5ce3d9b68ddc9360fd89722faa525820ce59bf8361",
+        "verification/Dockerfile": "265be016cd3763f7128343410d54abcbff574748dbcea54d3e900f82a86f80f8",
+        "verification/agent-runner.py": "e90eef8189dbfb8f774c5b9e5d320434b56ad5652c619eb100b9f28998f3f070",
+        "verification/core.mjs": "9ef5ab8ab1a8e9adad06a77ab7993e8816f2aeeab8735827d0b8b5a3aca22f47",
+        "verification/hermes-runtime.mjs": "fbbf24f3b4849ac83659a7a64b996ba18f2a01d2c75d623b2d10fc64c5e6e5d0",
+        "verification/manifest.mjs": "3936081de0e3ea356c3d3c2e04486b6780888d22327c2b100b51a34c7103d498",
+        "verification/server.mjs": "e75049a315e5a01d61b3c3856c8a0a9b7b6d5de485ac35ad8c094ef75504b4fb",
+        "dist/benchlocal/index.js": "1c225ab32eea53ab2490f5cfdc5c7321e97d6ce0e5ae5f2ec15a9f807614b95a",
+        "dist/lib/benchmark.js": "ec0114da7eae8b02e3193adb7d345620be928f6e7cf0d062f3e21171a04e53d0",
+        "dist/lib/hermes-runtime.js": "057cb36daf1092e9ae0024b1e96bd93952b4fd189b2d6e097addfe1c187e8ba3",
+        "dist/lib/orchestrator.js": "ad7b9c083f9ca4acde5743b954122cbeb3eb1ed469d53008c43a88e7ed61e9be"
+      },
+      "production_turn_allowance": 32,
+      "modification": "Only invocation maxTurns uniformly32; task prompts, input fixtures, scoring and safety checks unchanged."
+    },
+    "source_urls": [
+      "https://github.com/stevibe/HermesAgent-20/tree/57d7766bf3db8c40696e3ed937d43c8c85f4cd6c",
+      "https://github.com/NousResearch/hermes-agent/tree/ea74f61d983ebdfd6a863c45761d1b38081f1d08"
+    ],
+    "agent_turn_allowance": 32,
+    "rounds": [
+      1,
+      2
+    ],
+    "seeds": {
+      "1": 160916,
+      "2": 160917
+    },
+    "sampler": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "top_k": 20,
+      "min_p": 0.0,
+      "repeat_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "frequency_penalty": 0.0
+    },
+    "context": 262144,
+    "output_policy": {
+      "request_completion_cap": null,
+      "server_n_predict": -1,
+      "reasoning_budget": -1,
+      "thinking": true,
+      "reasoning_effort": "xhigh",
+      "preserve_thinking": true,
+      "context_shift": false,
+      "case_wall_limit_seconds": 1800,
+      "wall_limit_interpretation": "Resource boundary; never automatically label long thinking as looping."
+    },
+    "mtp": {
+      "type": "draft-mtp",
+      "depth": 3,
+      "qsa_min_t": 1,
+      "draft_p_min": 0,
+      "target_kv": "f16/f16",
+      "draft_kv": "f16/f16",
+      "slots": 1
+    },
+    "sample_policy": {
+      "first_trajectory": true,
+      "retries": 0,
+      "repairs": 0,
+      "two_independent_case_workspaces_per_model": true,
+      "runtime_remains_loaded_between_passes": true,
+      "prompt_cache": "production enabled; measure cache counters"
+    },
+    "local_lock_sha256": "d3ac4b6c16ae2bbba232df05e24de6c20f9061fbe24dd2739aa25baf163106fe"
+  },
+  "orca": {
+    "protocol_classification": "local-custom",
+    "benchmark": {
+      "benchmark_commit": "57d7766bf3db8c40696e3ed937d43c8c85f4cd6c",
+      "hermes_commit": "ea74f61d983ebdfd6a863c45761d1b38081f1d08",
+      "image": "sha256:0b31533676ee1ec57b0f60dc60ee757dbd750bac7675056829fb6b0a7401698c",
+      "files": {
+        "README.md": "f82f096f463f3a03a3346d4211203cf66c4dfeefc111acff2418f0b6bdb98147",
+        "METHODOLOGY.md": "90df553dcdf5c81711a2e1a6c4bf98c000733e07a9b4bd1feb9f1336feb4df09",
+        "package.json": "c4080bcca29e12786aab4c5ce3d9b68ddc9360fd89722faa525820ce59bf8361",
+        "verification/Dockerfile": "265be016cd3763f7128343410d54abcbff574748dbcea54d3e900f82a86f80f8",
+        "verification/agent-runner.py": "e90eef8189dbfb8f774c5b9e5d320434b56ad5652c619eb100b9f28998f3f070",
+        "verification/core.mjs": "9ef5ab8ab1a8e9adad06a77ab7993e8816f2aeeab8735827d0b8b5a3aca22f47",
+        "verification/hermes-runtime.mjs": "fbbf24f3b4849ac83659a7a64b996ba18f2a01d2c75d623b2d10fc64c5e6e5d0",
+        "verification/manifest.mjs": "3936081de0e3ea356c3d3c2e04486b6780888d22327c2b100b51a34c7103d498",
+        "verification/server.mjs": "e75049a315e5a01d61b3c3856c8a0a9b7b6d5de485ac35ad8c094ef75504b4fb",
+        "dist/benchlocal/index.js": "1c225ab32eea53ab2490f5cfdc5c7321e97d6ce0e5ae5f2ec15a9f807614b95a",
+        "dist/lib/benchmark.js": "ec0114da7eae8b02e3193adb7d345620be928f6e7cf0d062f3e21171a04e53d0",
+        "dist/lib/hermes-runtime.js": "057cb36daf1092e9ae0024b1e96bd93952b4fd189b2d6e097addfe1c187e8ba3",
+        "dist/lib/orchestrator.js": "ad7b9c083f9ca4acde5743b954122cbeb3eb1ed469d53008c43a88e7ed61e9be"
+      },
+      "production_turn_allowance": 32,
+      "modification": "Only invocation maxTurns uniformly32; task prompts, input fixtures, scoring and safety checks unchanged."
+    },
+    "source_urls": [
+      "https://github.com/stevibe/HermesAgent-20/tree/57d7766bf3db8c40696e3ed937d43c8c85f4cd6c",
+      "https://github.com/NousResearch/hermes-agent/tree/ea74f61d983ebdfd6a863c45761d1b38081f1d08"
+    ],
+    "agent_turn_allowance": 32,
+    "rounds": [
+      1,
+      2
+    ],
+    "seeds": {
+      "1": 160916,
+      "2": 160917
+    },
+    "sampler": {
+      "temperature": 1.0,
+      "top_p": 0.95,
+      "top_k": 20,
+      "min_p": 0.0,
+      "repeat_penalty": 1.0,
+      "presence_penalty": 0.0,
+      "frequency_penalty": 0.0
+    },
+    "context": 262144,
+    "output_policy": {
+      "request_completion_cap": null,
+      "server_n_predict": -1,
+      "reasoning_budget": -1,
+      "thinking": true,
+      "reasoning_effort": "xhigh",
+      "preserve_thinking": true,
+      "context_shift": false,
+      "case_wall_limit_seconds": 1800,
+      "wall_limit_interpretation": "Resource boundary; never automatically label long thinking as looping."
+    },
+    "mtp": {
+      "type": "draft-mtp",
+      "depth": 4,
+      "qsa_min_t": 1,
+      "draft_p_min": 0,
+      "target_kv": "f16/f16",
+      "draft_kv": "f16/f16",
+      "slots": 1
+    },
+    "sample_policy": {
+      "first_trajectory": true,
+      "retries": 0,
+      "repairs": 0,
+      "two_independent_case_workspaces_per_model": true,
+      "runtime_remains_loaded_between_passes": true,
+      "prompt_cache": "production enabled; measure cache counters"
+    },
+    "local_lock_sha256": "8f6c9f28dbc32bf00d499975d27f1a7802d93ddb91d2d5036ac3f558a53b1fd5"
+  }
+}
