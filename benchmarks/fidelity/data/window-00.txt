@@ -1,0 +1,188 @@
+Repository: python/cpython
+Commit: 9a1733d5712545db0703c712b158ae5e2a19e1d0
+Date: 2026-09-15T21:18:12Z
+gh-157242: Add support.inject_memory_error() function (#157431)
+
+Add inject_memory_error() and memory_error_cm() functions to
+test.support to inject memory errors: make the memory allocator fail.
+
+From 9a1733d5712545db0703c712b158ae5e2a19e1d0 Mon Sep 17 00:00:00 2001
+From: Victor Stinner <vstinner@python.org>
+Date: Tue, 15 Sep 2026 23:18:12 +0200
+Subject: [PATCH] gh-157242: Add support.inject_memory_error() function
+ (#157431)
+
+Add inject_memory_error() and memory_error_cm() functions to
+test.support to inject memory errors: make the memory allocator fail.
+---
+ Lib/test/support/__init__.py | 35 +++++++++++++++++++++++++++++++++++
+ Lib/test/test_atexit.py      |  4 ++--
+ Lib/test/test_bytes.py       | 23 ++++++++---------------
+ Lib/test/test_class.py       |  7 +------
+ Lib/test/test_exceptions.py  | 13 +++++++------
+ Lib/test/test_list.py        |  5 +++--
+ Lib/test/test_pyexpat.py     | 15 +++------------
+ Lib/test/test_repl.py        |  5 +++--
+ Lib/test/test_str.py         |  9 ++-------
+ Lib/test/test_weakref.py     |  4 ++--
+ 10 files changed, 66 insertions(+), 54 deletions(-)
+
+diff --git a/Lib/test/support/__init__.py b/Lib/test/support/__init__.py
+index 625898e6734aaa5..13c7cec64dcf578 100644
+--- a/Lib/test/support/__init__.py
++++ b/Lib/test/support/__init__.py
+@@ -3540,3 +3540,38 @@ def built_with_c_assertions():
+         return False
+ 
+     return True
++
++
++def inject_memory_error(start=0, stop=0):
++    """
++    Memory allocation fails after 'start' allocation requests, and until 'stop'
++    allocation requests except when 'stop' is negative or equal to 0 (default)
++    in which case allocation failures never stop.
++
++    Raise SkipTest if the _testcapi extension module is missing
++    """
++    try:
++        import _testcapi
++    except ImportError:
++        raise unittest.SkipTest("_testcapi required")
++
++    _testcapi.set_nomemory(start, stop)
++
++
++@contextlib.contextmanager
++def memory_error_cm(start=0, stop=0):
++    """
++    Similar to inject_memory_error() but can be used as a context manager.
++
++    Raise SkipTest if the _testcapi extension module is missing
++    """
++    try:
++        import _testcapi
++    except ImportError:
++        raise unittest.SkipTest("_testcapi required")
++
++    try:
++        _testcapi.set_nomemory(start, stop)
++        yield
++    finally:
++        _testcapi.remove_mem_hooks()
+diff --git a/Lib/test/test_atexit.py b/Lib/test/test_atexit.py
+index 33c37648da31fc7..33d3eb93394781e 100644
+--- a/Lib/test/test_atexit.py
++++ b/Lib/test/test_atexit.py
+@@ -197,14 +197,14 @@ def test_atexit_with_low_memory(self):
+         # callback doesn't cause an infinite loop during finalization.
+         code = textwrap.dedent("""
+             import atexit
+-            import _testcapi
++            from test.support import inject_memory_error
+ 
+             def callback():
+                 print("hello")
+ 
+             atexit.register(callback)
+             # Simulate low memory condition
+-            _testcapi.set_nomemory(0)
++            inject_memory_error()
+         """)
+ 
+         with os_helper.temp_dir() as temp_dir:
+diff --git a/Lib/test/test_bytes.py b/Lib/test/test_bytes.py
+index 3297a53dceff005..bab6006df36a44c 100644
+--- a/Lib/test/test_bytes.py
++++ b/Lib/test/test_bytes.py
+@@ -50,16 +50,10 @@ def __index__(self):
+ 
+ 
+ @contextlib.contextmanager
+-def inject_memory_error(testcase, start):
+-    # Raise SkipTest if _testcapi extension module is missing
+-    _testcapi = import_helper.import_module('_testcapi')
+-
++def inject_memory_error(testcase, start=0):
+     with testcase.assertRaises(MemoryError):
+-        try:
+-            _testcapi.set_nomemory(start)
++        with support.memory_error_cm(start):
+             yield
+-        finally:
+-            _testcapi.remove_mem_hooks()
+ 
+ 
+ class BaseBytesTest:
+@@ -1585,7 +1579,7 @@ def test_resize_error(self):
+                     del ba[:offset]
+                 else:
+                     expected = ba.copy()
+-                with inject_memory_error(self, 0):
++                with inject_memory_error(self):
+                     ba.resize(1024)
+                 self.assertEqual(ba, expected)
+ 
+@@ -1596,7 +1590,7 @@ def test_resize_error(self):
+                     del ba[:offset]
+                 else:
+                     expected = ba.copy()
+-                with inject_memory_error(self, 0):
++                with inject_memory_error(self):
+                     ba.resize(1)
+                 self.assertEqual(ba, expected)
+ 
+@@ -1669,21 +1663,20 @@ def test_take_bytes_error(self):
+         # gh-157242: If bytearray.take_bytes() fails (MemoryError),
+         # the bytearray must be left unchanged.
+ 
+-        for logical_offset, to_take, mem_errors in (
++        for logical_offset, to_take, start_list in (
+             (True, 5, (0, 1)),
+             (False, 5, (0, 1)),
+             (True, None, (0,)),
+         ):
+-            for mem_error in mem_errors:
+-                with self.subTest(logical_offset=logical_offset,
+-                                  to_take=to_take, mem_error=mem_error):
++            for start in start_list:
++                with self.subTest(logical_offset=logical_offset, start=start):
+                     ba = bytearray(b'0123456789')
+                     if logical_offset:
+                         expected = ba[3:]
+                         del ba[:3]
+                     else:
+                         expected = ba.copy()
+-                    with inject_memory_error(self, mem_error):
++                    with inject_memory_error(self, start):
+                         ba.take_bytes(to_take)
+                     self.assertEqual(ba, expected)
+ 
+diff --git a/Lib/test/test_class.py b/Lib/test/test_class.py
+index 7bd6d966e8536b7..b8b35f68aa7a051 100644
+--- a/Lib/test/test_class.py
++++ b/Lib/test/test_class.py
+@@ -1016,8 +1016,6 @@ class C:
+     @support.nomemtest
+     @isolation.runInSubprocess()
+     def test_detach_materialized_dict_no_memory(self):
+-        import _testcapi
+-
+         class A:
+             def __init__(self):
+                 self.a = 1
+@@ -1032,11 +1030,8 @@ def __init__(self):
+             d = a.__dict__
+             try:
+                 with support.catch_unraisable_exception() as ex:
+-                    _testcapi.set_nomemory(n, n + 1)
+-                    try:
++                    with support.memory_error_cm(n, n + 1):
+                         del a
+-                    finally:
+-                        _testcapi.remove_mem_hooks()
+                     exc_type = ex.unraisable and ex.unraisable.exc_type
+             except MemoryError:
+                 # The failing allocation was not in the deallocation code.
+diff --git a/Lib/test/test_exceptions.py b/Lib/test/test_exceptions.py
+index 750e45bb1

@@ -1,0 +1,152 @@
+Repository: godotengine/godot
+Commit: dfa06cafb4546eac47d863dfa12aec54e4efa586
+Date: 2026-09-15T22:55:53Z
+Merge pull request #119789 from Voyend/add-two-getters-foldable-container
+
+Add getter methods for title bar controls in FoldableContainer
+
+From 58b2ef7b362e8d8410e312801535455cbb265251 Mon Sep 17 00:00:00 2001
+From: Voyend <voyend@outlook.com>
+Date: Fri, 22 May 2026 14:07:45 +0300
+Subject: [PATCH] Add get_title_bar_control and get_title_bar_control_count to
+ FoldableContainer
+
+Exposes the internal title_controls list via two new methods:
+- get_title_bar_control_count() returns the number of controls
+  currently added to the title bar.
+- get_title_bar_control(index) returns the control at the given index.
+
+Previously there was no way to query which controls had already been
+added to the title bar, making it impossible to avoid duplicates when
+calling add_title_bar_control() from external code.
+---
+ doc/classes/FoldableContainer.xml | 14 ++++++++++++++
+ scene/gui/foldable_container.cpp  | 11 +++++++++++
+ scene/gui/foldable_container.h    |  2 ++
+ 3 files changed, 27 insertions(+)
+
+diff --git a/doc/classes/FoldableContainer.xml b/doc/classes/FoldableContainer.xml
+index 10ac6c908153..8d837343ced9 100644
+--- a/doc/classes/FoldableContainer.xml
++++ b/doc/classes/FoldableContainer.xml
+@@ -31,6 +31,20 @@
+ 				Folds the container and emits [signal folding_changed].
+ 			</description>
+ 		</method>
++		<method name="get_title_bar_control" qualifiers="const">
++			<return type="Control" />
++			<param index="0" name="index" type="int" />
++			<description>
++				Returns the title bar [Control] at the given [param index], or [code]null[/code] if the index is out of bounds.
++				Use [method get_title_bar_control_count] to get the total number of title bar controls.
++			</description>
++		</method>
++		<method name="get_title_bar_control_count" qualifiers="const">
++			<return type="int" />
++			<description>
++				Returns the number of controls added to the title bar via [method add_title_bar_control].
++			</description>
++		</method>
+ 		<method name="remove_title_bar_control">
+ 			<return type="void" />
+ 			<param index="0" name="control" type="Control" />
+diff --git a/scene/gui/foldable_container.cpp b/scene/gui/foldable_container.cpp
+index 2f3c2614f391..b7b1224e36f8 100644
+--- a/scene/gui/foldable_container.cpp
++++ b/scene/gui/foldable_container.cpp
+@@ -245,6 +245,15 @@ void FoldableContainer::remove_title_bar_control(Control *p_control) {
+ 	remove_child(p_control);
+ }
+ 
++Control *FoldableContainer::get_title_bar_control(int64_t p_index) const {
++	ERR_FAIL_INDEX_V(p_index, title_controls.size(), nullptr);
++	return title_controls[p_index];
++}
++
++int FoldableContainer::get_title_bar_control_count() const {
++	return title_controls.size();
++}
++
+ void FoldableContainer::gui_input(const Ref<InputEvent> &p_event) {
+ 	ERR_FAIL_COND(p_event.is_null());
+ 
+@@ -582,6 +591,8 @@ void FoldableContainer::_bind_methods() {
+ 	ClassDB::bind_method(D_METHOD("set_title_position", "title_position"), &FoldableContainer::set_title_position);
+ 	ClassDB::bind_method(D_METHOD("get_title_position"), &FoldableContainer::get_title_position);
+ 	ClassDB::bind_method(D_METHOD("add_title_bar_control", "control"), &FoldableContainer::add_title_bar_control);
++	ClassDB::bind_method(D_METHOD("get_title_bar_control", "index"), &FoldableContainer::get_title_bar_control);
++	ClassDB::bind_method(D_METHOD("get_title_bar_control_count"), &FoldableContainer::get_title_bar_control_count);
+ 	ClassDB::bind_method(D_METHOD("remove_title_bar_control", "control"), &FoldableContainer::remove_title_bar_control);
+ 
+ 	ADD_SIGNAL(MethodInfo("folding_changed", PropertyInfo(Variant::BOOL, "is_folded")));
+diff --git a/scene/gui/foldable_container.h b/scene/gui/foldable_container.h
+index 097fbe4b72b8..67ef522e26c7 100644
+--- a/scene/gui/foldable_container.h
++++ b/scene/gui/foldable_container.h
+@@ -136,6 +136,8 @@ class FoldableContainer : public Container {
+ 
+ 	void add_title_bar_control(Control *p_control);
+ 	void remove_title_bar_control(Control *p_control);
++	Control *get_title_bar_control(int64_t p_index) const;
++	int get_title_bar_control_count() const;
+ 
+ 	virtual Size2 get_minimum_size() const override;
+ 	virtual Size2 get_desired_size() const override;
+
+
+Repository: godotengine/godot
+Commit: 34d32441467ebd902e5263aef7f409ec34041723
+Date: 2026-09-15T22:55:53Z
+Merge pull request #123522 from dsnopek/openxr-composition-layer-create-fallback-on-ready
+
+OpenXR: Fix composition layer fallback mesh not created without OpenXR
+
+From b908bccb6f9edfc7ed38fc55759da1837e8fc000 Mon Sep 17 00:00:00 2001
+From: David Snopek <dsnopek@gmail.com>
+Date: Tue, 15 Sep 2026 11:43:56 -0500
+Subject: [PATCH] OpenXR: Fix composition layer fallback mesh not created
+ without OpenXR
+
+---
+ modules/openxr/scene/openxr_composition_layer.cpp | 13 +++++++++++--
+ 1 file changed, 11 insertions(+), 2 deletions(-)
+
+diff --git a/modules/openxr/scene/openxr_composition_layer.cpp b/modules/openxr/scene/openxr_composition_layer.cpp
+index 852eeabff81f..85ac90d6ed46 100644
+--- a/modules/openxr/scene/openxr_composition_layer.cpp
++++ b/modules/openxr/scene/openxr_composition_layer.cpp
+@@ -266,8 +266,12 @@ void OpenXRCompositionLayer::_on_openxr_session_begun() {
+ 	if (_should_register()) {
+ 		_setup_composition_layer();
+ 	}
+-	if (!fallback && _should_use_fallback_node()) {
+-		_create_fallback_node();
++	if (_should_use_fallback_node()) {
++		if (!fallback) {
++			_create_fallback_node();
++		} else {
++			should_update_fallback_mesh = true;
++		}
+ 	}
+ }
+ 
+@@ -716,6 +720,11 @@ void OpenXRCompositionLayer::_notification(int p_what) {
+ 				composition_layer_extension->composition_layer_set_extension_property_values(composition_layer, extension_property_values);
+ 			}
+ 		} break;
++		case NOTIFICATION_READY: {
++			if (!fallback && _should_use_fallback_node()) {
++				_create_fallback_node();
++			}
++		} break;
+ 		case NOTIFICATION_INTERNAL_PROCESS: {
+ 			if (fallback) {
+ 				if (should_update_fallback_mesh) {
+
+
+Repository: godotengine/godot
+Commit: 2f61286069a417835424427075f9d08861ce60b9
+Date: 2026-09-15T22:55:52Z
+Merge pull request #123527 from dsnopek/openxr-composition-layer-global-transform-error
+
+OpenXR:

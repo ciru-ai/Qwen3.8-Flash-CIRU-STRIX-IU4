@@ -1,0 +1,141 @@
+{
+  "format": "BF16 little endian, lossless from original F32 storage (all low16 bits verified zero)",
+  "shape": [
+    16,
+    1024,
+    248320
+  ],
+  "original_f32_sha256": "603c7dc9b61113ec5a54c6147956022c2cd6633c825beccce3371128f3b8259c",
+  "panel_sha256": "d6f3f47327f7f6d2beb41878f59752dd98d6e3eed8a0bcf340e44242bb294f16",
+  "release_base": "https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/download/fidelity-v1.0.0",
+  "files": [
+    {
+      "window": 0,
+      "file": "reference-00.bf16le.gz",
+      "sha256": "e0923afaeaba909488ec85c7a53913e479ee8cdb807fe055125c88921534177f",
+      "bytes": 394291388,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "bccc2f9029b9abcad986b2704cdf09dcc571bd2d9ead8daa3fa73670150ea40d"
+    },
+    {
+      "window": 1,
+      "file": "reference-01.bf16le.gz",
+      "sha256": "57952d9a69658a2133155dd286211ffca99e5e7252ed7124b683aad231bd22e0",
+      "bytes": 390989163,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "0fee89cf72a8b4f9562b335d34b88b76e2058c5d82722a1e168e21c66153b8d1"
+    },
+    {
+      "window": 2,
+      "file": "reference-02.bf16le.gz",
+      "sha256": "b3ad599ac3ae224ebfc92ee099d79002781edb34f5af25dc7570ef342329827c",
+      "bytes": 396087255,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "df2c091099eb814d68a34daf89cfacc40d0c15908ef0b7bb1e13caac590a3c64"
+    },
+    {
+      "window": 3,
+      "file": "reference-03.bf16le.gz",
+      "sha256": "b9de0179bb3ffd7ecca02848fe8bf4bc724ccc3b0a4dce86fc97c7d1623f9f2d",
+      "bytes": 393249462,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "ef986f7b4176116048c32f1f18fbd2038459192be7592ec0408b994a484f2400"
+    },
+    {
+      "window": 4,
+      "file": "reference-04.bf16le.gz",
+      "sha256": "b21922c60736b3281de55b7434e9409b7cc7fdecb7a612a7b7c16261102b711d",
+      "bytes": 391142180,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "68f67cd85f67d3086c9fab70850754536cdcad383fd448223328a4e7b5125356"
+    },
+    {
+      "window": 5,
+      "file": "reference-05.bf16le.gz",
+      "sha256": "1dd9b0de25dc99c5213b62be2e7828b75c2b01703ddea8e63eb55bbb7502ef66",
+      "bytes": 388809871,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "fa3c1329092fbb07fe3869ca43cf23725b7a7bc778c3ae9102d77b4328e72361"
+    },
+    {
+      "window": 6,
+      "file": "reference-06.bf16le.gz",
+      "sha256": "4e8962273d3ffc7f3f0692f3737c7523422aa023faee02b8c31bd15ba9666a25",
+      "bytes": 393412924,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "92079f59130d9dcc4ae7c6be925eb93108329698b841ed8687793b12fa83d1dc"
+    },
+    {
+      "window": 7,
+      "file": "reference-07.bf16le.gz",
+      "sha256": "9f859b5cb1098f3bae789351f92f86d62987c2cd20b1f4beb67a8db7aacc186b",
+      "bytes": 396427626,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "8f55434f28587e8e09fe1ae783ed95099a092bf0a086825c1d3eb0cddbb18918"
+    },
+    {
+      "window": 8,
+      "file": "reference-08.bf16le.gz",
+      "sha256": "e02d6cee23f80508bbcf61faa5bc337095a121a4a6107db6534c2f6047730b36",
+      "bytes": 393903568,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "d091c31871eb412b1a97038dee6bf40fb09a305c02040c7682f011d627362fae"
+    },
+    {
+      "window": 9,
+      "file": "reference-09.bf16le.gz",
+      "sha256": "bb7fc53714bf5d505495fc90b4dae24257539c50b424f6851d0722f90284a31c",
+      "bytes": 397286811,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "6591949b3867b6c01ae87eac8db78089f19765382414f86bf7f21d4cbc32c504"
+    },
+    {
+      "window": 10,
+      "file": "reference-10.bf16le.gz",
+      "sha256": "1c556478c66c1bbd7d9556c611218d36dd1b1e6374519f17e14fd1384aa8f448",
+      "bytes": 392947057,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "f76f315307a5fa86f2227f0fd597e1350c03a5cc1fc9fbdd30f3ef8f4fe03d86"
+    },
+    {
+      "window": 11,
+      "file": "reference-11.bf16le.gz",
+      "sha256": "f36b2609462d8ee3968352892d183a5f60590d88e66a0d93b01b47e8aea94ec5",
+      "bytes": 377458550,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "38c05ddb1261233301ae90c934658f2bc292ce0ca9a3a30c4e0884b350446f76"
+    },
+    {
+      "window": 12,
+      "file": "reference-12.bf16le.gz",
+      "sha256": "4d14806e0aadbc289c844bf587b8506b6f0d3fd4aedf51f3c170ee9774d66fad",
+      "bytes": 389565189,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "268ea1404533bc4f38a0e3bfe647156fa6efb90ae5e1a74d408759466b809acf"
+    },
+    {
+      "window": 13,
+      "file": "reference-13.bf16le.gz",
+      "sha256": "3b7641e125d7c7c14a8ec96b4f4af03fcca411f892a514b4a28428ad326cadbc",
+      "bytes": 391287333,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "61f0b1957784d5a93d2da123521f7a410c431b60c073cb1e54e4f8dd26e25e91"
+    },
+    {
+      "window": 14,
+      "file": "reference-14.bf16le.gz",
+      "sha256": "a4992fb70ba6b3ee0be715177ba2b2156acc518a0280804294482e8c0b3dae7c",
+      "bytes": 390132822,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "816ce0b16ba04d0a0d7d803f80f74a79058d78b15b215895bbb31acaaadb7654"
+    },
+    {
+      "window": 15,
+      "file": "reference-15.bf16le.gz",
+      "sha256": "cfd77802397e6a2cd68df1bafc9bbcb5105bc807bb069d3979b9867c4eaf338f",
+      "bytes": 389452964,
+      "uncompressed_bytes": 508559360,
+      "uncompressed_sha256": "fe247f04c89d85094a6143bf37b928175fb8bbc6aad31bab836b506e8779059f"
+    }
+  ]
+}

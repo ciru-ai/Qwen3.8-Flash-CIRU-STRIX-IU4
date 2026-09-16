@@ -1,0 +1,613 @@
+{
+  "classification": "local-custom",
+  "name": "public-engineering-september-2026-v1",
+  "since": "2026-09-01T00:00:00Z",
+  "until": "2026-09-15T23:59:59Z",
+  "selection": "Newest-first commits in fixed date range; collect >=70000 characters or 12 commits per repository, then take first two 2048-token windows with one extra next-token label each.",
+  "input_tokens_per_window": 2048,
+  "scored_positions": [
+    1024,
+    2047
+  ],
+  "windows_per_repository": 2,
+  "no_candidate_outputs_used_for_selection": true,
+  "limitations": "Engineering-only corpus; not a general capability benchmark. Recent changes reduce overlap risk but are not proof every fragment was unseen during training.",
+  "repositories": [
+    {
+      "repository": "python/cpython",
+      "text_path": "python__cpython/text.txt",
+      "text_sha256": "d1d0fb7154fc8600e73a60b9bff65aada3f7fb4b891a9a17d87ae2d384dc7eb3",
+      "sources": [
+        {
+          "revision": "9a1733d5712545db0703c712b158ae5e2a19e1d0",
+          "date": "2026-09-15T21:18:12Z",
+          "url": "https://github.com/python/cpython/commit/9a1733d5712545db0703c712b158ae5e2a19e1d0.patch",
+          "sha256": "8ad8ae23abb9bd02c64513ffd6240ecf849ba7419f9a68f9c1f433a5c1f5ed17"
+        },
+        {
+          "revision": "e2ca4dc94c553c34578d229c8254b55464045641",
+          "date": "2026-09-15T21:16:43Z",
+          "url": "https://github.com/python/cpython/commit/e2ca4dc94c553c34578d229c8254b55464045641.patch",
+          "sha256": "4bd854109168a655bc0c1815ffc5c889df3dbe99ff7714d5248bdba90d886207"
+        },
+        {
+          "revision": "82952e3fe3ad36e481911a32790068d5df680ee7",
+          "date": "2026-09-15T16:53:08Z",
+          "url": "https://github.com/python/cpython/commit/82952e3fe3ad36e481911a32790068d5df680ee7.patch",
+          "sha256": "3143ca0beefec8be46679c0ab49dc8de32733042f86b9924577c8f00c4ae008f"
+        },
+        {
+          "revision": "5601e1ec3b5b4b94f189f8a457eea445cda6be45",
+          "date": "2026-09-15T15:54:55Z",
+          "url": "https://github.com/python/cpython/commit/5601e1ec3b5b4b94f189f8a457eea445cda6be45.patch",
+          "sha256": "47986f31b1e4c857dda644ef955fddc2acc70c8bc48e5186ac66ecda867f4ae3"
+        },
+        {
+          "revision": "37452c7db46b89a61f1d8322751f2bf0f5b05888",
+          "date": "2026-09-15T15:18:39Z",
+          "url": "https://github.com/python/cpython/commit/37452c7db46b89a61f1d8322751f2bf0f5b05888.patch",
+          "sha256": "cb80a0dd01b1cc1d0bc594a23a268ba2d01540c165e9902fc228c3b8eaf6bbbd"
+        },
+        {
+          "revision": "fb123c860aad1e4312a9c488bfc8c28d52b0aabb",
+          "date": "2026-09-15T15:17:43Z",
+          "url": "https://github.com/python/cpython/commit/fb123c860aad1e4312a9c488bfc8c28d52b0aabb.patch",
+          "sha256": "391affe15087f3c5c47dfeaf26b6a30225a44e10e18987179dc3a36605b9ef77"
+        },
+        {
+          "revision": "3b1057d4b5b2dfa57f6dbd868ffe7f787e0a82c9",
+          "date": "2026-09-15T15:10:07Z",
+          "url": "https://github.com/python/cpython/commit/3b1057d4b5b2dfa57f6dbd868ffe7f787e0a82c9.patch",
+          "sha256": "c9553369bc4888bea1833459e4bbc5b034935ca5c6f9f38e90f8d4b624dd0d10"
+        },
+        {
+          "revision": "2d1007f931963ef907460ddaa110bac4e635eebd",
+          "date": "2026-09-15T14:34:17Z",
+          "url": "https://github.com/python/cpython/commit/2d1007f931963ef907460ddaa110bac4e635eebd.patch",
+          "sha256": "451045cdfb6fd8db592f2b4a71046754254b2fe1e3fc5d50dbe3b12ce63c400f"
+        },
+        {
+          "revision": "d95f29589e03603aa13d8ca9d4f817dce77d357c",
+          "date": "2026-09-15T13:50:40Z",
+          "url": "https://github.com/python/cpython/commit/d95f29589e03603aa13d8ca9d4f817dce77d357c.patch",
+          "sha256": "b7101edc1cbc476c907b498b53385d60ca751126f7205d8327682d1869cfef17"
+        }
+      ]
+    },
+    {
+      "repository": "numpy/numpy",
+      "text_path": "numpy__numpy/text.txt",
+      "text_sha256": "bfbe4ab32a54952fe2fecdce964cc54d77565f62dfca7ed4133c68cc23321c60",
+      "sources": [
+        {
+          "revision": "f2e0ef9e47a22ba39be5136ac6a94a4f39b25cbe",
+          "date": "2026-09-15T19:56:15Z",
+          "url": "https://github.com/numpy/numpy/commit/f2e0ef9e47a22ba39be5136ac6a94a4f39b25cbe.patch",
+          "sha256": "45b61c656eeace8ffa0d1ceedbb0f6520d951f5b061b31668fb85a06fb5d7c80"
+        },
+        {
+          "revision": "8ba190e375d991dbb8f02587332b019ef514984a",
+          "date": "2026-09-15T19:46:31Z",
+          "url": "https://github.com/numpy/numpy/commit/8ba190e375d991dbb8f02587332b019ef514984a.patch",
+          "sha256": "27970b5399384bfd548ed23ef1e33fd7d8cd546e07665f09f1552f66bf759485"
+        },
+        {
+          "revision": "e83341e846086c2594a4d086961e091eb797f48f",
+          "date": "2026-09-15T19:27:44Z",
+          "url": "https://github.com/numpy/numpy/commit/e83341e846086c2594a4d086961e091eb797f48f.patch",
+          "sha256": "2ab84746cbcbb971ea27fba69a628e002ddec0b3d31e926e153a1b8d561cfb79"
+        },
+        {
+          "revision": "a140638cc2e4c7b0dce49ec3d7a38efea541f485",
+          "date": "2026-09-15T19:26:45Z",
+          "url": "https://github.com/numpy/numpy/commit/a140638cc2e4c7b0dce49ec3d7a38efea541f485.patch",
+          "sha256": "eb5fad36917126a1ad2d18e42dbfcb74f2e80692052ebe0f14693345e6f84098"
+        },
+        {
+          "revision": "f86c3efdd00f7383e62e446ee6bb83924f660931",
+          "date": "2026-09-15T19:25:21Z",
+          "url": "https://github.com/numpy/numpy/commit/f86c3efdd00f7383e62e446ee6bb83924f660931.patch",
+          "sha256": "40c46337d4d3d0e5c13d11f896d60cf8f8c98fcef13822f3e3c5b630596e6725"
+        },
+        {
+          "revision": "b245332d3bad04f2b1fa354bcb70af54ac1bdc8b",
+          "date": "2026-09-15T18:40:49Z",
+          "url": "https://github.com/numpy/numpy/commit/b245332d3bad04f2b1fa354bcb70af54ac1bdc8b.patch",
+          "sha256": "5ea0d94c7ad2e731754992cb39f510af01056d8de0e5614e8461464982657f2e"
+        },
+        {
+          "revision": "12ab800382cf635163ebfd8ffacb7e0862052f59",
+          "date": "2026-09-15T18:21:27Z",
+          "url": "https://github.com/numpy/numpy/commit/12ab800382cf635163ebfd8ffacb7e0862052f59.patch",
+          "sha256": "5960984cbc9a85870bfbb031d1d35cde2aad504f6d72b69c79f0ace8bdf50ccf"
+        }
+      ]
+    },
+    {
+      "repository": "scipy/scipy",
+      "text_path": "scipy__scipy/text.txt",
+      "text_sha256": "e73bd2b6742c1cdb2c14c1a981646895066947ddc0fcc7cad469552fbbabc534",
+      "sources": [
+        {
+          "revision": "aaf67effe289831880b6ba487654190248c6ba2e",
+          "date": "2026-09-15T12:46:33Z",
+          "url": "https://github.com/scipy/scipy/commit/aaf67effe289831880b6ba487654190248c6ba2e.patch",
+          "sha256": "3111eecb9eb02d1c6149e7950ced1f73bb59ad5bb1084512d4dbcc4e170d7872"
+        },
+        {
+          "revision": "884ac0b6fc53a70d023948287d34b76c7a559c62",
+          "date": "2026-09-15T03:59:03Z",
+          "url": "https://github.com/scipy/scipy/commit/884ac0b6fc53a70d023948287d34b76c7a559c62.patch",
+          "sha256": "f8bcbba4b81776afca46110d0a30aa269119899f293767e0c0a746b57dc4413c"
+        },
+        {
+          "revision": "1b6618f2bb83a9ea37446bdc97fefea0c434a5ea",
+          "date": "2026-09-15T02:02:47Z",
+          "url": "https://github.com/scipy/scipy/commit/1b6618f2bb83a9ea37446bdc97fefea0c434a5ea.patch",
+          "sha256": "411b485ffc5102f518503945696eb06832b29340911bf66989fdc6a561f01823"
+        },
+        {
+          "revision": "9a82cef6fcc654d18cd512f419d14b0a096ce3bc",
+          "date": "2026-09-14T21:45:23Z",
+          "url": "https://github.com/scipy/scipy/commit/9a82cef6fcc654d18cd512f419d14b0a096ce3bc.patch",
+          "sha256": "10a45852b467d3cfc43f6aac516eafd7be4c17c5c6c2a55a2f2f2ccff6a02cf2"
+        },
+        {
+          "revision": "f9fa9aac7ce9180fefeabb19cfdbf6623c9e5c8a",
+          "date": "2026-09-14T21:29:22Z",
+          "url": "https://github.com/scipy/scipy/commit/f9fa9aac7ce9180fefeabb19cfdbf6623c9e5c8a.patch",
+          "sha256": "cc3bbe135627490d115b1454789e382b0b7c4272c8127e3c4488eede54811292"
+        },
+        {
+          "revision": "525083e6e62114f4c20d88534f44739d3dc906f6",
+          "date": "2026-09-14T20:24:28Z",
+          "url": "https://github.com/scipy/scipy/commit/525083e6e62114f4c20d88534f44739d3dc906f6.patch",
+          "sha256": "8a7e7209bb990b07b5c7473f9f637118b1c927a6ebfc7dea2a1f808242683e26"
+        },
+        {
+          "revision": "a20572cb8b88d33b2c8f9c2416125d1d1b24f940",
+          "date": "2026-09-14T16:07:53Z",
+          "url": "https://github.com/scipy/scipy/commit/a20572cb8b88d33b2c8f9c2416125d1d1b24f940.patch",
+          "sha256": "522f0a061dd6d1722ec806a773fd225e118525933cea821d899c3329444dc970"
+        }
+      ]
+    },
+    {
+      "repository": "rust-lang/rust",
+      "text_path": "rust-lang__rust/text.txt",
+      "text_sha256": "bcffe578a6d58b0b519abc1c11cb04839a27fd1ffab5b66886da515b1f222993",
+      "sources": [
+        {
+          "revision": "2b9a7be8551a6497a952d87d7dbf38484e5bfa5a",
+          "date": "2026-09-15T22:12:23Z",
+          "url": "https://github.com/rust-lang/rust/commit/2b9a7be8551a6497a952d87d7dbf38484e5bfa5a.patch",
+          "sha256": "1bd47b7969c11a18902a12f88eb34dea565f6fcd5dd5baec3ff64106a3180ee4"
+        },
+        {
+          "revision": "1ffe14bdb74d489e7bacf977262b7e5f64ce9286",
+          "date": "2026-09-15T21:26:59Z",
+          "url": "https://github.com/rust-lang/rust/commit/1ffe14bdb74d489e7bacf977262b7e5f64ce9286.patch",
+          "sha256": "1f634cd0543a150d198fd5ab23d80693a440c23a4ebe15e8d4735a07b1e77832"
+        },
+        {
+          "revision": "354f732b7aedd34cbafc10dc35786ac473ee5c2a",
+          "date": "2026-09-15T21:26:58Z",
+          "url": "https://github.com/rust-lang/rust/commit/354f732b7aedd34cbafc10dc35786ac473ee5c2a.patch",
+          "sha256": "3bfa5c258fe182719b758872ce445bd85c443107bf5c8aa283648cbbd0556ac7"
+        },
+        {
+          "revision": "556c0e625b9f24942a6ee2cc3ef1683c60868d6a",
+          "date": "2026-09-15T21:26:58Z",
+          "url": "https://github.com/rust-lang/rust/commit/556c0e625b9f24942a6ee2cc3ef1683c60868d6a.patch",
+          "sha256": "2e68a63e4ef8c4c7efdf178f8178bf5511edc20a481aed180a48c5acf760f7b2"
+        },
+        {
+          "revision": "2cb8b181007fd50c394fbbe16b115e942c5b62ab",
+          "date": "2026-09-15T21:26:57Z",
+          "url": "https://github.com/rust-lang/rust/commit/2cb8b181007fd50c394fbbe16b115e942c5b62ab.patch",
+          "sha256": "fecf55b9043281e17a64905c2e1d0877189bf63347325edf152e09a99e5440b9"
+        }
+      ]
+    },
+    {
+      "repository": "microsoft/TypeScript",
+      "text_path": "microsoft__TypeScript/text.txt",
+      "text_sha256": "f9756738c8bd47a4b3f5e27f205996395a0f567e0a4c0e03b9c81f74df99851e",
+      "sources": [
+        {
+          "revision": "d2b20b35034bd902bdda5974f522ff00352895e9",
+          "date": "2026-09-15T20:52:40Z",
+          "url": "https://github.com/microsoft/TypeScript/commit/d2b20b35034bd902bdda5974f522ff00352895e9.patch",
+          "sha256": "3d8880c6ed0239a74da6a16e65de6df7a29c67dfca3c798f0eaad1fe3dbf78d6"
+        },
+        {
+          "revision": "82f827f72f15f8372f1a489b68b20661bec13844",
+          "date": "2026-09-15T19:23:35Z",
+          "url": "https://github.com/microsoft/TypeScript/commit/82f827f72f15f8372f1a489b68b20661bec13844.patch",
+          "sha256": "5ec8bf83dfbf5434b4998e5b1f54efbcdde09d476900e70d53bed19c49f287b5"
+        },
+        {
+          "revision": "454c08198158980120911d11a526ec2bfb7215f5",
+          "date": "2026-09-15T19:08:36Z",
+          "url": "https://github.com/microsoft/TypeScript/commit/454c08198158980120911d11a526ec2bfb7215f5.patch",
+          "sha256": "282b0ca0384943219bff05e1f59f13375589de140c4047ccaae6b45db0388305"
+        }
+      ]
+    },
+    {
+      "repository": "postgres/postgres",
+      "text_path": "postgres__postgres/text.txt",
+      "text_sha256": "f80b85ead7d16cbdbf6dce0bbb946463b52888ac14456fd64fee5135ed27cb81",
+      "sources": [
+        {
+          "revision": "72af14bccd2127bf20ddeaf198b78de46e9e892b",
+          "date": "2026-09-15T22:07:08Z",
+          "url": "https://github.com/postgres/postgres/commit/72af14bccd2127bf20ddeaf198b78de46e9e892b.patch",
+          "sha256": "24a9abe661f356c90050c17c96f06e73d9fd621ea82070fd5ca90758f0a79c43"
+        },
+        {
+          "revision": "862092932c9479b79732f3b441da05453ea5e06d",
+          "date": "2026-09-15T18:36:47Z",
+          "url": "https://github.com/postgres/postgres/commit/862092932c9479b79732f3b441da05453ea5e06d.patch",
+          "sha256": "f6e7fec7ce28a4d8953b38fd73121c147d354a8b0fb99bdb04b85eb2297b5d4f"
+        },
+        {
+          "revision": "78142821dfd42a7ca1010811ce77ff7b96218741",
+          "date": "2026-09-15T16:21:58Z",
+          "url": "https://github.com/postgres/postgres/commit/78142821dfd42a7ca1010811ce77ff7b96218741.patch",
+          "sha256": "46fb00cb7dd49580884f52161867ddf702aafc697adca61ef183a21158ac2d30"
+        },
+        {
+          "revision": "ddce1da5b1b1b4672e621c0da245e01474cbd4e8",
+          "date": "2026-09-15T15:19:13Z",
+          "url": "https://github.com/postgres/postgres/commit/ddce1da5b1b1b4672e621c0da245e01474cbd4e8.patch",
+          "sha256": "ade655582b88053a77fa6cadc296baddaa6fcb5b4fad80e76a022c4b34f75638"
+        }
+      ]
+    },
+    {
+      "repository": "curl/curl",
+      "text_path": "curl__curl/text.txt",
+      "text_sha256": "c5bded4d07eb3e44148488d8322e1b6e062091d55c4187454030ffc37d857820",
+      "sources": [
+        {
+          "revision": "cdbe4eb55609e2096e296faf86552f27514d6a01",
+          "date": "2026-09-15T21:14:12Z",
+          "url": "https://github.com/curl/curl/commit/cdbe4eb55609e2096e296faf86552f27514d6a01.patch",
+          "sha256": "9c5eb1b4b2a0cb7af20a3c96fcfd8075dcd073d8f56e73f7fd97ca77d3922e55"
+        },
+        {
+          "revision": "35b0490aabf515b817ea2462722306cf118e7747",
+          "date": "2026-09-15T15:04:25Z",
+          "url": "https://github.com/curl/curl/commit/35b0490aabf515b817ea2462722306cf118e7747.patch",
+          "sha256": "0d1a3ae12598376e6d7da8dc782de18ba7b98ab31274262fce6626c91d4ea2e3"
+        },
+        {
+          "revision": "32c6bd5303bfafaa80453a7d112d240baf2f8141",
+          "date": "2026-09-15T15:03:09Z",
+          "url": "https://github.com/curl/curl/commit/32c6bd5303bfafaa80453a7d112d240baf2f8141.patch",
+          "sha256": "87326a35503f9b88ec4a90a038e9600e0adc37701308c1c5123ca2bd763d7ba6"
+        },
+        {
+          "revision": "91e0ed51a57d65c33a09d912eb4dec23e7efa667",
+          "date": "2026-09-15T08:29:45Z",
+          "url": "https://github.com/curl/curl/commit/91e0ed51a57d65c33a09d912eb4dec23e7efa667.patch",
+          "sha256": "42d8b81c6b265d732731b2faf6adc1b5d62614fe5f01c335f98571a8989cea1a"
+        },
+        {
+          "revision": "f4caaa2354d45d40dd07c6d09712dbc502adf79a",
+          "date": "2026-09-14T15:01:17Z",
+          "url": "https://github.com/curl/curl/commit/f4caaa2354d45d40dd07c6d09712dbc502adf79a.patch",
+          "sha256": "25a390dfc327a180c0e7f627bd11d3b8038e24da1441ad527715a9ac60d82ebc"
+        },
+        {
+          "revision": "ef362b78ac4349c3160c498fffccb5b69e65b15d",
+          "date": "2026-09-14T14:31:20Z",
+          "url": "https://github.com/curl/curl/commit/ef362b78ac4349c3160c498fffccb5b69e65b15d.patch",
+          "sha256": "7380bf80ef121d69a083ff21450fa1eeb0cd6f643cb5d1b53d7b993bacf95ff6"
+        },
+        {
+          "revision": "3f79dc36253e88411e13188042909d9bdc1978db",
+          "date": "2026-09-14T12:15:23Z",
+          "url": "https://github.com/curl/curl/commit/3f79dc36253e88411e13188042909d9bdc1978db.patch",
+          "sha256": "aee427e6fdbcd43c6a1b5c2e005a3540b79e8b54b39036368665a399a6dad77d"
+        },
+        {
+          "revision": "753735af87f5c30cb6f60a70342f8bc4bc5fd5db",
+          "date": "2026-09-14T11:40:36Z",
+          "url": "https://github.com/curl/curl/commit/753735af87f5c30cb6f60a70342f8bc4bc5fd5db.patch",
+          "sha256": "4409f50ce757fbad32d8b3daefb83c0ed78933a331f1d8c2f567be8d08086388"
+        },
+        {
+          "revision": "4a608405b6911e2fe374fca4239b3480a4e0cb2f",
+          "date": "2026-09-14T11:38:38Z",
+          "url": "https://github.com/curl/curl/commit/4a608405b6911e2fe374fca4239b3480a4e0cb2f.patch",
+          "sha256": "5b2799c1b70ceb991e49fbd35465f49bdf14a05cb8c01fe634f975f8416033ca"
+        },
+        {
+          "revision": "458704d484706732890599290c109d0149df5e52",
+          "date": "2026-09-14T11:34:09Z",
+          "url": "https://github.com/curl/curl/commit/458704d484706732890599290c109d0149df5e52.patch",
+          "sha256": "708e63d78658d0fc0126dd7f29b0090b73ead96caaddd0910bca36fffda0ff7b"
+        },
+        {
+          "revision": "1e2d19f454b33443a0edd7910a46ad77f4367b4f",
+          "date": "2026-09-14T08:30:58Z",
+          "url": "https://github.com/curl/curl/commit/1e2d19f454b33443a0edd7910a46ad77f4367b4f.patch",
+          "sha256": "5402d849a6242b06c83ae52c1cf84fe441037554de8b791830385ba2ba27912d"
+        },
+        {
+          "revision": "4db25ff7e9813bad30d44b7134fbe7f444993aa0",
+          "date": "2026-09-14T06:47:11Z",
+          "url": "https://github.com/curl/curl/commit/4db25ff7e9813bad30d44b7134fbe7f444993aa0.patch",
+          "sha256": "f5d527b3d37fbe75ec88aa9745bd0fc992836f13e9fad2450170ffd296ea54da"
+        }
+      ]
+    },
+    {
+      "repository": "godotengine/godot",
+      "text_path": "godotengine__godot/text.txt",
+      "text_sha256": "2fcf5a4b9644e7240937096b27000d65d76316e1a1ee1c263b1fa65f713111fc",
+      "sources": [
+        {
+          "revision": "dfa06cafb4546eac47d863dfa12aec54e4efa586",
+          "date": "2026-09-15T22:55:53Z",
+          "url": "https://github.com/godotengine/godot/commit/dfa06cafb4546eac47d863dfa12aec54e4efa586.patch",
+          "sha256": "9590243ea60569ea3cd550fc6738803c84a9736fd27186c92d6fc249857c95a5"
+        },
+        {
+          "revision": "34d32441467ebd902e5263aef7f409ec34041723",
+          "date": "2026-09-15T22:55:53Z",
+          "url": "https://github.com/godotengine/godot/commit/34d32441467ebd902e5263aef7f409ec34041723.patch",
+          "sha256": "b4c4247d1cc837f7bff1dbde321350b3bf06e7c1915578b3e005179b79f9da09"
+        },
+        {
+          "revision": "2f61286069a417835424427075f9d08861ce60b9",
+          "date": "2026-09-15T22:55:52Z",
+          "url": "https://github.com/godotengine/godot/commit/2f61286069a417835424427075f9d08861ce60b9.patch",
+          "sha256": "dcfedbced60201eb00f10b2f2344db98ace7cc5d3bdfb50e5d718ddaac286117"
+        },
+        {
+          "revision": "38ef9d32e883a41747a4b73022e9e24538670591",
+          "date": "2026-09-15T22:55:52Z",
+          "url": "https://github.com/godotengine/godot/commit/38ef9d32e883a41747a4b73022e9e24538670591.patch",
+          "sha256": "4a0a17adcc13e37d49833bf049ec269f87959fad5bf533b6dd5d77bc05e710e8"
+        },
+        {
+          "revision": "75212c8ad9ef6d726d2c5f454379b2b4158e6e17",
+          "date": "2026-09-15T22:55:51Z",
+          "url": "https://github.com/godotengine/godot/commit/75212c8ad9ef6d726d2c5f454379b2b4158e6e17.patch",
+          "sha256": "2020794b4273b1ebaded60b52ba25e42fd2f51d7e344cf243b756516b188b70c"
+        },
+        {
+          "revision": "740ee7bda2e0745b1f2a2c8d548bfea5e0f08f44",
+          "date": "2026-09-15T22:55:51Z",
+          "url": "https://github.com/godotengine/godot/commit/740ee7bda2e0745b1f2a2c8d548bfea5e0f08f44.patch",
+          "sha256": "a1a48cbe74ae0d06517336275f468c47080db67101d1f36e3fed7ead034f15b7"
+        },
+        {
+          "revision": "eccef3829d1d718e07892656ba2be02983162e82",
+          "date": "2026-09-15T22:55:50Z",
+          "url": "https://github.com/godotengine/godot/commit/eccef3829d1d718e07892656ba2be02983162e82.patch",
+          "sha256": "a1653f795b17bc93912940f78b04f58e64b288434baeb9573a5bd51fd85f130f"
+        },
+        {
+          "revision": "b54dd7558d2938c8a54ce898eca460d31c800f22",
+          "date": "2026-09-15T22:55:50Z",
+          "url": "https://github.com/godotengine/godot/commit/b54dd7558d2938c8a54ce898eca460d31c800f22.patch",
+          "sha256": "8058c54025a135b7a79bfce775bb1a7d15f469c4935ffb5d1d64d4f81b8c0c20"
+        },
+        {
+          "revision": "ab0683fe3497ff1d9f9c9a8140eb3a58b848bfd6",
+          "date": "2026-09-15T22:55:50Z",
+          "url": "https://github.com/godotengine/godot/commit/ab0683fe3497ff1d9f9c9a8140eb3a58b848bfd6.patch",
+          "sha256": "f4e8fffbb9693f78c73b912ad105e73a2038fe2187d7974605c2cc87e2f9c2d5"
+        },
+        {
+          "revision": "f2b62d0c5bd5aac99c64112b21c2f33b136245e6",
+          "date": "2026-09-15T22:55:49Z",
+          "url": "https://github.com/godotengine/godot/commit/f2b62d0c5bd5aac99c64112b21c2f33b136245e6.patch",
+          "sha256": "b78384b7e04e96b73942a09cf37220698871ca7cdfd1cefd1d17ee6cc8a61ef3"
+        },
+        {
+          "revision": "64dade0ae66307928ac6a8ffc791b1baea9c27f3",
+          "date": "2026-09-15T22:55:49Z",
+          "url": "https://github.com/godotengine/godot/commit/64dade0ae66307928ac6a8ffc791b1baea9c27f3.patch",
+          "sha256": "ac32b9f6b8119e8b020268fd959458c4cd91df89799f6ca68d90c58883777dce"
+        },
+        {
+          "revision": "fd50cfe55b3cde627d53ad1bc74717f518e6767d",
+          "date": "2026-09-15T22:55:48Z",
+          "url": "https://github.com/godotengine/godot/commit/fd50cfe55b3cde627d53ad1bc74717f518e6767d.patch",
+          "sha256": "aaa2f531fa43f764411acf6b4b5c2215cc380cbb97c6ea547f9bf693b46db2c6"
+        }
+      ]
+    }
+  ],
+  "tokenizer_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+  "add_special_tokens": false,
+  "panel_sha256": "d6f3f47327f7f6d2beb41878f59752dd98d6e3eed8a0bcf340e44242bb294f16",
+  "panel_shape": [
+    16,
+    2049
+  ],
+  "n_scored_positions": 16384,
+  "windows": [
+    {
+      "index": 0,
+      "repository": "python/cpython",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-00.tokens.i32le",
+      "tokens_sha256": "9a5486d750f6d123b23e6d0a938eb7cdc0ad554b9e80b7e85e2d26852be44a7a",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 1,
+      "repository": "python/cpython",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-01.tokens.i32le",
+      "tokens_sha256": "7f42ff8fbaf9331cd50f4aa0a5eae16aa51a189c6a98f553cd1639a0ae1a1195",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 2,
+      "repository": "numpy/numpy",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-02.tokens.i32le",
+      "tokens_sha256": "fe008fc83c2c320494ad5c35f268427cf8c30a7f01aaefcfca3767697c7750ac",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 3,
+      "repository": "numpy/numpy",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-03.tokens.i32le",
+      "tokens_sha256": "584d6e89274f0e50b7aa553b75b0e0b10a31c01f32c9a12711bbff410f27ba11",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 4,
+      "repository": "scipy/scipy",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-04.tokens.i32le",
+      "tokens_sha256": "66f0f23ceb74e7466e871171d0294397d19a12de3ac2020fc43b9094b9cf3605",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 5,
+      "repository": "scipy/scipy",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-05.tokens.i32le",
+      "tokens_sha256": "eaceb882ed537642896606fdd2c51cae132d7cd93e9783e749079b7f2912bb06",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 6,
+      "repository": "rust-lang/rust",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-06.tokens.i32le",
+      "tokens_sha256": "7ed038561238ae8752bbb5f9628ec7c7b8eccdf81e3f34a907ac557a4890c5a8",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 7,
+      "repository": "rust-lang/rust",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-07.tokens.i32le",
+      "tokens_sha256": "d74a98ca0666e5e5a12e2f2de49050046c6c51672c45d010873172b98eb788d0",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 8,
+      "repository": "microsoft/TypeScript",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-08.tokens.i32le",
+      "tokens_sha256": "36584101e1a5d7d166b9cc612ed7ef83326f9f28e9dd77b90e2083af3c92edfb",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 9,
+      "repository": "microsoft/TypeScript",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-09.tokens.i32le",
+      "tokens_sha256": "de79a0a82bae2e9689be2591d2f94e9d25e4f422d12cba05372c8bc19e4949a1",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 10,
+      "repository": "postgres/postgres",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-10.tokens.i32le",
+      "tokens_sha256": "c7fc688e4dd0a92b5410fb9e338033d33244631c9b156953ebadcf4d1bc1615f",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 11,
+      "repository": "postgres/postgres",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-11.tokens.i32le",
+      "tokens_sha256": "33b1bddd17c68d947e12bb0934b0ac9bc36fb366bdbdfc5dc51b5732468220ac",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 12,
+      "repository": "curl/curl",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-12.tokens.i32le",
+      "tokens_sha256": "89a1917a220c82f43538cadb4f197ff916eb250382a9fbbff066ddfb9ece1e1a",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 13,
+      "repository": "curl/curl",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-13.tokens.i32le",
+      "tokens_sha256": "849f183766b3d790dd6c0675ae6eba7dc629a09eccd5684a27c97c0c6d2cff26",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 14,
+      "repository": "godotengine/godot",
+      "source_offset_tokens": 0,
+      "tokens_file": "window-14.tokens.i32le",
+      "tokens_sha256": "9dffaf92b9b44430531f3641e383f39391bd2aac587d35498ddaad5b87fb59bd",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    },
+    {
+      "index": 15,
+      "repository": "godotengine/godot",
+      "source_offset_tokens": 2048,
+      "tokens_file": "window-15.tokens.i32le",
+      "tokens_sha256": "da08772bf4ad1e6f9d0ab8a7851c10c626fa56f40eadf09dbe5118f62eff9e9d",
+      "input_tokens": 2048,
+      "label_tokens": 1024,
+      "logit_start": 1024,
+      "logit_end_exclusive": 2048
+    }
+  ]
+}

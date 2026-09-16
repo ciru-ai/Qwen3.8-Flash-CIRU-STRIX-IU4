@@ -46,3 +46,7 @@ The historical v4.0 vision smoke used the existing projector with MTP disabled; 
 The integration retains the CIRUPLE1 pager, adds type-correct Q4_1 expert paths to the reference kernels and repairs MTP pending-state and external-draft parameter handling. Some reference optimizations remain unavailable for incompatible quantization types. The remaining gap to the author's different reference weights is not fully attributed.
 
 Thanks to [pwilkin](https://pwilkin.github.io/strix-halo/), Qwen, ggml-org, AMD/ROCm and all contributors credited in [provenance](docs/PROVENANCE.md), [upstream README](docs/UPSTREAM-README.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Runtime code retains MIT/component licenses; model artifacts use Qwen Community License 1.0. Previous v3 qualification remains under docs/qualification/v3.0.0 and the v3.0.0 tag.
+
+## Community model fidelity benchmark
+
+Test your Qwen3.8 Flash GGUF against the frozen BF16 reference and plot it beside CIRU IU4 and Agention Q4/Q5: [runner, dataset, Python chart source and instructions](benchmarks/fidelity/README.md). This is numerical fidelity, not HermesAgent-20.

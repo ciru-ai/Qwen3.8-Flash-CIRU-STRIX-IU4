@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "capture_compile": "Ciru NixOS, matching v4.3 source / recorded v4.2 binaries",
+  "capture_source_unchanged": true,
+  "analytic_metric_tests": "identity, BF16 tie, nonfinite rejection passed",
+  "reference_packing": "Every original F32 lower16 bit zero; every compressed shard roundtrip identical",
+  "replays": [
+    {
+      "model": "IU4",
+      "all_metrics_exactly_reproduced": true,
+      "positions": 16384
+    },
+    {
+      "model": "AP-Q5_K_XL",
+      "all_metrics_exactly_reproduced": true,
+      "positions": 16384
+    },
+    {
+      "model": "AP-Q4_K_XL",
+      "all_metrics_exactly_reproduced": true,
+      "positions": 16384
+    }
+  ],
+  "gpu_rerun": false,
+  "scope": "Original capture already exercised in measured runs; community packaging verified by compilation and complete historical-logit replay.",
+  "cpu_tests": "6 passed: identity, tied argmax, nonfinite rejection, dataset hashes, corrupt cached reference rejection, incomplete capture rejection",
+  "chart_checks": "Baseline and added-result PNG/SVG/PDF generated; baseline visually inspected",
+  "source_sha256": {
+    "fidelity.py": "e2c6f8d450feaf5df6725e8bbfdf7927ff1a8beaeaac7e3192ab77407f392ff9",
+    "capture_logits.cpp": "404cbf261794ab985f298d81b929853a7d8dcc398ad169ac511164da982359e6",
+    "plot.py": "10bcb5e99e9c646888ab7ce6932bcc70c8c5de230a5123191f5041c63ab550d9",
+    "test_fidelity.py": "c7f3068a17779bdff23ba2b69cc316b8dc4af3ffb67535412041e62b3a19da44"
+  },
+  "numeric_detail": "Perplexity uses math.exp, matching the original scorer; numpy.exp differed by one floating-point ULP on Q5 before correction. Logits were not recaptured."
+}

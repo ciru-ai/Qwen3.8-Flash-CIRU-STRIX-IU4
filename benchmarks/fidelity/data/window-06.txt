@@ -1,0 +1,140 @@
+Repository: rust-lang/rust
+Commit: 2b9a7be8551a6497a952d87d7dbf38484e5bfa5a
+Date: 2026-09-15T22:12:23Z
+Auto merge of #161450 - aerooneqq:syntax-ctxt-non-deterministic-encoding, r=petrochenkov
+
+Fix non-deterministic encoding of syntax contexts
+
+
+
+Reiteration of rust-lang/rust#157409. Explanation can be found in comment for `encoding_indices` and in the issue.
+
+Fixes rust-lang/rust#129094. Blocked by rust-lang/rust#161353.
+
+r? @petrochenkov
+
+_No llms used._
+
+From 2e356776881aa8dd20b27731385c78cc9120682e Mon Sep 17 00:00:00 2001
+From: aerooneqq <aerooneq@yandex.ru>
+Date: Tue, 15 Sep 2026 17:50:04 +0300
+Subject: [PATCH] Fix non-deterministic encoding of syntax contexts
+
+---
+ compiler/rustc_metadata/src/rmeta/encoder.rs  |   5 +-
+ .../rustc_middle/src/query/on_disk_cache.rs   |   4 +-
+ compiler/rustc_span/src/hygiene.rs            | 137 +++++++++++-------
+ .../derives-issue-129094.rs                   |   5 +
+ .../parallel-reproducible-build/rmake.rs      |  43 +++---
+ 5 files changed, 118 insertions(+), 76 deletions(-)
+ create mode 100644 tests/run-make/parallel-reproducible-build/derives-issue-129094.rs
+
+diff --git a/compiler/rustc_metadata/src/rmeta/encoder.rs b/compiler/rustc_metadata/src/rmeta/encoder.rs
+index 9a2e86577fa62..b251f648b9c6c 100644
+--- a/compiler/rustc_metadata/src/rmeta/encoder.rs
++++ b/compiler/rustc_metadata/src/rmeta/encoder.rs
+@@ -31,7 +31,7 @@ use rustc_serialize::{Decodable, Decoder, Encodable, Encoder, opaque};
+ use rustc_session::config::mitigation_coverage::DeniedPartialMitigation;
+ use rustc_session::config::{OptLevel, TargetModifier};
+ use rustc_span::def_id::CRATE_MOD_ID;
+-use rustc_span::hygiene::{HygieneEncodeContext, raw_encode_syntax_context};
++use rustc_span::hygiene::HygieneEncodeContext;
+ use rustc_span::{
+     ByteSymbol, ExternalSource, FileName, SourceFile, SpanData, SpanEncoder, StableSourceFileId,
+     Symbol, SyntaxContext, sym,
+@@ -158,7 +158,8 @@ impl<'a, 'tcx> SpanEncoder for EncodeContext<'a, 'tcx> {
+     }
+ 
+     fn encode_syntax_context(&mut self, syntax_context: SyntaxContext) {
+-        raw_encode_syntax_context(syntax_context, Rc::clone(&self.hygiene_ctxt), self)
++        let idx = self.hygiene_ctxt.borrow_mut().get_syntax_ctxt_encoding_index(syntax_context);
++        idx.encode(self);
+     }
+ 
+     fn encode_expn_id(&mut self, expn_id: ExpnId) {
+diff --git a/compiler/rustc_middle/src/query/on_disk_cache.rs b/compiler/rustc_middle/src/query/on_disk_cache.rs
+index 1fa0aa421d584..dc6017d4b6604 100644
+--- a/compiler/rustc_middle/src/query/on_disk_cache.rs
++++ b/compiler/rustc_middle/src/query/on_disk_cache.rs
+@@ -18,7 +18,6 @@ use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
+ use rustc_session::Session;
+ use rustc_span::hygiene::{
+     ExpnId, HygieneDecodeContext, HygieneEncodeContext, SyntaxContext, SyntaxContextKey,
+-    raw_encode_syntax_context,
+ };
+ use rustc_span::{
+     BlobDecoder, BytePos, ByteSymbol, CachingSourceMapView, ExpnData, ExpnHash, RelativeBytePos,
+@@ -870,7 +869,8 @@ impl<'tcx> CacheEncoder<'tcx> {
+ 
+ impl<'tcx> SpanEncoder for CacheEncoder<'tcx> {
+     fn encode_syntax_context(&mut self, syntax_context: SyntaxContext) {
+-        raw_encode_syntax_context(syntax_context, Rc::clone(&self.hygiene_context), self);
++        let idx = self.hygiene_context.borrow_mut().get_syntax_ctxt_encoding_index(syntax_context);
++        idx.encode(self);
+     }
+ 
+     fn encode_expn_id(&mut self, expn_id: ExpnId) {
+diff --git a/compiler/rustc_span/src/hygiene.rs b/compiler/rustc_span/src/hygiene.rs
+index 3ca3fd0940f7f..cd50cd3f834f8 100644
+--- a/compiler/rustc_span/src/hygiene.rs
++++ b/compiler/rustc_span/src/hygiene.rs
+@@ -26,7 +26,6 @@
+ 
+ use std::cell::RefCell;
+ use std::hash::Hash;
+-use std::rc::Rc;
+ use std::sync::Arc;
+ use std::{fmt, iter, mem};
+ 
+@@ -40,7 +39,7 @@ use rustc_data_structures::unhash::UnhashMap;
+ use rustc_hashes::Hash64;
+ use rustc_index::IndexVec;
+ use rustc_macros::{Decodable, Encodable, StableHash};
+-use rustc_serialize::{Decodable, Decoder, Encodable, Encoder};
++use rustc_serialize::{Decodable, Decoder, Encodable};
+ use tracing::{debug, trace};
+ 
+ use crate::def_id::{CRATE_DEF_ID, CrateNum, DefId, LOCAL_CRATE, ModId, StableCrateId};
+@@ -1293,7 +1292,6 @@ impl DesugaringKind {
+     }
+ }
+ 
+-#[derive(Default)]
+ pub struct HygieneEncodeContext {
+     /// All `SyntaxContexts` for which we have written `SyntaxContextData` into crate metadata.
+     serialized_ctxts: FxHashSet<SyntaxContext>,
+@@ -1301,17 +1299,68 @@ pub struct HygieneEncodeContext {
+     /// in the most recent 'round' of serializing. Serializing `SyntaxContextData`
+     /// may cause us to serialize more `SyntaxContext`s, so serialize in a loop
+     /// until we reach a fixed point.
+-    latest_ctxts: FxHashSet<SyntaxContext>,
++    latest_ctxts: Vec<(u32 /* Encoding index */, SyntaxContext)>,
+ 
+     serialized_expns: FxHashSet<ExpnId>,
+-    latest_expns: FxHashSet<ExpnId>,
++    latest_expns: Vec<ExpnId>,
++
++    /// Maps every `SyntaxContext` into its encoding index.
++    /// Earlier the `ctxt.0` was used when writing metadata, however,
++    /// this results into non-deterministic metadata (see #129094).
++    /// The non-determinism is encountered when decoding syntax contexts
++    /// in `decode_syntax_context` function below. The syntax contexts from
++    /// other crate metadata can be decoded in different order, which results
++    /// into different ids assigned to decoded syntax contexts.
++    /// First invocation:
++    /// (ALLOC - syntax context id, ORIG - original id of decoded syntax context:
++    /// `raw_id` in `decode_syntax_context`)
++    /// ALLOC: #3, ORIG: 1
++    /// ALLOC: #9, ORIG: 18769
++    /// ALLOC: #10, ORIG: 25868
++    /// ALLOC: #11, ORIG: 18822
++    /// ALLOC: #12, ORIG: 23092
++    ///
++    /// Second invocation:
++    /// ALLOC: #3, ORIG: 1
++    /// ALLOC: #9, ORIG: 25868
++    /// ALLOC: #10, ORIG: 18769
++    /// ALLOC: #11, ORIG: 18822
++    /// ALLOC: #12, ORIG: 23092
++    ///
++    /// We see that `18769` and `25868` assigned different syntax

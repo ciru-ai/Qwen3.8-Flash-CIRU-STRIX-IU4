@@ -1,0 +1,191 @@
+p1->unix_socket == p2->unix_socket) &&
+          (p1->abstract_uds == p2->abstract_uds) &&
+          (p1->ipv6 == p2->ipv6) &&
+-         (p1->unix_socket ?
+-          !strcmp(p1->hostname, p2->hostname) :
+-          curl_strequal(p1->hostname, p2->hostname));
++         /* unix_socket paths are case-sensitive, hostnames are not.
++          * Do strcmp() first on both, since we do a lot of matches
++          * on the same names and platform strcmp is way faster. */
++         (!strcmp(p1->hostname, p2->hostname) ||
++          (!p1->unix_socket &&
++           curl_strequal(p1->hostname, p2->hostname)));
+ }
+ 
+ bool Curl_peer_same_destination(struct Curl_peer *p1, struct Curl_peer *p2)
+diff --git a/lib/url.c b/lib/url.c
+index ab8c79fcdd53..47345eb5f85b 100644
+--- a/lib/url.c
++++ b/lib/url.c
+@@ -690,14 +690,16 @@ static bool url_match_multiplex_limits(struct connectdata *conn,
+     /* If multiplexed, make sure we do not go over concurrency limit */
+     if(conn->attached_xfers >=
+             Curl_multi_max_concurrent_streams(m->data->multi)) {
+-      infof(m->data, "client side MAX_CONCURRENT_STREAMS reached"
+-            ", skip (%u)", conn->attached_xfers);
++      infof(m->data, "connection #%" FMT_OFF_T " reached "
++            "MAX_CONCURRENT_STREAMS(%u), skip",
++            conn->connection_id, conn->attached_xfers);
+       return FALSE;
+     }
+     if(conn->attached_xfers >=
+        Curl_conn_get_max_concurrent(m->data, conn, FIRSTSOCKET)) {
+-      infof(m->data, "MAX_CONCURRENT_STREAMS reached, skip (%u)",
+-            conn->attached_xfers);
++      infof(m->data, "connection #%" FMT_OFF_T "reached "
++            "MAX_CONCURRENT_STREAMS(%u), skip",
++            conn->connection_id, conn->attached_xfers);
+       return FALSE;
+     }
+     /* When not multiplexed, we have a match here! */
+
+
+Repository: curl/curl
+Commit: 32c6bd5303bfafaa80453a7d112d240baf2f8141
+Date: 2026-09-15T15:03:09Z
+hash: vary bucket placement across process runs
+
+hash_str() always starts from the same value, so a given key set lands
+in the same buckets on every run. Mix in a random seed generated at
+global init.
+
+Closes #22916
+
+From 32c6bd5303bfafaa80453a7d112d240baf2f8141 Mon Sep 17 00:00:00 2001
+From: Joshua Rogers <MegaManSec@users.noreply.github.com>
+Date: Mon, 14 Sep 2026 10:23:00 +0200
+Subject: [PATCH] hash: vary bucket placement across process runs
+
+hash_str() always starts from the same value, so a given key set lands
+in the same buckets on every run. Mix in a random seed generated at
+global init.
+
+Closes #22916
+---
+ lib/easy.c            |  5 +++++
+ lib/hash.c            | 47 ++++++++++++++++++++++++++++++++++++++++---
+ lib/hash.h            |  2 ++
+ lib/rand.h            |  2 ++
+ tests/unit/unit1603.c |  3 +++
+ 5 files changed, 56 insertions(+), 3 deletions(-)
+
+diff --git a/lib/easy.c b/lib/easy.c
+index b92f4021567e..721f3a0c7a27 100644
+--- a/lib/easy.c
++++ b/lib/easy.c
+@@ -177,6 +177,11 @@ static CURLcode global_init(long flags, bool memoryfuncs)
+     goto fail;
+   }
+ 
++  if(Curl_hash_global_init()) {
++    DEBUGF(curl_mfprintf(stderr, "Error: Curl_hash_global_init failed\n"));
++    goto fail;
++  }
++
+   if(!Curl_vquic_init()) {
+     DEBUGF(curl_mfprintf(stderr, "Error: Curl_vquic_init failed\n"));
+     goto fail;
+diff --git a/lib/hash.c b/lib/hash.c
+index 050f80771a7f..0b9dc2f5f0c8 100644
+--- a/lib/hash.c
++++ b/lib/hash.c
+@@ -26,6 +26,7 @@
+ #include <stddef.h> /* for offsetof() */
+ 
+ #include "hash.h"
++#include "rand.h"
+ 
+ /* random patterns for API verification */
+ #ifdef DEBUGBUILD
+@@ -52,14 +53,46 @@ struct hash_functions {
+   comp_function compare;
+ };
+ 
++/* set at global init, read-only afterwards */
++static size_t hash_seed;
++
++CURLcode Curl_hash_global_init(void)
++{
++  static bool seeded;
++  unsigned char buf[sizeof(size_t)];
++  size_t seed = 0;
++  size_t i;
++  CURLcode result;
++
++  if(seeded)
++    return CURLE_OK;
++
++  result = Curl_rand_bytes(NULL,
++#ifdef DEBUGBUILD
++                           FALSE,
++#endif
++                           buf, sizeof(buf));
++  if(result)
++    return result;
++
++  for(i = 0; i < sizeof(buf); i++)
++    seed = (seed << 8) | buf[i];
++
++  hash_seed = seed ? seed : 1;
++  seeded = TRUE;
++  return CURLE_OK;
++}
++
+ /* @unittest 1603
+  */
+-UNITTEST size_t hash_str(const void *key, size_t key_length, size_t slots_num);
+-UNITTEST size_t hash_str(const void *key, size_t key_length, size_t slots_num)
++UNITTEST size_t hash_str_seeded(const void *key, size_t key_length,
++                                size_t slots_num, size_t seed);
++UNITTEST size_t hash_str_seeded(const void *key, size_t key_length,
++                                size_t slots_num, size_t seed)
+ {
+   const char *key_str = (const char *)key;
+   const char *end = key_str + key_length;
+-  size_t h = 5381;
++  size_t h = 5381 ^ seed;
+ 
+   while(key_str < end) {
+     size_t j = (size_t)*key_str++;
+@@ -70,6 +103,14 @@ UNITTEST size_t hash_str(const void *key, size_t key_length, size_t slots_num)
+   return (h % slots_num);
+ }
+ 
++/* @unittest 1603
++ */
++UNITTEST size_t hash_str(const void *key, size_t key_length, size_t slots_num);
++UNITTEST size_t hash_str(const void *key, size_t key_length, size_t slots_num)
++{
++  return hash_str_seeded(key, key_length, slots_num, hash_seed);
++}
++
+ /* Avoid treating the variable-length key[1] as a one-byte object. */
+ static char *hash_elem_key(struct Curl_hash_element *he)
+ {
+diff --git a/lib/hash.h b/lib/hash.h
+index c889131c687b..2becbd919c0f 100644
+--- a/lib/hash.h
++++ b/lib/hash.h
+@@ -65,6 +65,8 @@ struct Curl_hash_iterator {
+ #endif
+ };
+ 
++CURLcode Curl_hash_global_init(void);
++
+ void Curl_hash_init(struct Curl_hash *h,
+                     size_t slots,
+                     Curl_hash_type type,
+diff --git a/lib/rand.h b/lib/rand.h
+index 452c1b67ef90..7d59337ad4e7 100644
+--- a/lib/rand.h
++++ b/lib/rand.h
+@@ -23,6 +23,8 @@
+  * SPDX-License-Identifier: curl
+  *
+  ***************************************************************************/
++struct Curl_easy;
++
+ CURLcode Curl_rand_bytes(struct Curl_easy *data,
+ #ifdef DEBUGBUILD
+                          bool env_override,
+diff --

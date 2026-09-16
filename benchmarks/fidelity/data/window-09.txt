@@ -1,0 +1,190 @@
+,21 +288,9 @@ func TestRequestPathTreeWalkPreservesHostMetadata(t *testing.T) {
+ 	}, host, "/")
+ 	assert.NilError(t, err)
+ 	assert.Assert(t, fileSystem.Stat("/host.ts") == info)
+-	visited := false
+-	assert.NilError(t, fileSystem.WalkDir("/host.ts", func(path string, entry vfs.DirEntry, walkErr error) error {
+-		assert.NilError(t, walkErr)
+-		assert.Equal(t, path, "/host.ts")
+-		assert.Equal(t, entry.Name(), info.Name())
+-		assert.Equal(t, entry.Type(), info.Mode().Type())
+-		entryInfo, infoErr := entry.Info()
+-		assert.NilError(t, infoErr)
+-		assert.Assert(t, entryInfo == info)
+-		assert.Equal(t, entryInfo.ModTime(), modified)
+-		assert.Equal(t, entryInfo.Size(), int64(len("host content")))
+-		visited = true
+-		return nil
+-	}))
+-	assert.Assert(t, visited)
++	entryInfo := fileSystem.Stat("/host.ts")
++	assert.Equal(t, entryInfo.ModTime(), modified)
++	assert.Equal(t, entryInfo.Size(), int64(len("host content")))
+ }
+ 
+ func TestRequestPathTreeStatSupportsExistenceOnlyHost(t *testing.T) {
+diff --git a/tsc/internal/api/requestfilesystem/requestfilesystem.go b/tsc/internal/api/requestfilesystem/requestfilesystem.go
+index 1559bd8cea6b8..cf9818219ff26 100644
+--- a/tsc/internal/api/requestfilesystem/requestfilesystem.go
++++ b/tsc/internal/api/requestfilesystem/requestfilesystem.go
+@@ -1,9 +1,7 @@
+ package requestfilesystem
+ 
+ import (
+-	"errors"
+ 	"fmt"
+-	"io/fs"
+ 	"slices"
+ 	"strings"
+ 	"time"
+@@ -651,60 +649,3 @@ func statFileSystem(fileSystem vfs.FS, path string) vfs.FileInfo {
+ 	}
+ 	return nil
+ }
+-
+-func (s requestFileSystem) WalkDir(root string, walkFn vfs.WalkDirFunc) error {
+-	originalRoot := s.toAbsolutePath(root)
+-	resolved := s.resolvePath(originalRoot)
+-	if !resolved.ok {
+-		return walkFn(originalRoot, nil, vfs.ErrNotExist)
+-	}
+-	info := s.Stat(originalRoot)
+-	if info == nil {
+-		return walkFn(originalRoot, nil, vfs.ErrNotExist)
+-	}
+-	visited := map[string]struct{}{}
+-	if err := s.walkDir(originalRoot, info, walkFn, visited); errors.Is(err, fs.SkipAll) {
+-		return nil
+-	} else {
+-		return err
+-	}
+-}
+-
+-func (s requestFileSystem) walkDir(path string, info vfs.FileInfo, walkFn vfs.WalkDirFunc, visited map[string]struct{}) error {
+-	realpath := s.Realpath(path)
+-	if _, ok := visited[realpath]; ok {
+-		return nil
+-	}
+-	visited[realpath] = struct{}{}
+-	entry, ok := info.(vfs.DirEntry)
+-	if !ok {
+-		entry = fs.FileInfoToDirEntry(info)
+-	}
+-	err := walkFn(path, entry, nil)
+-	if err != nil {
+-		if errors.Is(err, fs.SkipDir) && entry.IsDir() {
+-			return nil
+-		}
+-		return err
+-	}
+-	if !entry.IsDir() {
+-		return nil
+-	}
+-	entries := s.GetAccessibleEntries(path)
+-	names := append(slices.Clone(entries.Directories), entries.Files...)
+-	slices.Sort(names)
+-	for _, name := range names {
+-		childPath := tspath.CombinePaths(path, name)
+-		childInfo := s.Stat(childPath)
+-		if childInfo == nil {
+-			continue
+-		}
+-		if err := s.walkDir(childPath, childInfo, walkFn, visited); err != nil {
+-			if errors.Is(err, fs.SkipDir) {
+-				return nil
+-			}
+-			return err
+-		}
+-	}
+-	return nil
+-}
+diff --git a/tsc/internal/api/requestfilesystem/requestfilesystem_test.go b/tsc/internal/api/requestfilesystem/requestfilesystem_test.go
+index fbebbd15f083f..3c88030df4a5c 100644
+--- a/tsc/internal/api/requestfilesystem/requestfilesystem_test.go
++++ b/tsc/internal/api/requestfilesystem/requestfilesystem_test.go
+@@ -72,28 +72,6 @@ func verifyCompactionWithoutHostReads(t *testing.T, layer *requestFileSystem, ho
+ 			Sys       any
+ 		}{info.Name(), info.Size(), uint32(info.Mode()), info.ModTime(), info.IsDir(), info.Sys()}
+ 	})
+-	verify("WalkDir", func(fileSystem vfs.FS, path string) any {
+-		var result struct {
+-			Paths       []string
+-			Directories []bool
+-			Errors      []string
+-			Error       string
+-		}
+-		walkResult := fileSystem.WalkDir(path, func(child string, entry vfs.DirEntry, walkErr error) error {
+-			result.Paths = append(result.Paths, child)
+-			result.Directories = append(result.Directories, entry != nil && entry.IsDir())
+-			message := ""
+-			if walkErr != nil {
+-				message = walkErr.Error()
+-			}
+-			result.Errors = append(result.Errors, message)
+-			return nil
+-		})
+-		if walkResult != nil {
+-			result.Error = walkResult.Error()
+-		}
+-		return result
+-	})
+ }
+ 
+ func TestInitializeForUpdate(t *testing.T) {
+@@ -498,13 +476,7 @@ func testSymlinkReplacesDirectory(t *testing.T, options symlinkReplacementOption
+ 		if remove {
+ 			assert.Assert(t, !fileSystem.FileExists("/dir/removed/sibling.ts"))
+ 		}
+-		var walked []string
+-		assert.NilError(t, fileSystem.WalkDir(linkPath, func(path string, entry vfs.DirEntry, err error) error {
+-			assert.NilError(t, err)
+-			walked = append(walked, path)
+-			return nil
+-		}))
+-		assert.DeepEqual(t, walked, []string{linkPath, linkPath + "/new.ts", linkPath + "/removed", linkPath + "/removed/new.ts"})
++		assert.DeepEqual(t, fileSystem.GetAccessibleEntries(linkPath+"/removed").Files, []string{"new.ts"})
+ 	}
+ 	verifyLinked(linked)
+ 	next, err := newLayeredRequestFileSystem(&RequestFileSystem{Kind: KindLayer}, linked, "/")
+diff --git a/tsc/internal/bundled/bundled_test.go b/tsc/internal/bundled/bundled_test.go
+index 68c8c40eed76c..0c0332dff7ef0 100644
+--- a/tsc/internal/bundled/bundled_test.go
++++ b/tsc/internal/bundled/bundled_test.go
+@@ -3,11 +3,10 @@ package bundled_test
+ import (
+ 	"os"
+ 	"path/filepath"
++	"slices"
+ 	"testing"
+ 
+ 	"github.com/microsoft/TypeScript/tsc/internal/bundled"
+-	"github.com/microsoft/TypeScript/tsc/internal/tspath"
+-	"github.com/microsoft/TypeScript/tsc/internal/vfs"
+ 	"github.com/microsoft/TypeScript/tsc/internal/vfs/osvfs"
+ 	"gotest.tools/v3/assert"
+ )
+@@ -31,18 +30,7 @@ func TestEmbeddedLibs(t *testing.T) {
+ 
+ 	fs := bundled.WrapFS(osvfs.FS())
+ 
+-	var files []string
+-
+-	err := fs.WalkDir(bundled.LibPath(), func(path string, d vfs.DirEntry, err error) error {
+-		if err != nil {
+-			return err
+-		}
+-		if !d.IsDir() {
+-			files = append(files, tspath.GetBaseFileName(path))
+-		}
+-		return nil
+-	})
+-	assert.NilError(t, err)
+-
++	files := fs.GetAccessibleEntries(bundled.LibPath()).Files
++	slices.Sort(files)
+ 	assert.DeepEqual(t, files, bundled.LibNames)
+ }
+diff --git a/tsc/internal/bundled/embed.go b/tsc/internal/bundled/embed.go
+index c13ec10b98998..d33c90dc7170a 100644
+--- a/tsc/internal/bundled/embed.go
++++

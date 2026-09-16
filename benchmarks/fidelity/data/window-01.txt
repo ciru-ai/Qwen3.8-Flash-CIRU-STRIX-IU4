@@ -1,0 +1,171 @@
+1644686..026c2bf6b31e730 100644
+--- a/Lib/test/test_exceptions.py
++++ b/Lib/test/test_exceptions.py
+@@ -1670,14 +1670,14 @@ def test_recursion_normalizing_with_no_memory(self):
+         # the size of the list of preallocated MemoryError instances, the
+         # Fatal Python error message mentions MemoryError.
+         code = """if 1:
+-            import _testcapi
++            from test import support
+             class C(): pass
+             def recurse(cnt):
+                 cnt -= 1
+                 if cnt:
+                     recurse(cnt)
+                 else:
+-                    _testcapi.set_nomemory(0)
++                    support.inject_memory_error()
+                     C()
+             recurse(16)
+         """
+@@ -1853,9 +1853,10 @@ def test_unhandled(self):
+     @support.nomemtest
+     def test_memory_error_in_PyErr_PrintEx(self):
+         code = """if 1:
+-            import _testcapi
++            from test import support
++            stop = %d
+             class C(): pass
+-            _testcapi.set_nomemory(0, %d)
++            support.inject_memory_error(0, stop)
+             C()
+         """
+ 
+@@ -2020,8 +2021,8 @@ def test_exec_set_nomemory_hang(self):
+         warmup_code = "a = list(range(0, 1))\n" * 60
+         user_input = warmup_code + dedent("""
+             try:
+-                import _testcapi
+-                _testcapi.set_nomemory(0)
++                from test import support
++                support.inject_memory_error()
+                 b = list(range(1000, 2000))
+             except Exception as e:
+                 import traceback
+diff --git a/Lib/test/test_list.py b/Lib/test/test_list.py
+index 1b0724c2b1c99dc..260f9f4f607f152 100644
+--- a/Lib/test/test_list.py
++++ b/Lib/test/test_list.py
+@@ -377,11 +377,12 @@ def test_tier2_invalidates_iterator(self):
+     def test_no_memory(self):
+         # gh-118331: Make sure we don't crash if list allocation fails
+         code = textwrap.dedent("""
+-        import _testcapi, sys
++        from test import support
++        import sys
+         # Prime the freelist
+         l = [None]
+         del l
+-        _testcapi.set_nomemory(0)
++        support.inject_memory_error()
+         l = [None]
+         """)
+         rc, _, _ = assert_python_failure("-c", code)
+diff --git a/Lib/test/test_pyexpat.py b/Lib/test/test_pyexpat.py
+index baa4f178427d532..23b82dc1fd2179e 100644
+--- a/Lib/test/test_pyexpat.py
++++ b/Lib/test/test_pyexpat.py
+@@ -1077,18 +1077,9 @@ def test_error_path_no_crash(self):
+         parser.buffer_text = True
+         rc_before = sys.getrefcount(parser)
+ 
+-        # We avoid self.assertRaises(MemoryError) here because the
+-        # context manager itself needs memory allocations that fail
+-        # while the nomemory hook is active.
+-        self.testcapi.set_nomemory(1, 10)
+-        raised = False
+-        try:
+-            parser.ExternalEntityParserCreate(None)
+-        except MemoryError:
+-            raised = True
+-        finally:
+-            self.testcapi.remove_mem_hooks()
+-        self.assertTrue(raised, "MemoryError not raised")
++        with self.assertRaises(MemoryError):
++            with support.memory_error_cm(1, 10):
++                parser.ExternalEntityParserCreate(None)
+ 
+         rc_after = sys.getrefcount(parser)
+         self.assertEqual(rc_after, rc_before)
+diff --git a/Lib/test/test_repl.py b/Lib/test/test_repl.py
+index 372c110783bce7a..ed6eb706c40d223 100644
+--- a/Lib/test/test_repl.py
++++ b/Lib/test/test_repl.py
+@@ -104,10 +104,11 @@ def test_no_memory(self):
+         # no memory. Check also that the fix does not break the interactive
+         # loop when an exception is raised.
+         user_input = """
+-            import sys, _testcapi
++            import sys
++            from test import support
+             1/0
+             print('After the exception.')
+-            _testcapi.set_nomemory(0)
++            support.inject_memory_error()
+             sys.exit(0)
+         """
+         user_input = dedent(user_input)
+diff --git a/Lib/test/test_str.py b/Lib/test/test_str.py
+index 979bfe36fff680d..17163182be08c4c 100644
+--- a/Lib/test/test_str.py
++++ b/Lib/test/test_str.py
+@@ -613,14 +613,9 @@ def test_replace_oom(self):
+         s1 = "轘" * 4
+         s2 = "&"
+         s3 = "&amp;"
+-        assertion = self.assertRaises(MemoryError)
+-        _testcapi.set_nomemory(0, 0)
+-        try:
+-            # No allocations made in the test itself:
+-            with assertion:
++        with self.assertRaises(MemoryError):
++            with support.memory_error_cm():
+                 s1.replace(s2, s3)  # this line used to crash before
+-        finally:
+-            _testcapi.remove_mem_hooks()
+ 
+     def test_repeat_id_preserving(self):
+         a = '123abc1@'
+diff --git a/Lib/test/test_weakref.py b/Lib/test/test_weakref.py
+index b9d1745592c09ca..ce93481e2735f78 100644
+--- a/Lib/test/test_weakref.py
++++ b/Lib/test/test_weakref.py
+@@ -1029,8 +1029,8 @@ def test_no_memory_when_clearing(self):
+         # gh-118331: Make sure we do not raise an exception from the destructor
+         # when clearing weakrefs if allocating the intermediate tuple fails.
+         code = textwrap.dedent("""
+-        import _testcapi
+         import weakref
++        from test import support
+ 
+         class TestObj:
+             pass
+@@ -1042,7 +1042,7 @@ def callback(obj):
+         # The choice of 50 is arbitrary, but must be large enough to ensure
+         # the allocation won't be serviced by the free list.
+         wrs = [weakref.ref(obj, callback) for _ in range(50)]
+-        _testcapi.set_nomemory(0)
++        support.inject_memory_error()
+         del obj
+         """).strip()
+         res, _ = script_helper.run_python_until_end("-c", code)
+
+
+Repository: python/cpython
+Commit: e2ca4dc94c553c34578d229c8254b55464045641
+Date: 2026-09-15T21:16:43Z
+gh-157495: Implement Py_MIN/MAX/ABS using typeof() (#157496)
+
+On GCC and clang, implement Py_MIN(), Py_MAX() and Py_ABS()
+using typeof() and statement expression to only evaluate each
+argument once and detect signed/unsigned comparison.
+
+Test also these macros in test_cext and test_cppext to test different
+compiler flags and test the limited C API.
+
+From e2ca4dc94c553c34578d229c8254b55464045641 Mon Sep 17 00:00:00 2001
+From: Victor Stinner <vstinner@python.org>
+Date: Tue, 15 Sep 2026 23:16:43 +0200
+Subject: [PATCH] gh-157495: Implement Py_MIN/MAX/ABS using typeof() (#157496)
+
+On GCC and clang, implement Py

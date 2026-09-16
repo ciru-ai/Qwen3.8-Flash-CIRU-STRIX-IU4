@@ -1,0 +1,137 @@
+d), _Array2D[np.bool])
++assert_type(np.isreal(AR_LIKE_f_3d), npt.NDArray[np.bool])
++assert_type(np.isreal(AR_LIKE_any), npt.NDArray[np.bool] | Any)
+ 
+ assert_type(np.iscomplexobj(f8), bool)
+ assert_type(np.isrealobj(f8), bool)
+
+
+Repository: numpy/numpy
+Commit: 8ba190e375d991dbb8f02587332b019ef514984a
+Date: 2026-09-15T19:46:31Z
+MAINT: `np.spacing`: avoid warnings with NaN input (#32602)
+
+From 8ba190e375d991dbb8f02587332b019ef514984a Mon Sep 17 00:00:00 2001
+From: Matt Haberland <mhaberla@calpoly.edu>
+Date: Tue, 15 Sep 2026 12:46:31 -0700
+Subject: [PATCH] MAINT: `np.spacing`: avoid warnings with NaN input (#32602)
+
+---
+ doc/release/upcoming_changes/32602.change.rst |  1 +
+ numpy/_core/src/npymath/halffloat.cpp         | 16 +++++------
+ numpy/_core/src/npymath/ieee754.c.src         |  3 ++
+ numpy/_core/tests/test_half.py                |  5 ++--
+ numpy/_core/tests/test_umath.py               | 28 +++++++++++++------
+ 5 files changed, 34 insertions(+), 19 deletions(-)
+ create mode 100644 doc/release/upcoming_changes/32602.change.rst
+
+diff --git a/doc/release/upcoming_changes/32602.change.rst b/doc/release/upcoming_changes/32602.change.rst
+new file mode 100644
+index 000000000000..8d55ba741c33
+--- /dev/null
++++ b/doc/release/upcoming_changes/32602.change.rst
+@@ -0,0 +1 @@
++* `np.spacing` with NaN input no longer emits a `RuntimeWarning`.
+diff --git a/numpy/_core/src/npymath/halffloat.cpp b/numpy/_core/src/npymath/halffloat.cpp
+index 1578bdefbb4d..5a4aff3fe10e 100644
+--- a/numpy/_core/src/npymath/halffloat.cpp
++++ b/numpy/_core/src/npymath/halffloat.cpp
+@@ -1,11 +1,7 @@
+ #define NPY_NO_DEPRECATED_API NPY_API_VERSION
+ 
+-/*
+- * If these are 1, the conversions try to trigger underflow,
+- * overflow, and invalid exceptions in the FP system when needed.
+- */
++/* Generate the overflow status flag when half-precision spacing overflows. */
+ #define NPY_HALF_GENERATE_OVERFLOW 1
+-#define NPY_HALF_GENERATE_INVALID 1
+ 
+ #include "numpy/halffloat.h"
+ 
+@@ -68,10 +64,12 @@ npy_half npy_half_spacing(npy_half h)
+     npy_uint16 h_exp = h&0x7c00u;
+     npy_uint16 h_sig = h&0x03ffu;
+     if (h_exp == 0x7c00u) {
+-#if NPY_HALF_GENERATE_INVALID
+-        npy_set_floatstatus_invalid();
+-#endif
+-        ret = NPY_HALF_NAN;
++        /* NaN passes through quietly; infinities return NaN. */
++        if (h_sig == 0) {
++            ret = NPY_HALF_NAN;
++        } else {
++            ret = h;
++        }
+     } else if (h == 0x7bffu) {
+ #if NPY_HALF_GENERATE_OVERFLOW
+         npy_set_floatstatus_overflow();
+diff --git a/numpy/_core/src/npymath/ieee754.c.src b/numpy/_core/src/npymath/ieee754.c.src
+index b23785a85bc5..5807d16fb7c9 100644
+--- a/numpy/_core/src/npymath/ieee754.c.src
++++ b/numpy/_core/src/npymath/ieee754.c.src
+@@ -304,6 +304,9 @@ static npy_longdouble _nextl(npy_longdouble x, int p)
+ @type@ npy_spacing@suff@(@type@ x)
+ {
+     /* XXX: npy isnan/isinf may be optimized by bit twiddling */
++    if (npy_isnan(x)) {
++        return x;
++    }
+     if (npy_isinf(x)) {
+         return NPY_NAN@SUFF@;
+     }
+diff --git a/numpy/_core/tests/test_half.py b/numpy/_core/tests/test_half.py
+index 85ef0f22b3f1..cc9da0a696dd 100644
+--- a/numpy/_core/tests/test_half.py
++++ b/numpy/_core/tests/test_half.py
+@@ -557,14 +557,15 @@ def test_half_fpe(self):
+ 
+             # Invalid value errors
+             assert_raises_fpe('invalid', np.divide, float16(np.inf), float16(np.inf))
+-            assert_raises_fpe('invalid', np.spacing, float16(np.inf))
+-            assert_raises_fpe('invalid', np.spacing, float16(np.nan))
+ 
+             # These should not raise
+             float16(65472) + float16(32)
+             float16(2**-13) / float16(2)
+             float16(2**-14) / float16(2**10)
+             np.spacing(float16(-65504))
++            np.spacing(float16(np.nan))
++            np.spacing(float16(np.inf))
++            np.spacing(float16(-np.inf))
+             np.nextafter(float16(65504), float16(-np.inf))
+             np.nextafter(float16(-65504), float16(np.inf))
+             np.nextafter(float16(np.inf), float16(0))
+diff --git a/numpy/_core/tests/test_umath.py b/numpy/_core/tests/test_umath.py
+index e1aa660e8705..3306eb95c8e6 100644
+--- a/numpy/_core/tests/test_umath.py
++++ b/numpy/_core/tests/test_umath.py
+@@ -1966,16 +1966,10 @@ def test_unary_spurious_fpexception(self, ufunc, dtype, data, escape):
+             return
+         # FIXME: NAN raises FP invalid exception:
+         #  - ceil/float16 on MSVC:32-bit
+-        #  - spacing/float16 on almost all platforms
+-        #  - spacing/float32,float64 on Windows MSVC with VS2022
+         #  - arccos/float16,float32 on Android
+-        if ufunc in (np.spacing, np.ceil) and dtype == 'e':
++        if ufunc is np.ceil and dtype == 'e':
+             return
+-        # Skip spacing tests with NaN on Windows MSVC (all dtypes)
+-        import platform
+-        if ((ufunc, platform.system()) in [
+-                (np.spacing, 'Windows'), (np.arccos, 'Android')
+-            ] and
++        if (ufunc is np.arccos and platform.system() == 'Android' and
+             any(np.isnan(d) if isinstance(d, (int, float)) else False for d in data)):
+             pytest.skip(f"{ufunc} with NaN generates warnings on this platform")
+         array = np.array(data, dtype=dtype)
+@@ -5113,6 +5107,24 @@ def test_spacingf():
+ def test_spacingl():
+     return _test_spacing(np.longdouble)
+ 
++@pytest.mark.parametrize(
++    "dtype", [np.float16, np.float32, np.float64, np.longdouble]
++)
++@pytest.mark.parametrize("value", [np.nan, -np.nan, np.inf, -np.inf])
++def test_spacing_special_values(dtype, value):
++    input_value = np.array(value, dtype=dtype

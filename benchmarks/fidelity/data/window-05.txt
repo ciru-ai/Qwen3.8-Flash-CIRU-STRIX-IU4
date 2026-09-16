@@ -1,0 +1,131 @@
+6ca9eff87f 100644
+--- a/scipy/special/_generate_pyx.py
++++ b/scipy/special/_generate_pyx.py
+@@ -83,7 +83,7 @@
+     "_binom_pmf",
+     "_binom_ppf",
+     "_binom_sf",
+-    "_bivariate_normal_sf",
++    "_bivariate_normal_cdf",
+     "_cauchy_isf",
+     "_cauchy_ppf",
+     "_cosine_cdf",
+diff --git a/scipy/special/_special_ufuncs.cpp b/scipy/special/_special_ufuncs.cpp
+index 82c96c36b4c1..7e906b5c8449 100644
+--- a/scipy/special/_special_ufuncs.cpp
++++ b/scipy/special/_special_ufuncs.cpp
+@@ -72,8 +72,8 @@ extern const char *_binom_isf_doc;
+ extern const char *_binom_pmf_doc;
+ extern const char *_binom_ppf_doc;
+ extern const char *_binom_sf_doc;
++extern const char *_bivariate_normal_cdf_doc;
+ extern const char *_cospi_doc;
+-extern const char *_bivariate_normal_sf_doc;
+ extern const char *_cauchy_isf_doc;
+ extern const char *_cauchy_ppf_doc;
+ extern const char *_cosine_cdf_doc;
+@@ -402,11 +402,11 @@ _special_ufuncs_module_exec(PyObject *module)
+                           "_binom_sf", _binom_sf_doc);
+     PyModule_AddObjectRef(module, "_binom_sf", _binom_sf);
+ 
+-    PyObject *_bivariate_normal_sf = xsf::numpy::ufunc(
+-        {static_cast<xsf::numpy::fff_f>(xsf::bivariate_normal_sf),
+-         static_cast<xsf::numpy::ddd_d>(xsf::bivariate_normal_sf)},
+-        "_bivariate_normal_sf", _bivariate_normal_sf_doc);
+-    PyModule_AddObjectRef(module, "_bivariate_normal_sf", _bivariate_normal_sf);
++    PyObject *_bivariate_normal_cdf = xsf::numpy::ufunc(
++        {static_cast<xsf::numpy::fff_f>(xsf::bivariate_normal_cdf),
++         static_cast<xsf::numpy::ddd_d>(xsf::bivariate_normal_cdf)},
++        "_bivariate_normal_cdf", _bivariate_normal_cdf_doc);
++    PyModule_AddObjectRef(module, "_bivariate_normal_cdf", _bivariate_normal_cdf);
+ 
+     PyObject *_cauchy_isf =
+         xsf::numpy::ufunc({static_cast<xsf::numpy::fff_f>(cauchy_isf_float),
+diff --git a/scipy/special/_special_ufuncs_docs.cpp b/scipy/special/_special_ufuncs_docs.cpp
+index f13d04e0b374..bfaeace32a11 100644
+--- a/scipy/special/_special_ufuncs_docs.cpp
++++ b/scipy/special/_special_ufuncs_docs.cpp
+@@ -121,7 +121,7 @@ const char *_cospi_doc = R"(
+     Internal function, do not use.
+     )";
+ 
+-const char *_bivariate_normal_sf_doc = R"(
++const char *_bivariate_normal_cdf_doc = R"(
+     Internal function, do not use.
+     )";
+ 
+diff --git a/scipy/special/_ufuncs.pyi b/scipy/special/_ufuncs.pyi
+index 5a7d7c3c33e3..ebe866186961 100644
+--- a/scipy/special/_ufuncs.pyi
++++ b/scipy/special/_ufuncs.pyi
+@@ -255,7 +255,7 @@ class errstate:
+ 
+ _cosine_cdf: np.ufunc
+ _cosine_invcdf: np.ufunc
+-_bivariate_normal_sf: np.ufunc
++_bivariate_normal_cdf: np.ufunc
+ _cospi: np.ufunc
+ _ellip_harm: np.ufunc
+ _gen_harmonic: np.ufunc
+diff --git a/scipy/stats/_qmvnt.py b/scipy/stats/_qmvnt.py
+index b71eb9eee0e5..755e0e5263e6 100644
+--- a/scipy/stats/_qmvnt.py
++++ b/scipy/stats/_qmvnt.py
+@@ -37,7 +37,7 @@
+ 
+ from scipy.fft import fft, ifft
+ from scipy.special import ndtr as phi, ndtri as phinv
+-from scipy.special._ufuncs import _bivariate_normal_sf as _bvnu
++from scipy.special._ufuncs import _bivariate_normal_cdf
+ from scipy.stats._qmc import primes_from_2_to
+ 
+ from ._qmvnt_cy import _qmvn_inner, _qmvt_inner
+@@ -482,7 +482,7 @@ def _bvn(a, b, A):
+     Notes
+     -----
+     Computed via 4-corner inclusion-exclusion on the standardized bivariate normal
+-    survival function ``_bvnu`` with correlation ``r = s12 / (s1 * s2)``, where
++    CDF ``_bivariate_normal_cdf`` with correlation ``r = s12 / (s1 * s2)``, where
+     ``s12 = A[0, 1]`` is the covariance between ``X[0]`` and ``X[1]``. The result is
+     clipped to ``[0, 1]``.
+     """
+@@ -492,6 +492,9 @@ def _bvn(a, b, A):
+     r = s12 / (s1 * s2)
+     xl, xu = a[0] / s1, b[0] / s1
+     yl, yu = a[1] / s2, b[1] / s2
+-    p = _bvnu(xl, yl, r) - _bvnu(xu, yl, r) - _bvnu(xl, yu, r) + _bvnu(xu, yu, r)
++    p = (_bivariate_normal_cdf(xu, yu, r)
++         - _bivariate_normal_cdf(xl, yu, r)
++         - _bivariate_normal_cdf(xu, yl, r)
++         + _bivariate_normal_cdf(xl, yl, r))
+     p = max( 0., min( p, 1. ) )
+     return p
+diff --git a/subprojects/xsf b/subprojects/xsf
+index 5dbdff8de0da..055024e8473e 160000
+--- a/subprojects/xsf
++++ b/subprojects/xsf
+@@ -1 +1 @@
+-Subproject commit 5dbdff8de0dab99b475076612ea227d3f29d6cf6
++Subproject commit 055024e8473e9bcd8fc9930655370f9c5f944cb2
+
+
+Repository: scipy/scipy
+Commit: 1b6618f2bb83a9ea37446bdc97fefea0c434a5ea
+Date: 2026-09-15T02:02:47Z
+Merge pull request #26175 from ginggs/patch-1
+
+TST: linalg: skip TestDTypes.test_det[g] on any arm
+
+From f922f03d54586774a4a60bb16512735dd68554d1 Mon Sep 17 00:00:00 2001
+From: Graham Inggs <ginggs@debian.org>
+Date: Sun, 13 Sep 2026 11:53:32 +0000
+Subject: [PATCH 1/2] TST: linalg: skip TestDTypes.test_det[g] on any arm
+
+Instead of skipping the test on arm64 and armhf (where platform.machine is 'armv8l' or 'armv7l'), let's skip the test on any arm.
+---
+ scipy/linalg/tests/test_basic.py | 5 ++---
+ 1 file changed, 2 insertions(+), 3 deletions(-)
+
+diff --git a/scipy/linalg/tests/test_basic.py b/scipy/linalg/tests/test_basic.py
+index aab9f15f5390..331b860fa89e 100644
+--- a/scipy

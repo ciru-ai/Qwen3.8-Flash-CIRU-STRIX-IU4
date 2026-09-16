@@ -1,0 +1,180 @@
+Repository: curl/curl
+Commit: cdbe4eb55609e2096e296faf86552f27514d6a01
+Date: 2026-09-15T21:14:12Z
+rtsp: do not read a response body when CURLOPT_NOBODY is set
+
+Follow-up to 458704d484. That change clears req.no_body for an RTSP
+response that announces a body with Content-Length, but req.no_body
+also carries the application's CURLOPT_NOBODY, so such a body was then
+read even when the application asked for no body. Only override the
+method-derived value.
+
+Add test1688: test657 with CURLOPT_NOBODY set, expecting headers only.
+
+Reported-by: Daniel Stenberg
+Ref: #22935
+Closes #22954
+
+From cdbe4eb55609e2096e296faf86552f27514d6a01 Mon Sep 17 00:00:00 2001
+From: Stephen Psaradellis <s.n.psaradellis@gmail.com>
+Date: Mon, 14 Sep 2026 17:34:25 -0500
+Subject: [PATCH] rtsp: do not read a response body when CURLOPT_NOBODY is set
+
+Follow-up to 458704d484. That change clears req.no_body for an RTSP
+response that announces a body with Content-Length, but req.no_body
+also carries the application's CURLOPT_NOBODY, so such a body was then
+read even when the application asked for no body. Only override the
+method-derived value.
+
+Add test1688: test657 with CURLOPT_NOBODY set, expecting headers only.
+
+Reported-by: Daniel Stenberg
+Ref: #22935
+Closes #22954
+---
+ lib/http.c             |  5 ++--
+ tests/data/Makefile.am |  1 +
+ tests/data/test1688    | 57 ++++++++++++++++++++++++++++++++++++++++++
+ tests/libtest/lib567.c |  2 ++
+ 4 files changed, 63 insertions(+), 2 deletions(-)
+ create mode 100644 tests/data/test1688
+
+diff --git a/lib/http.c b/lib/http.c
+index 7f76a9279f91..3894f53c0fbc 100644
+--- a/lib/http.c
++++ b/lib/http.c
+@@ -4213,9 +4213,10 @@ static CURLcode http_on_response(struct Curl_easy *data,
+ #ifndef CURL_DISABLE_RTSP
+   /* An RTSP response to any method may carry a body, which is announced
+      with Content-Length (RFC 2326 section 12.14). Read it instead of
+-     treating it as excess data. */
++     treating it as excess data, unless the application asked for no body
++     with CURLOPT_NOBODY. */
+   if((conn->scheme->protocol & CURLPROTO_RTSP) && data->req.no_body &&
+-     (k->size > 0))
++     !data->set.opt_no_body && (k->size > 0))
+     data->req.no_body = FALSE;
+ #endif
+ 
+diff --git a/tests/data/Makefile.am b/tests/data/Makefile.am
+index ee25967b2f99..be7a4aa32fbf 100644
+--- a/tests/data/Makefile.am
++++ b/tests/data/Makefile.am
+@@ -1706,6 +1706,7 @@ TESTCASES = \
+   test1685 \
+   test1686 \
+   test1687 \
++  test1688 \
+   \
+   test1700 \
+   test1702 \
+diff --git a/tests/data/test1688 b/tests/data/test1688
+new file mode 100644
+index 000000000000..357591baa268
+--- /dev/null
++++ b/tests/data/test1688
+@@ -0,0 +1,57 @@
++<?xml version="1.0" encoding="US-ASCII"?>
++<testcase>
++<info>
++<keywords>
++RTSP
++OPTIONS
++</keywords>
++</info>
++
++# Server-side
++<reply>
++<data nocheck="yes">
++RTSP/1.0 200 OK
++Server: RTSPD/libcurl-test
++CSeq: 1
++Public: DESCRIBE, OPTIONS, SETUP, TEARDOWN, PLAY, PAUSE
++Content-Length: 18
++
++No-More: sessions
++</data>
++</reply>
++
++# Client-side
++<client>
++<server>
++rtsp
++</server>
++<tool>
++lib567
++</tool>
++<name>
++RTSP OPTIONS response with a body, CURLOPT_NOBODY set
++</name>
++<command>
++rtsp://%HOSTIP:%RTSPPORT/%TESTNUMBER
++</command>
++</client>
++
++# Verify data after the test has been "shot"
++<verify>
++<protocol crlf="headers">
++OPTIONS rtsp://%HOSTIP:%RTSPPORT/%TESTNUMBER RTSP/1.0
++CSeq: 1
++User-Agent: test567
++Test-Number: 567
++
++</protocol>
++<stdout>
++RTSP/1.0 200 OK
++Server: RTSPD/libcurl-test
++CSeq: 1
++Public: DESCRIBE, OPTIONS, SETUP, TEARDOWN, PLAY, PAUSE
++Content-Length: 18
++
++</stdout>
++</verify>
++</testcase>
+diff --git a/tests/libtest/lib567.c b/tests/libtest/lib567.c
+index dc17f53b0ba4..1421dfb157e4 100644
+--- a/tests/libtest/lib567.c
++++ b/tests/libtest/lib567.c
+@@ -53,6 +53,8 @@ static CURLcode test_lib567(const char *URL)
+   easy_setopt(curl, CURLOPT_RTSP_STREAM_URI, URL);
+   easy_setopt(curl, CURLOPT_RTSP_REQUEST, CURL_RTSPREQ_OPTIONS);
+   easy_setopt(curl, CURLOPT_USERAGENT, "test567");
++  if(testnum == 1688)
++    easy_setopt(curl, CURLOPT_NOBODY, 1L);
+ 
+   custom_headers = curl_slist_append(custom_headers, "Test-Number: 567");
+   easy_setopt(curl, CURLOPT_RTSPHEADER, custom_headers);
+
+
+Repository: curl/curl
+Commit: 35b0490aabf515b817ea2462722306cf118e7747
+Date: 2026-09-15T15:04:25Z
+peer: speed up "same destination" check
+
+The dominant use in `Curl_peer_same_destination()` are checks on the
+very same hostname. Speed up the case-insensitive matching by performing
+a `strcmp()` first that is platform optimized.
+
+Closes #22914
+
+From 35b0490aabf515b817ea2462722306cf118e7747 Mon Sep 17 00:00:00 2001
+From: Stefan Eissing <stefan@eissing.org>
+Date: Fri, 11 Sep 2026 14:21:55 +0200
+Subject: [PATCH] peer: speed up "same destination" check
+
+The dominant use in `Curl_peer_same_destination()` are checks on the
+very same hostname. Speed up the case-insensitive matching by performing
+a `strcmp()` first that is platform optimized.
+
+Closes #22914
+---
+ lib/peer.c |  9 ++++++---
+ lib/url.c  | 10 ++++++----
+ 2 files changed, 12 insertions(+), 7 deletions(-)
+
+diff --git a/lib/peer.c b/lib/peer.c
+index 4a7a12d8cf06..577cedbb334b 100644
+--- a/lib/peer.c
++++ b/lib/peer.c
+@@ -333,9 +333,12 @@ static bool peer_same_hostname(struct Curl_peer *p1, struct Curl_peer *p2)
+   return (p

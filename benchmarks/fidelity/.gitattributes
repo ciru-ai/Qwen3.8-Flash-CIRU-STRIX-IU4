@@ -1,0 +1,4 @@
+# Preserve frozen text and upstream license bytes exactly.
+data/window-*.txt -text -whitespace
+licenses/* -text -whitespace
+*.svg -whitespace

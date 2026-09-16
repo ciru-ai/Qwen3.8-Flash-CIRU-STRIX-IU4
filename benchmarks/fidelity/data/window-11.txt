@@ -1,0 +1,105 @@
+		memcpy(&hexbuf[8], &body[9], 4);
++		memcpy(&hexbuf[12], &body[14], 4);
++		memcpy(&hexbuf[16], &body[19], 4);
++		memcpy(&hexbuf[20], &body[24], 12);
++		hexsrc = hexbuf;
++	}
++
++	if (hexsrc == NULL)
++	{
++		/* Uncommon shape; let the general parse handle it */
++		string_to_uuid_scalar(source, uuid, escontext);
++		return;
++	}
++
++	/*
++	 * The shape matched, so the decode is expected to succeed. Any error is
++	 * routed into a private context and discarded, leaving
++	 * string_to_uuid_scalar() to parse the input again and report the syntax
++	 * error, so that the message does not depend on which path rejected the
++	 * input.
++	 */
++	written = hex_decode_safe(hexsrc, 32, (char *) uuid->data,
++							  (Node *) &private_escontext);
++
++	/*
++	 * A short result must be rejected as well as an error: hex_decode_safe()
++	 * skips whitespace, so it can succeed yet write fewer than UUID_LEN
++	 * bytes, whereas the UUID grammar forbids whitespace.
++	 */
++	if (private_escontext.error_occurred || written != UUID_LEN)
++		string_to_uuid_scalar(source, uuid, escontext);
++}
++
+ Datum
+ uuid_recv(PG_FUNCTION_ARGS)
+ {
+diff --git a/src/test/regress/expected/uuid.out b/src/test/regress/expected/uuid.out
+index d542eb14b2650..a37bdd4245ccb 100644
+--- a/src/test/regress/expected/uuid.out
++++ b/src/test/regress/expected/uuid.out
+@@ -375,5 +375,79 @@ SELECT v = v::bytea::uuid as matched FROM gen_random_uuid() v;
+  t
+ (1 row)
+ 
++-- Test the UUID shapes for which the parser uses the fast path.
++SELECT '5b35380a-7143-4912-9b55-f322699c6770'::uuid;
++                 uuid                 
++--------------------------------------
++ 5b35380a-7143-4912-9b55-f322699c6770
++(1 row)
++
++SELECT '{5b35380a-7143-4912-9b55-f322699c6770}'::uuid;
++                 uuid                 
++--------------------------------------
++ 5b35380a-7143-4912-9b55-f322699c6770
++(1 row)
++
++SELECT '5b35380a714349129b55f322699c6770'::uuid;
++                 uuid                 
++--------------------------------------
++ 5b35380a-7143-4912-9b55-f322699c6770
++(1 row)
++
++SELECT '{5b35380a714349129b55f322699c6770}'::uuid;
++                 uuid                 
++--------------------------------------
++ 5b35380a-7143-4912-9b55-f322699c6770
++(1 row)
++
++-- Test that the fast path correctly rejects invalid UUID strings.
++SELECT '5b35380a714349129b55f32  99c6770'::uuid;
++ERROR:  invalid input syntax for type uuid: "5b35380a714349129b55f32  99c6770"
++LINE 1: SELECT '5b35380a714349129b55f32  99c6770'::uuid;
++               ^
++SELECT '5b35380a-7143-4912-9b55-f322699c67  '::uuid;
++ERROR:  invalid input syntax for type uuid: "5b35380a-7143-4912-9b55-f322699c67  "
++LINE 1: SELECT '5b35380a-7143-4912-9b55-f322699c67  '::uuid;
++               ^
++SELECT '  35380a-7143-4912-9b55-f322699c6770'::uuid;
++ERROR:  invalid input syntax for type uuid: "  35380a-7143-4912-9b55-f322699c6770"
++LINE 1: SELECT '  35380a-7143-4912-9b55-f322699c6770'::uuid;
++               ^
++SELECT 'AZ35380a-7143-4912-9b55-f322699c6770'::uuid;
++ERROR:  invalid input syntax for type uuid: "AZ35380a-7143-4912-9b55-f322699c6770"
++LINE 1: SELECT 'AZ35380a-7143-4912-9b55-f322699c6770'::uuid;
++               ^
++SELECT '{AZ35380a-7143-4912-9b55-f322699c6770}'::uuid;
++ERROR:  invalid input syntax for type uuid: "{AZ35380a-7143-4912-9b55-f322699c6770}"
++LINE 1: SELECT '{AZ35380a-7143-4912-9b55-f322699c6770}'::uuid;
++               ^
++SELECT '{AZ35380a714349129b55f322699c6770}'::uuid;
++ERROR:  invalid input syntax for type uuid: "{AZ35380a714349129b55f322699c6770}"
++LINE 1: SELECT '{AZ35380a714349129b55f322699c6770}'::uuid;
++               ^
++SELECT '{AZ35380a714349129b55f322699c67  }'::uuid;
++ERROR:  invalid input syntax for type uuid: "{AZ35380a714349129b55f322699c67  }"
++LINE 1: SELECT '{AZ35380a714349129b55f322699c67  }'::uuid;
++               ^
++-- The parser only measures the input far enough to classify its shape.  If it
++-- stopped measuring at one of the accepted lengths, a longer string that
++-- merely starts with a valid UUID would look like that UUID and be accepted
++-- with the rest silently ignored, so check that trailing data is rejected.
++SELECT '5b35380a714349129b55f322699c6770TRAILING'::uuid;
++ERROR:  invalid input syntax for type uuid: "5b35380a714349129b55f322699c6770TRAILING"
++LINE 1: SELECT '5b35380a714349129b55f32

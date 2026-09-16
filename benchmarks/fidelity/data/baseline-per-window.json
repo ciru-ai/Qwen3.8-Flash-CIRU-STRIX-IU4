@@ -1,0 +1,578 @@
+[
+  {
+    "model": "BF16",
+    "window": 0,
+    "repository": "python/cpython",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.8141353238765248
+  },
+  {
+    "model": "BF16",
+    "window": 1,
+    "repository": "python/cpython",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 1.1660545281405859
+  },
+  {
+    "model": "BF16",
+    "window": 2,
+    "repository": "numpy/numpy",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.27624413460728203
+  },
+  {
+    "model": "BF16",
+    "window": 3,
+    "repository": "numpy/numpy",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.9920440744079877
+  },
+  {
+    "model": "BF16",
+    "window": 4,
+    "repository": "scipy/scipy",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.6416144960138268
+  },
+  {
+    "model": "BF16",
+    "window": 5,
+    "repository": "scipy/scipy",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 1.1787506397882055
+  },
+  {
+    "model": "BF16",
+    "window": 6,
+    "repository": "rust-lang/rust",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.8379061730471966
+  },
+  {
+    "model": "BF16",
+    "window": 7,
+    "repository": "rust-lang/rust",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.9734100856106542
+  },
+  {
+    "model": "BF16",
+    "window": 8,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.3888723484398715
+  },
+  {
+    "model": "BF16",
+    "window": 9,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.8227513983870305
+  },
+  {
+    "model": "BF16",
+    "window": 10,
+    "repository": "postgres/postgres",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.7285638513086761
+  },
+  {
+    "model": "BF16",
+    "window": 11,
+    "repository": "postgres/postgres",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.2219207029099863
+  },
+  {
+    "model": "BF16",
+    "window": 12,
+    "repository": "curl/curl",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.7518908238818544
+  },
+  {
+    "model": "BF16",
+    "window": 13,
+    "repository": "curl/curl",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.8119858309272403
+  },
+  {
+    "model": "BF16",
+    "window": 14,
+    "repository": "godotengine/godot",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 0.9922133996208897
+  },
+  {
+    "model": "BF16",
+    "window": 15,
+    "repository": "godotengine/godot",
+    "kl": 0.0,
+    "top1": 1.0,
+    "tie_aware": 1.0,
+    "nll": 1.0557891591718551
+  },
+  {
+    "model": "IU4",
+    "window": 0,
+    "repository": "python/cpython",
+    "kl": 0.03393320502530527,
+    "top1": 0.9208984375,
+    "tie_aware": 0.955078125,
+    "nll": 0.8358858547059507
+  },
+  {
+    "model": "IU4",
+    "window": 1,
+    "repository": "python/cpython",
+    "kl": 0.07166390490367242,
+    "top1": 0.875,
+    "tie_aware": 0.9130859375,
+    "nll": 1.151386494653257
+  },
+  {
+    "model": "IU4",
+    "window": 2,
+    "repository": "numpy/numpy",
+    "kl": 0.019382379870035472,
+    "top1": 0.958984375,
+    "tie_aware": 0.9677734375,
+    "nll": 0.27878957566672696
+  },
+  {
+    "model": "IU4",
+    "window": 3,
+    "repository": "numpy/numpy",
+    "kl": 0.14992653415439844,
+    "top1": 0.8662109375,
+    "tie_aware": 0.8984375,
+    "nll": 1.1084296223871923
+  },
+  {
+    "model": "IU4",
+    "window": 4,
+    "repository": "scipy/scipy",
+    "kl": 0.04046534535066858,
+    "top1": 0.91796875,
+    "tie_aware": 0.9541015625,
+    "nll": 0.6474448660934127
+  },
+  {
+    "model": "IU4",
+    "window": 5,
+    "repository": "scipy/scipy",
+    "kl": 0.09403011056391969,
+    "top1": 0.8310546875,
+    "tie_aware": 0.8837890625,
+    "nll": 1.1667722750692349
+  },
+  {
+    "model": "IU4",
+    "window": 6,
+    "repository": "rust-lang/rust",
+    "kl": 0.03291576977549897,
+    "top1": 0.927734375,
+    "tie_aware": 0.9453125,
+    "nll": 0.8411310279600144
+  },
+  {
+    "model": "IU4",
+    "window": 7,
+    "repository": "rust-lang/rust",
+    "kl": 0.08997570325094173,
+    "top1": 0.892578125,
+    "tie_aware": 0.9091796875,
+    "nll": 0.9973163882542109
+  },
+  {
+    "model": "IU4",
+    "window": 8,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.019857156788923615,
+    "top1": 0.9677734375,
+    "tie_aware": 0.974609375,
+    "nll": 0.39538929317999016
+  },
+  {
+    "model": "IU4",
+    "window": 9,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.07633276928914264,
+    "top1": 0.9013671875,
+    "tie_aware": 0.93359375,
+    "nll": 0.8530636233770397
+  },
+  {
+    "model": "IU4",
+    "window": 10,
+    "repository": "postgres/postgres",
+    "kl": 0.064370293020524,
+    "top1": 0.919921875,
+    "tie_aware": 0.9267578125,
+    "nll": 0.702905756790757
+  },
+  {
+    "model": "IU4",
+    "window": 11,
+    "repository": "postgres/postgres",
+    "kl": 0.020229839078525148,
+    "top1": 0.982421875,
+    "tie_aware": 0.9853515625,
+    "nll": 0.23209629683067518
+  },
+  {
+    "model": "IU4",
+    "window": 12,
+    "repository": "curl/curl",
+    "kl": 0.04713926149896076,
+    "top1": 0.9072265625,
+    "tie_aware": 0.9453125,
+    "nll": 0.7557409747204179
+  },
+  {
+    "model": "IU4",
+    "window": 13,
+    "repository": "curl/curl",
+    "kl": 0.07300508987129703,
+    "top1": 0.9208984375,
+    "tie_aware": 0.939453125,
+    "nll": 0.8371543276697175
+  },
+  {
+    "model": "IU4",
+    "window": 14,
+    "repository": "godotengine/godot",
+    "kl": 0.07392960877931602,
+    "top1": 0.861328125,
+    "tie_aware": 0.9287109375,
+    "nll": 0.9818174277278787
+  },
+  {
+    "model": "IU4",
+    "window": 15,
+    "repository": "godotengine/godot",
+    "kl": 0.05312845896688991,
+    "top1": 0.849609375,
+    "tie_aware": 0.927734375,
+    "nll": 1.0779163215984533
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 0,
+    "repository": "python/cpython",
+    "kl": 0.018452590862784495,
+    "top1": 0.931640625,
+    "tie_aware": 0.951171875,
+    "nll": 0.8296937755150454
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 1,
+    "repository": "python/cpython",
+    "kl": 0.03865056052784581,
+    "top1": 0.89453125,
+    "tie_aware": 0.921875,
+    "nll": 1.1266017632227836
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 2,
+    "repository": "numpy/numpy",
+    "kl": 0.010133387946371085,
+    "top1": 0.962890625,
+    "tie_aware": 0.966796875,
+    "nll": 0.2818631281635974
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 3,
+    "repository": "numpy/numpy",
+    "kl": 0.06394995378170915,
+    "top1": 0.919921875,
+    "tie_aware": 0.9375,
+    "nll": 1.0093294843966603
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 4,
+    "repository": "scipy/scipy",
+    "kl": 0.01645748444585152,
+    "top1": 0.923828125,
+    "tie_aware": 0.9521484375,
+    "nll": 0.6302627632120724
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 5,
+    "repository": "scipy/scipy",
+    "kl": 0.047551024433172634,
+    "top1": 0.845703125,
+    "tie_aware": 0.880859375,
+    "nll": 1.1610964327054574
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 6,
+    "repository": "rust-lang/rust",
+    "kl": 0.015730453920693534,
+    "top1": 0.9365234375,
+    "tie_aware": 0.9541015625,
+    "nll": 0.8411045083557553
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 7,
+    "repository": "rust-lang/rust",
+    "kl": 0.03610887910894241,
+    "top1": 0.923828125,
+    "tie_aware": 0.9365234375,
+    "nll": 0.9659367449355143
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 8,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.009548081685389825,
+    "top1": 0.974609375,
+    "tie_aware": 0.9794921875,
+    "nll": 0.3861397928101457
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 9,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.03557996625001468,
+    "top1": 0.9150390625,
+    "tie_aware": 0.939453125,
+    "nll": 0.8278529143708113
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 10,
+    "repository": "postgres/postgres",
+    "kl": 0.02785192598853422,
+    "top1": 0.943359375,
+    "tie_aware": 0.951171875,
+    "nll": 0.7212381729043946
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 11,
+    "repository": "postgres/postgres",
+    "kl": 0.01577552595554114,
+    "top1": 0.9853515625,
+    "tie_aware": 0.9853515625,
+    "nll": 0.21224211051871336
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 12,
+    "repository": "curl/curl",
+    "kl": 0.02611283879169811,
+    "top1": 0.9130859375,
+    "tie_aware": 0.939453125,
+    "nll": 0.7558465615697771
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 13,
+    "repository": "curl/curl",
+    "kl": 0.04114237661551613,
+    "top1": 0.9208984375,
+    "tie_aware": 0.927734375,
+    "nll": 0.8039083584444902
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 14,
+    "repository": "godotengine/godot",
+    "kl": 0.05994845103917064,
+    "top1": 0.865234375,
+    "tie_aware": 0.908203125,
+    "nll": 0.9432599695182926
+  },
+  {
+    "model": "AP-Q5_K_XL",
+    "window": 15,
+    "repository": "godotengine/godot",
+    "kl": 0.03411756530558978,
+    "top1": 0.8505859375,
+    "tie_aware": 0.8935546875,
+    "nll": 1.0489130902790198
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 0,
+    "repository": "python/cpython",
+    "kl": 0.02111849036393912,
+    "top1": 0.9267578125,
+    "tie_aware": 0.943359375,
+    "nll": 0.8354341091273867
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 1,
+    "repository": "python/cpython",
+    "kl": 0.04266024831598594,
+    "top1": 0.8837890625,
+    "tie_aware": 0.908203125,
+    "nll": 1.13201888499069
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 2,
+    "repository": "numpy/numpy",
+    "kl": 0.012217670926991367,
+    "top1": 0.962890625,
+    "tie_aware": 0.9677734375,
+    "nll": 0.2827169517653484
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 3,
+    "repository": "numpy/numpy",
+    "kl": 0.06984658074312339,
+    "top1": 0.9052734375,
+    "tie_aware": 0.9248046875,
+    "nll": 1.0144112561767724
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 4,
+    "repository": "scipy/scipy",
+    "kl": 0.024176004431393616,
+    "top1": 0.9287109375,
+    "tie_aware": 0.95703125,
+    "nll": 0.6257163812862474
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 5,
+    "repository": "scipy/scipy",
+    "kl": 0.057045658471029104,
+    "top1": 0.845703125,
+    "tie_aware": 0.875,
+    "nll": 1.1713045072262989
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 6,
+    "repository": "rust-lang/rust",
+    "kl": 0.01818021502053943,
+    "top1": 0.943359375,
+    "tie_aware": 0.9599609375,
+    "nll": 0.849088326634174
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 7,
+    "repository": "rust-lang/rust",
+    "kl": 0.037331497225098986,
+    "top1": 0.927734375,
+    "tie_aware": 0.9375,
+    "nll": 0.9673742889165098
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 8,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.010985307561087648,
+    "top1": 0.97265625,
+    "tie_aware": 0.9765625,
+    "nll": 0.3875925145606205
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 9,
+    "repository": "microsoft/TypeScript",
+    "kl": 0.03681975402101274,
+    "top1": 0.9189453125,
+    "tie_aware": 0.9423828125,
+    "nll": 0.8307273839690394
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 10,
+    "repository": "postgres/postgres",
+    "kl": 0.03759403073640698,
+    "top1": 0.939453125,
+    "tie_aware": 0.9443359375,
+    "nll": 0.7093610129954926
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 11,
+    "repository": "postgres/postgres",
+    "kl": 0.015630401512151886,
+    "top1": 0.9853515625,
+    "tie_aware": 0.9873046875,
+    "nll": 0.2167287014143413
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 12,
+    "repository": "curl/curl",
+    "kl": 0.02698375317197573,
+    "top1": 0.908203125,
+    "tie_aware": 0.92578125,
+    "nll": 0.740678758396569
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 13,
+    "repository": "curl/curl",
+    "kl": 0.055702097553983254,
+    "top1": 0.908203125,
+    "tie_aware": 0.9169921875,
+    "nll": 0.8238097491421882
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 14,
+    "repository": "godotengine/godot",
+    "kl": 0.08319498177408746,
+    "top1": 0.873046875,
+    "tie_aware": 0.91015625,
+    "nll": 0.9165263869968181
+  },
+  {
+    "model": "AP-Q4_K_XL",
+    "window": 15,
+    "repository": "godotengine/godot",
+    "kl": 0.04027060461386471,
+    "top1": 0.833984375,
+    "tie_aware": 0.884765625,
+    "nll": 1.0860815957519376
+  }
+]

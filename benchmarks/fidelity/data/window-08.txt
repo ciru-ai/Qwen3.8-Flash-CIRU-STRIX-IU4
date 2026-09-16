@@ -1,0 +1,140 @@
+Repository: microsoft/TypeScript
+Commit: d2b20b35034bd902bdda5974f522ff00352895e9
+Date: 2026-09-15T20:52:40Z
+Remove FS().WalkDir (#64277)
+
+From d2b20b35034bd902bdda5974f522ff00352895e9 Mon Sep 17 00:00:00 2001
+From: Andrew Branch <andrewbranch@users.noreply.github.com>
+Date: Tue, 15 Sep 2026 20:52:40 +0000
+Subject: [PATCH] Remove FS().WalkDir (#64277)
+
+---
+ tsc/internal/api/callbackfs.go                |   5 -
+ .../api/requestfilesystem/pathtree_test.go    |  69 ++----
+ .../requestfilesystem/requestfilesystem.go    |  59 -----
+ .../requestfilesystem_test.go                 |  30 +--
+ tsc/internal/bundled/bundled_test.go          |  18 +-
+ tsc/internal/bundled/embed.go                 |  50 -----
+ tsc/internal/bundled/embed_generated.go       | 117 +---------
+ tsc/internal/bundled/generate.go              |  13 +-
+ .../compiler/projectreferencedtsfakinghost.go |   5 -
+ tsc/internal/fourslash/baselineutil.go        |  47 ++--
+ tsc/internal/fourslash/fourslash.go           |  13 +-
+ tsc/internal/lsp/lspwatcher/lspwatcher.go     |  11 +-
+ tsc/internal/project/snapshotfs.go            |   5 -
+ .../tsoptions/tsconfigparsing_test.go         |  11 +-
+ tsc/internal/vfs/cachedvfs/cachedvfs.go       |   4 -
+ tsc/internal/vfs/cachedvfs/cachedvfs_test.go  |  36 ---
+ tsc/internal/vfs/internal/internal.go         |  13 --
+ tsc/internal/vfs/iovfs/iofs.go                |   4 -
+ tsc/internal/vfs/iovfs/iofs_test.go           |  47 ----
+ tsc/internal/vfs/osvfs/os.go                  |  37 ----
+ tsc/internal/vfs/trackingvfs/trackingvfs.go   |   8 -
+ tsc/internal/vfs/vfs.go                       |  15 --
+ tsc/internal/vfs/vfsmock/mock_generated.go    |  50 -----
+ tsc/internal/vfs/vfsmock/wrapper.go           |   1 -
+ tsc/internal/vfs/vfstest/vfstest_test.go      |  11 +-
+ tsc/internal/vfs/walkdir.go                   | 184 +++++++++++++++
+ tsc/internal/vfs/walkdir_test.go              | 209 ++++++++++++++++++
+ tsc/internal/vfs/wrapvfs/wrapvfs.go           |   9 -
+ 28 files changed, 448 insertions(+), 633 deletions(-)
+ create mode 100644 tsc/internal/vfs/walkdir.go
+ create mode 100644 tsc/internal/vfs/walkdir_test.go
+
+diff --git a/tsc/internal/api/callbackfs.go b/tsc/internal/api/callbackfs.go
+index 9d2e1b9ce5659..ad1a674bbdbd9 100644
+--- a/tsc/internal/api/callbackfs.go
++++ b/tsc/internal/api/callbackfs.go
+@@ -235,8 +235,3 @@ func (fs *callbackFS) Chtimes(path string, aTime time.Time, mTime time.Time) err
+ func (fs *callbackFS) Stat(path string) vfs.FileInfo {
+ 	return fs.base.Stat(path)
+ }
+-
+-// WalkDir implements vfs.FS - always delegates to base (no callback support).
+-func (fs *callbackFS) WalkDir(root string, walkFn vfs.WalkDirFunc) error {
+-	return fs.base.WalkDir(root, walkFn)
+-}
+diff --git a/tsc/internal/api/requestfilesystem/pathtree_test.go b/tsc/internal/api/requestfilesystem/pathtree_test.go
+index e48aa19f897c7..20f84135244fd 100644
+--- a/tsc/internal/api/requestfilesystem/pathtree_test.go
++++ b/tsc/internal/api/requestfilesystem/pathtree_test.go
+@@ -226,19 +226,11 @@ func TestRequestPathTreeFileProvidesStatAndDirEntry(t *testing.T) {
+ 	assert.Equal(t, info.ModTime(), time.Time{})
+ 	assert.Assert(t, info.Sys() == nil)
+ 	assert.Assert(t, any(info) == node.entry)
+-	visited := false
+-	assert.NilError(t, fileSystem.WalkDir("/dir/file.ts", func(path string, entry vfs.DirEntry, walkErr error) error {
+-		assert.NilError(t, walkErr)
+-		assert.Equal(t, path, "/dir/file.ts")
+-		assert.Assert(t, any(entry) == node.entry)
+-		assert.Equal(t, entry.Type(), fs.FileMode(0))
+-		entryInfo, infoErr := entry.Info()
+-		assert.NilError(t, infoErr)
+-		assert.Assert(t, entryInfo == info)
+-		visited = true
+-		return nil
+-	}))
+-	assert.Assert(t, visited)
++	entry := node.entry.(vfs.DirEntry)
++	assert.Equal(t, entry.Type(), fs.FileMode(0))
++	entryInfo, infoErr := entry.Info()
++	assert.NilError(t, infoErr)
++	assert.Assert(t, entryInfo == info)
+ }
+ 
+ func TestRequestPathTreeDirectoryProvidesStatAndDirEntry(t *testing.T) {
+@@ -258,19 +250,11 @@ func TestRequestPathTreeDirectoryProvidesStatAndDirEntry(t *testing.T) {
+ 	assert.Equal(t, info.ModTime(), time.Time{})
+ 	assert.Assert(t, info.Sys() == nil)
+ 	assert.Assert(t, any(info) == node.entry)
+-	visited := false
+-	assert.NilError(t, fileSystem.WalkDir("/dir", func(path string, entry vfs.DirEntry, walkErr error) error {
+-		assert.NilError(t, walkErr)
+-		assert.Equal(t, path, "/dir")
+-		assert.Assert(t, any(entry) == node.entry)
+-		assert.Equal(t, entry.Type(), fs.ModeDir)
+-		entryInfo, infoErr := entry.Info()
+-		assert.NilError(t, infoErr)
+-		assert.Assert(t, entryInfo == info)
+-		visited = true
+-		return nil
+-	}))
+-	assert.Assert(t, visited)
++	entry := node.entry.(vfs.DirEntry)
++	assert.Equal(t, entry.Type(), fs.ModeDir)
++	entryInfo, infoErr := entry.Info()
++	assert.NilError(t, infoErr)
++	assert.Assert(t, entryInfo == info)
+ }
+ 
+ func TestRequestPathTreeSymlinkReportsTargetMetadata(t *testing.T) {
+@@ -283,19 +267,6 @@ func TestRequestPathTreeSymlinkReportsTargetMetadata(t *testing.T) {
+ 	assert.NilError(t, err)
+ 	info := fileSystem.Stat("/target/file.ts")
+ 	assert.Assert(t, fileSystem.Stat("/link.ts") == info)
+-	visited := false
+-	assert.NilError(t, fileSystem.WalkDir("/link.ts", func(path string, entry vfs.DirEntry, walkErr error) error {
+-		assert.NilError(t, walkErr)
+-		assert.Equal(t, path, "/link.ts")
+-		assert.Equal(t, entry.Name(), "file.ts")
+-		assert.Equal(t, entry.Type(), fs.FileMode(0))
+-		entryInfo, infoErr := entry.Info()
+-		assert.NilError(t, infoErr)
+-		assert.Assert(t, entryInfo == info)
+-		visited = true
+-		return nil
+-	}))
+-	assert.Assert(t, visited)
+ }
+ 
+ type requestTestHostMetadata struct {
+@@ -305,7 +276,7 @@ type requestTestHostMetadata struct {
+ 
+ func (host requestTestHostMetadata) Stat(string) vfs.FileInfo { return host.info }
+ 
+-func TestRequestPathTreeWalkPreservesHostMetadata(t *testing.T) {
++func TestRequestPathTreeStatPreservesHostMetadata(t *testing.T) {
+ 	t.Parallel()
+ 	hostFS := vfstest.FromMap(map[string]string{"/host.ts": "host content"}, true)
+ 	modified := time.Date(2026, time.September, 9, 12, 0, 0, 0, time.UTC)
+@@ -317,

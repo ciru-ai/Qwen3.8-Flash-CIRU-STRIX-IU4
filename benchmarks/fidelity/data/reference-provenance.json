@@ -1,0 +1,279 @@
+{
+  "status": "PASS",
+  "classification": "local-custom",
+  "model": "Qwen/Qwen3.8-Flash-Next",
+  "revision": "f5d08274bafd880402bd16f5e3e6c514136ec06c",
+  "source_index_sha256": "99e815241ef03325536b0aaa4441deea45174c17fae31e10f0bb456410c590de",
+  "tokenizer_sha256": "0997f410c57a1f4e53b09e4be8f4a172d90edd9564368fb0847030937229b9f3",
+  "panel_sha256": "d6f3f47327f7f6d2beb41878f59752dd98d6e3eed8a0bcf340e44242bb294f16",
+  "windows": 16,
+  "input_shape": [
+    16,
+    2048
+  ],
+  "output_shape": [
+    16,
+    1024,
+    248320
+  ],
+  "dtype": "F32 storage of native BF16 output logits",
+  "output_bytes": 16273899520,
+  "output_sha256": "603c7dc9b61113ec5a54c6147956022c2cd6633c825beccce3371128f3b8259c",
+  "torch": "2.11.0+rocm7.1",
+  "rocm": "7.1.52802",
+  "device": "AMD Radeon 8060S Graphics",
+  "router": "unmodified native topk; no canonical tie policy",
+  "tf32": false,
+  "deterministic_algorithms": true,
+  "transformers": {
+    "commit": "fc5c5bde8e656dad91cbf34e61940d984b1c7b91",
+    "modeling_sha256": "77fec77d87f2a0eb23b95fa04276fb5779698a7c7f523cf5061e49c118bcc459",
+    "configuration_sha256": "26b47995740e3bc596b44b2011ee6c3d971d46136438b00dd5fad9557bec4254"
+  },
+  "script_sha256": "48d09e2cdc2f3582c7121a89e00cabd4e1219701a21d585c09f930adbef2e293",
+  "ple_source": "sparse exact BF16 rows from original shards",
+  "layers": [
+    {
+      "layer": 0,
+      "seconds": 10.935378529131413,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 1,
+      "seconds": 86.40384671394713,
+      "source_bytes": 5253637848
+    },
+    {
+      "layer": 2,
+      "seconds": 7.2620053889695555,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 3,
+      "seconds": 11.921068347990513,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 4,
+      "seconds": 6.357119475957006,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 5,
+      "seconds": 6.614934250945225,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 6,
+      "seconds": 6.3071798959281296,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 7,
+      "seconds": 11.529416100820526,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 8,
+      "seconds": 6.058640558971092,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 9,
+      "seconds": 5.671981363091618,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 10,
+      "seconds": 5.758557653054595,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 11,
+      "seconds": 12.37896536104381,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 12,
+      "seconds": 6.3894708880688995,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 13,
+      "seconds": 7.125152437016368,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 14,
+      "seconds": 6.7038640880491585,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 15,
+      "seconds": 11.869557376019657,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 16,
+      "seconds": 5.848802994936705,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 17,
+      "seconds": 6.529859405942261,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 18,
+      "seconds": 6.093777349917218,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 19,
+      "seconds": 11.578193081077188,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 20,
+      "seconds": 6.41054112277925,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 21,
+      "seconds": 6.489592605968937,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 22,
+      "seconds": 6.35815845313482,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 23,
+      "seconds": 12.359017714159563,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 24,
+      "seconds": 6.366177361924201,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 25,
+      "seconds": 6.591324829962105,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 26,
+      "seconds": 5.814771141158417,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 27,
+      "seconds": 11.608195958891883,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 28,
+      "seconds": 6.11201629601419,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 29,
+      "seconds": 5.881943093147129,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 30,
+      "seconds": 5.942121754866093,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 31,
+      "seconds": 11.687711954116821,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 32,
+      "seconds": 6.123690876876935,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 33,
+      "seconds": 6.067425874993205,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 34,
+      "seconds": 5.890212805941701,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 35,
+      "seconds": 12.148018358042464,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 36,
+      "seconds": 6.18834367999807,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 37,
+      "seconds": 5.979142177151516,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 38,
+      "seconds": 6.102731634862721,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 39,
+      "seconds": 11.900160980178043,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 40,
+      "seconds": 6.071753759169951,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 41,
+      "seconds": 5.985143052181229,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 42,
+      "seconds": 6.157422723947093,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 43,
+      "seconds": 11.914073253050447,
+      "source_bytes": 5174934016
+    },
+    {
+      "layer": 44,
+      "seconds": 6.145977610955015,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 45,
+      "seconds": 5.973555569071323,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 46,
+      "seconds": 5.83297258708626,
+      "source_bytes": 5187958208
+    },
+    {
+      "layer": 47,
+      "seconds": 11.85662694601342,
+      "source_bytes": 5174934016
+    }
+  ],
+  "seconds": 488.35597330797464,
+  "publication_note": "Local filesystem checkout path omitted; source identity unchanged."
+}

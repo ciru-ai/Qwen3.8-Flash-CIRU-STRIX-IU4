@@ -1,0 +1,137 @@
+: Fix error in editor when composition layer is the root of a scene
+
+From dd33fbeab119677463d234af70e03ffcf969a3b5 Mon Sep 17 00:00:00 2001
+From: David Snopek <dsnopek@gmail.com>
+Date: Tue, 15 Sep 2026 13:46:12 -0500
+Subject: [PATCH] OpenXR: Fix error in editor when composition layer is the
+ root of a scene
+
+---
+ modules/openxr/scene/openxr_composition_layer.cpp | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/modules/openxr/scene/openxr_composition_layer.cpp b/modules/openxr/scene/openxr_composition_layer.cpp
+index 852eeabff81f..372976311d98 100644
+--- a/modules/openxr/scene/openxr_composition_layer.cpp
++++ b/modules/openxr/scene/openxr_composition_layer.cpp
+@@ -294,7 +294,7 @@ void OpenXRCompositionLayer::update_transform() {
+ 		}
+ 
+ 		Transform3D xf;
+-		if (parent_is_xr_origin || parent_is_xr_camera) {
++		if (parent_is_xr_origin || parent_is_xr_camera || !is_inside_tree()) {
+ 			xf = get_transform();
+ 		} else {
+ 			if (ancestor_camera) {
+
+
+Repository: godotengine/godot
+Commit: 38ef9d32e883a41747a4b73022e9e24538670591
+Date: 2026-09-15T22:55:52Z
+Merge pull request #123448 from NoctemCat/dotnet_error_enum_marshalling_use_correct_type
+
+[.NET]: Use correct underlying type when marshalling enum `Error`
+
+From 5efd06f03754fea8da22b5c3cbdf4950adb6e72c Mon Sep 17 00:00:00 2001
+From: NoctemCat <ya7kolya@gmail.com>
+Date: Sat, 12 Sep 2026 23:17:00 +0900
+Subject: [PATCH] Use correct underlying type when marshalling C# enum Error
+
+---
+ modules/mono/glue/runtime_interop.cpp | 12 ++++++------
+ 1 file changed, 6 insertions(+), 6 deletions(-)
+
+diff --git a/modules/mono/glue/runtime_interop.cpp b/modules/mono/glue/runtime_interop.cpp
+index 8f928e6adc91..3888924d3ff3 100644
+--- a/modules/mono/glue/runtime_interop.cpp
++++ b/modules/mono/glue/runtime_interop.cpp
+@@ -87,9 +87,9 @@ Object *godotsharp_engine_get_singleton(const String *p_name) {
+ 	return Engine::get_singleton()->get_singleton_object(*p_name);
+ }
+ 
+-int32_t godotsharp_stack_info_vector_resize(
++int64_t godotsharp_stack_info_vector_resize(
+ 		Vector<ScriptLanguage::StackInfo> *p_stack_info_vector, int p_size) {
+-	return (int32_t)p_stack_info_vector->resize(p_size);
++	return (int64_t)p_stack_info_vector->resize(p_size);
+ }
+ 
+ void godotsharp_stack_info_vector_destroy(
+@@ -218,9 +218,9 @@ void godotsharp_internal_refcounted_disposed(Object *p_ptr, GCHandleIntPtr p_gch
+ 	}
+ }
+ 
+-int32_t godotsharp_internal_signal_awaiter_connect(Object *p_source, StringName *p_signal, Object *p_target, GCHandleIntPtr p_awaiter_handle_ptr) {
++int64_t godotsharp_internal_signal_awaiter_connect(Object *p_source, StringName *p_signal, Object *p_target, GCHandleIntPtr p_awaiter_handle_ptr) {
+ 	StringName signal = p_signal ? *p_signal : StringName();
+-	return (int32_t)gd_mono_connect_signal_awaiter(p_source, signal, p_target, p_awaiter_handle_ptr);
++	return (int64_t)gd_mono_connect_signal_awaiter(p_source, signal, p_target, p_awaiter_handle_ptr);
+ }
+ 
+ GCHandleIntPtr godotsharp_internal_unmanaged_get_script_instance_managed(Object *p_unmanaged, bool *r_has_cs_script_instance) {
+@@ -1150,8 +1150,8 @@ void godotsharp_array_remove_at(Array *p_self, int32_t p_index) {
+ 	p_self->remove_at(p_index);
+ }
+ 
+-int32_t godotsharp_array_resize(Array *p_self, int32_t p_new_size) {
+-	return (int32_t)p_self->resize(p_new_size);
++int64_t godotsharp_array_resize(Array *p_self, int32_t p_new_size) {
++	return (int64_t)p_self->resize(p_new_size);
+ }
+ 
+ void godotsharp_array_reverse(Array *p_self) {
+
+
+Repository: godotengine/godot
+Commit: 75212c8ad9ef6d726d2c5f454379b2b4158e6e17
+Date: 2026-09-15T22:55:51Z
+Merge pull request #107658 from BlueCube3310/lightmap-pixel-limit
+
+LightmapGI: Limit the texture size based on the total pixel count
+
+From 7d5fc1878b7cad4fd8873f1848aa55cc98bf5c37 Mon Sep 17 00:00:00 2001
+From: BlueCube3310 <53150244+BlueCube3310@users.noreply.github.com>
+Date: Wed, 18 Jun 2025 10:16:34 +0200
+Subject: [PATCH] LightmapGI: Limit the texture size based on the total pixel
+ count
+
+---
+ scene/3d/lightmap_gi.cpp | 3 ++-
+ 1 file changed, 2 insertions(+), 1 deletion(-)
+
+diff --git a/scene/3d/lightmap_gi.cpp b/scene/3d/lightmap_gi.cpp
+index 02f00cb1df60..868e7f611bc9 100644
+--- a/scene/3d/lightmap_gi.cpp
++++ b/scene/3d/lightmap_gi.cpp
+@@ -816,8 +816,9 @@ LightmapGI::BakeError LightmapGI::_save_and_reimport_atlas_textures(const Ref<Li
+ 	const int slice_count = images.size();
+ 	const int slice_width = images[0]->get_width();
+ 	const int slice_height = images[0]->get_height();
++	const int slice_pixels = slice_width * slice_height;
+ 
+-	const int slices_per_texture = Image::MAX_HEIGHT / slice_height;
++	const int slices_per_texture = Image::MAX_PIXELS / slice_pixels;
+ 	const int texture_count = Math::ceil(slice_count / (float)slices_per_texture);
+ 	const int last_count = slice_count % slices_per_texture;
+ 
+
+
+Repository: godotengine/godot
+Commit: 740ee7bda2e0745b1f2a2c8d548bfea5e0f08f44
+Date: 2026-09-15T22:55:51Z
+Merge pull request #123379 from HolonProduction/i-prefer-fusilli
+
+Remove `ScriptServer` fallbacks from `ClassDB`
+
+From f577f617d7eb5a1c53c9a9a1d6bc81bcbc0213e7 Mon Sep 17 00:00:00 2001
+From: HolonProduction <holonproduction@gmail.com>
+Date: Thu, 10 Sep 2026 22:25:00 +0200
+Subject: [PATCH] Remove `ScriptServer` fallbacks from `ClassDB`
+
+---
+ core/object/class_db.cpp                    | 93 ++++++---------------
+ editor/editor_node.cpp                      |  4 +-
+ editor/inspector/editor_resource_picker.cpp | 19 ++++-
+ 3 files changed, 46 insertions(+), 70 deletions(-)
+
+diff --git a/core/object/class_db.cpp b/core/object/class_db.cpp
