@@ -385,6 +385,12 @@ build-directory name is not fixed across tags: older tags build into
 `build-gfx1151`, v4.x into `build-gfx1151-sdk`. Set
 `LD_LIBRARY_PATH` to `<new tree>/<build dir>/bin` (the upgrade phase
 resolves it from the tag's own build script) and cut over.
+
+v4.x launchers also require a bundled runtime layout at
+`<new tree>/runtime/hip/lib` and `<new tree>/runtime/rocr/lib`. A system
+ROCm install (the documented WSL route) does not ship that tree; the
+upgrade phase links it to `/opt/rocm` automatically.
+
 Only one server can hold port 8080 and the GPU pool at a time:
 
 ```bash

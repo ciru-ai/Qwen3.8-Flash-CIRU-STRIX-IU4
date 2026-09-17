@@ -471,6 +471,14 @@ function Invoke-UpgradePhase {
     if (-not $v) { Write-Bad 'llama-server --version failed'; exit 1 }
     Write-Ok "llama-server built: $v"
 
+    # v4.x launchers expect a bundled runtime under <tree>/runtime
+    # (hip/lib, rocr/lib); a system ROCm install (amdgpu-install, the
+    # WSL route) does not ship that layout. Link it to /opt/rocm.
+    if ((Invoke-WslText "test -f $new/runtime/hip/lib/libamdhip64.so && echo yes || echo no") -ne 'yes') {
+        Write-Host 'Linking the launcher runtime layout to the system ROCm (v4.x)'
+        if (-not (Invoke-Wsl "mkdir -p $new/runtime/hip/lib $new/runtime/rocr/lib && ln -sf /opt/rocm/lib/libamdhip64.so $new/runtime/hip/lib/ && ln -sf /opt/rocm/lib/libhsa-runtime64.so $new/runtime/rocr/lib/")) { Write-Bad 'runtime layout link failed'; exit 1 }
+    }
+
     Write-Step 'Upgrade: check weights for this tag'
     # Releases can ship identical weights across runtime tags. Compare
     # the tag's checksums file against the installed one before paying
