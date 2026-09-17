@@ -251,6 +251,17 @@ F16 target KV at 262,144 tokens alone is ~37.5 GiB plus 18.8 GiB for the
 Q8_0 draft KV. Use `CONTEXT_SIZE=131072` (KV drops to ~28.1 GiB total) on
 such machines; the 262,144 default does not fit a carve-out pool.
 
+Note for v4.x: the v4.4.0 runtime needs more pool headroom than v1.1/v3 at
+the same context (separate graph arenas, wide-context indexing), and its
+launcher defaults to `-b 8192 -ub 8192`. That batch profile needs a
+multi-GiB contiguous compute arena that does not fit a ~111.7 GiB carve-out
+pool; the draft/MTP context creation fails with `cudaMalloc failed: out of
+memory` regardless of context size (verified at 131072/98304/81920). The
+verified v4.4.0 serving profile on this box is `CONTEXT_SIZE=131072` with
+`BATCH_SIZE=2048 UBATCH_SIZE=512` (add both to the unit's Environment).
+The installer's `-ContextSize` override does not cover the batch settings;
+set them explicitly for v4.x on carve-out boxes.
+
 ### Keepalive
 
 WSL 2.6.1+ has a confirmed regression ([microsoft/WSL#13416](https://github.com/microsoft/WSL/issues/13416), still open): when the last `wsl.exe` client disconnects, WSL tears the session down - without `vmIdleTimeout=-1` the VM powers off, and even with it set, systemd units are stopped roughly 15 seconds after the last client detaches. Without a workaround the server dies whenever you close your shell, and is not running when a client reconnects.

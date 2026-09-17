@@ -509,6 +509,11 @@ function Invoke-UpgradePhase {
         Write-Bad "no $RepoTag revision on the hub and the hub default checksums differ from the installed files; inspect the release notes and rerun -Phase model with -ModelRevision <tag>"; exit 1
     }
 
+    # v4.x needs the pool-fit batch profile (its 8192/8192 default OOMs
+    # the MTP arena on carve-out pools); older tags keep the defaults.
+    $batchEnv = ''
+    if ($RepoTag -match '^v[4-9]') { $batchEnv = "Environment=BATCH_SIZE=2048`nEnvironment=UBATCH_SIZE=512`n" }
+
     $unitName = "qwen-ciru-server-v$maj.service"
     Write-Unit $unitName @"
 [Unit]
@@ -524,7 +529,7 @@ Environment=LD_LIBRARY_PATH=$new/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
-WorkingDirectory=$new
+$batchEnvWorkingDirectory=$new
 ExecStart=$new/scripts/ciru/run-server.sh
 
 [Install]
