@@ -1,3 +1,11 @@
+# v4.4 runtime update
+
+Keep the existing weights and download/build the complete v4.4 runtime. MTP remains enabled by default (IU4 depth 3, Orca depth 4). Boost is optional: `KAIRIC_BOOST=1 scripts/ciru/run-server.sh` or append `--kairic-boost`. It expands to ngram-mod before draft-mtp, match 24 and 64-token proposals; it does not change MTP depth. Its current positive evidence is the IU4 short HumanEval 0–9 speed panel. Long thinking quality with Boost has not been established.
+
+The package includes pinned HIP/ROCr under `runtime/`; `CIRU_RUNTIME_ROOT` selects an alternate build. Put the complete matched inference `bin/` together. For images set `ENABLE_VISION=1 ENABLE_MTP=0`; image+MTP is currently incompatible. One slot remains required for MTP. Weight reconstruction error is unchanged because model artifacts are unchanged.
+
+## Retained running reference
+
 # Running CIRU v4.3.0
 
 Download the unchanged model, all three `ple/` files and the `mtp/` draft from the matching Hugging Face tag. The source archive and repository include the profile, launchers and hashed external `ui/` assets.

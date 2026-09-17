@@ -1,3 +1,38 @@
+# Build v4.4
+
+The published NixOS binary is the exact tested `final-all-v1` engine plus pinned custom HIP/ROCr, built with stock TheRock ROCm10. Its Nix/SDK dependencies remain recorded in `binary-identity.json`; this is not a portable Ubuntu binary. The inference source matches the sealed tested snapshot; packaging and launch defaults are overlaid without rebuilding it.
+
+The existing Ubuntu/Debian engine setup below remains the source-build entry point. To reproduce the new PM4 runtime path, build pwilkin's HIP/ROCr at commit `7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1` separately. A mainstream Linux build outline is below; only the recorded NixOS build was executed and qualified here. It needs CMake 3.27+, Ninja, a complete TheRock10 SDK, libdrm, libelf, NUMA, OpenGL development files, CppHeaderParser 2.7.4 and ply 3.11. On Ubuntu/Debian install `build-essential ninja-build pkg-config libdrm-dev libelf-dev libnuma-dev libgl-dev python3-venv`; use a venv for the Python packages.
+
+```bash
+export ROCM_ROOT=/path/to/complete/therock-10-sdk
+export CIRU_RUNTIME_ROOT="$PWD/runtime"
+git clone --filter=blob:none https://github.com/pwilkin/rocm-systems.git rocm-systems
+git -C rocm-systems checkout 7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1
+cmake -S rocm-systems/projects/rocr-runtime -B build-rocr -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DBUILD_SHARED_LIBS=ON \
+  -DCMAKE_INSTALL_PREFIX="$CIRU_RUNTIME_ROOT/rocr" -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_PREFIX_PATH="$ROCM_ROOT;$ROCM_ROOT/lib/rocm_sysdeps;$ROCM_ROOT/lib/llvm"
+cmake --build build-rocr --parallel 4
+cmake --install build-rocr
+cmake -S rocm-systems/projects/clr -B build-hip -G Ninja \
+  -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$CIRU_RUNTIME_ROOT/hip" \
+  -DCMAKE_INSTALL_LIBDIR=lib \
+  -DCMAKE_PREFIX_PATH="$CIRU_RUNTIME_ROOT/rocr;$ROCM_ROOT;$ROCM_ROOT/lib/rocm_sysdeps;$ROCM_ROOT/lib/llvm" \
+  -DCLR_BUILD_HIP=ON -DCLR_BUILD_OCL=OFF -DHIP_PLATFORM=amd \
+  -DHIP_COMMON_DIR="$PWD/rocm-systems/projects/hip" -DHIPCC_BIN_DIR="$ROCM_ROOT/bin" \
+  -DLLVM_ROOT="$ROCM_ROOT/lib/llvm" -DHIP_LLVM_ROOT="$ROCM_ROOT/lib/llvm" \
+  -DClang_ROOT="$ROCM_ROOT/lib/llvm" -DROCM_PATH="$CIRU_RUNTIME_ROOT/rocr" \
+  -DROCCLR_ENABLE_HSA=ON -DROCCLR_ENABLE_PAL=OFF \
+  -DHIP_ENABLE_ROCPROFILER_REGISTER=ON -DUSE_PROF_API=ON -D__HIP_ENABLE_PCH=ON
+cmake --build build-hip --parallel 4
+cmake --install build-hip
+```
+
+CIRU's launcher selects these two directories before the engine/SDK libraries. Check its printed loader identity. The source-build outline is not evidence of speed or numerical equivalence on another distribution. See the published custom-runtime build receipt for the exact qualified configuration and local Nix adaptations. The historical build notes below describe previous releases, not v4.4 binary identity.
+
+## Retained engine build instructions
+
 # Build the v4.3.0 source package
 
 The tested binary is specific to its recorded NixOS and stock TheRock ROCm10 dependencies. It is not a portable Ubuntu binary. Other systems build the matching release source.

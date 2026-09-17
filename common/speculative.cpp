@@ -1,4 +1,5 @@
 #include "speculative.h"
+#include "../src/ciru-mtp-shortlist.h"
 
 #include "common.h"
 #include "ggml.h"
@@ -1338,6 +1339,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
     std::vector<llama_sampler *> backend_chains;
 
     int32_t n_embd = 0;
+    int shortlist_logits_row = -1;
 
     // One MTP draft driver, three modes (set once in the ctor):
     //   is_mem_shared (gemma4): shares the target KV, runs all heads in one graph.
@@ -1376,6 +1378,10 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         auto * ctx_dft = this->params.ctx_dft;
         GGML_ASSERT(ctx_tgt && ctx_dft && "MTP requires ctx_tgt and ctx_dft to be set");
 
+        if (ciru_mtp_shortlist_size()) {
+            GGML_ASSERT(n_seq == 1 && "shortlist prototype requires one MTP slot");
+            SPC_INF("CIRU MTP shortlist enabled: %d / 248320 vocabulary rows; full target verification retained\n", ciru_mtp_shortlist_size());
+        }
         n_embd = llama_model_n_embd_out(llama_get_model(ctx_dft));
         GGML_ASSERT(n_embd == llama_model_n_embd_out(llama_get_model(ctx_tgt)) &&
                 "MTP input row width must match the target h_nextn width");
@@ -1629,6 +1635,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
             pending_h_pos[seq_id] = verify_h_pos[seq_id].back();
         }
 
+        shortlist_logits_row = -1; // last valid row after prompt/catch-up processing
         return true;
     }
 
@@ -1656,6 +1663,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
                 continue;
             }
 
+            if (ciru_mtp_shortlist_size()) {
+                ciru_mtp_shortlist_update(llama_get_model(ctx_dft),
+                    llama_get_logits_ith(params.ctx_tgt, shortlist_logits_row),
+                    llama_vocab_n_tokens(llama_model_get_vocab(llama_get_model(params.ctx_tgt))), dp.id_last);
+            }
             n_drafting++;
             drafting[seq_id] = true;
             common_sampler_reset(smpls[seq_id].get());
@@ -1800,12 +1812,14 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         }
 
         const int32_t i_h = std::min<int32_t>(n_accepted, n_rows - 1);
+        shortlist_logits_row = i_batch_beg[seq_id] + i_h;
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
         std::memcpy(pending_h[seq_id].data(), verify_h[seq_id].data() + (size_t) i_h * n_embd, row_bytes);
         pending_h_pos[seq_id] = verify_h_pos[seq_id][i_h];
     }
 
     void reset_pending_state(llama_seq_id seq_id) {
+        shortlist_logits_row = -1;
         std::fill(pending_h[seq_id].begin(), pending_h[seq_id].end(), 0.0f);
         pending_h_pos[seq_id] = -1;
         verify_h[seq_id].clear();

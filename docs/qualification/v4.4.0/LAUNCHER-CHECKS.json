@@ -1,0 +1,56 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "variant": "IU4",
+      "case": "default",
+      "passed": true
+    },
+    {
+      "variant": "IU4",
+      "case": "boost-flag",
+      "passed": true
+    },
+    {
+      "variant": "IU4",
+      "case": "boost-env",
+      "passed": true
+    },
+    {
+      "variant": "IU4",
+      "case": "parallel-reject",
+      "passed": true
+    },
+    {
+      "variant": "IU4",
+      "case": "boost-target-only-reject",
+      "passed": true
+    },
+    {
+      "variant": "Orca",
+      "case": "default",
+      "passed": true
+    },
+    {
+      "variant": "Orca",
+      "case": "boost-flag",
+      "passed": true
+    },
+    {
+      "variant": "Orca",
+      "case": "boost-env",
+      "passed": true
+    },
+    {
+      "variant": "Orca",
+      "case": "parallel-reject",
+      "passed": true
+    },
+    {
+      "variant": "Orca",
+      "case": "boost-target-only-reject",
+      "passed": true
+    }
+  ],
+  "scope": "CPU-only effective launch arguments and fail-fast guards; no model generation"
+}

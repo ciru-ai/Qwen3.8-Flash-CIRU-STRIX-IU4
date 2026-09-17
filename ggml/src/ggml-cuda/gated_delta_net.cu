@@ -195,7 +195,7 @@ gated_delta_net_cuda(const float * q,
     }
 }
 
-template <int S_v, int NUM_WARPS, int COLS, int TOKEN_TILE, bool keep_rs_t>
+template <int S_v, int NUM_WARPS, int COLS, int TOKEN_TILE, bool keep_rs_t, bool vector_stage = false, bool staged_decay = false>
 __global__ void __launch_bounds__(32 * NUM_WARPS, 1)
 gated_delta_net_tiled_cuda(const float * q,
                            const float * k,
@@ -227,9 +227,9 @@ gated_delta_net_tiled_cuda(const float * q,
     static_assert(S_v % warp_size == 0, "S_v must be a multiple of the warp size");
     static_assert(S_v % block_cols == 0, "block columns must divide S_v");
 
-    __shared__ float q_shared[TOKEN_TILE][S_v];
-    __shared__ float k_shared[TOKEN_TILE][S_v];
-    __shared__ float v_shared[TOKEN_TILE][block_cols];
+    __shared__ __align__(16) float q_shared[TOKEN_TILE][S_v];
+    __shared__ __align__(16) float k_shared[TOKEN_TILE][S_v];
+    __shared__ __align__(16) float v_shared[TOKEN_TILE][block_cols];
     __shared__ float g_shared[TOKEN_TILE];
     __shared__ float beta_shared[TOKEN_TILE];
 
@@ -263,6 +263,19 @@ gated_delta_net_tiled_cuda(const float * q,
     for (int t0 = 0; t0 < n_tokens; t0 += TOKEN_TILE) {
         const int tile_size = min((int64_t) TOKEN_TILE, n_tokens - t0);
 
+        if constexpr (vector_stage) {
+            for (int idx = 4*thread; idx < tile_size*S_v; idx += 4*nthreads) {
+                const int tt=idx/S_v, i=idx%S_v, t=t0+tt;
+                const float4 q4=*((const float4*)(q+iq3*sq3+t*sq2+iq1*sq1+i));
+                const float4 k4=*((const float4*)(k+iq3*sq3+t*sq2+iq1*sq1+i));
+                *((float4*)(&q_shared[tt][i]))=q4;
+                *((float4*)(&k_shared[tt][i]))=k4;
+            }
+            for (int idx = 4*thread; idx < tile_size*block_cols; idx += 4*nthreads) {
+                const int tt=idx/block_cols, c=idx%block_cols, t=t0+tt;
+                *((float4*)(&v_shared[tt][c]))=*((const float4*)(v+sequence*sv3+t*sv2+h_idx*sv1+col0+c));
+            }
+        } else {
         for (int idx = thread; idx < tile_size * S_v; idx += nthreads) {
             const int tt = idx / S_v;
             const int i  = idx % S_v;
@@ -276,9 +289,10 @@ gated_delta_net_tiled_cuda(const float * q,
             const int t  = t0 + tt;
             v_shared[tt][c] = v[sequence * sv3 + t * sv2 + h_idx * sv1 + col0 + c];
         }
+        }
         if (thread < tile_size) {
             const int64_t gb_offset = sequence * sb3 + (t0 + thread) * sb2 + h_idx * sb1;
-            g_shared[thread]    = g[gb_offset];
+            g_shared[thread]    = staged_decay ? expf(g[gb_offset]) : g[gb_offset];
             beta_shared[thread] = beta[gb_offset];
         }
         __syncthreads();
@@ -295,7 +309,7 @@ gated_delta_net_tiled_cuda(const float * q,
                 q_reg[r] = q_shared[tt][i];
             }
 
-            const float g_val    = expf(g_shared[tt]);
+            const float g_val    = staged_decay ? g_shared[tt] : expf(g_shared[tt]);
             const float beta_val = beta_shared[tt];
 
             float attn_col[COLS];
@@ -388,10 +402,27 @@ static void launch_gated_delta_net(
             const ggml_cuda_kernel_launch_params tiled_params(tiled_grid, tiled_block, 0, stream);
             static unsigned hits = 0;
             if (hits++ == 0) fprintf(stderr, "FORK_GDN_TILE tokens=%ld snapshots=%d keep=%d\n", n_tokens, K, int(keep_rs_t));
+            static const bool vector_stage = std::getenv("FLASH_K21_VECTOR_STAGE") != nullptr;
+            if(vector_stage && ((uintptr_t(q_d)|uintptr_t(k_d)|uintptr_t(v_d))&15)==0 &&
+               ((sq1|sq2|sq3|sv1|sv2|sv3)&3)==0) {
+            static const bool staged_decay = std::getenv("FLASH_K22_STAGED_DECAY") != nullptr;
+            if(staged_decay) {
+            ggml_cuda_kernel_launch(gated_delta_net_tiled_cuda<128, 8, 8, 16, keep_rs_t, true, true>, tiled_params,
+                q_d, k_d, v_d, g_d, b_d, s_d, dst_d, state_d, H, n_tokens,
+                sq1, sq2, sq3, sv1, sv2, sv3, sb1, sb2, sb3,
+                neqk1_magic, rq3_magic, scale, state_slot_stride, K);
+            } else {
+            ggml_cuda_kernel_launch(gated_delta_net_tiled_cuda<128, 8, 8, 16, keep_rs_t, true>, tiled_params,
+                q_d, k_d, v_d, g_d, b_d, s_d, dst_d, state_d, H, n_tokens,
+                sq1, sq2, sq3, sv1, sv2, sv3, sb1, sb2, sb3,
+                neqk1_magic, rq3_magic, scale, state_slot_stride, K);
+            }
+            } else {
             ggml_cuda_kernel_launch(gated_delta_net_tiled_cuda<128, 8, 8, 16, keep_rs_t>, tiled_params,
                 q_d, k_d, v_d, g_d, b_d, s_d, dst_d, state_d, H, n_tokens,
                 sq1, sq2, sq3, sv1, sv2, sv3, sb1, sb2, sb3,
                 neqk1_magic, rq3_magic, scale, state_slot_stride, K);
+            }
             return;
         }
     }

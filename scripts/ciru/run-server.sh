@@ -14,13 +14,13 @@ case "${MODEL_VARIANT:-IU4}" in
     IU4)
         model_name=Qwen3.8-Flash-CIRU-STRIX-IU4
         projector_name=mmproj-Qwen3.8-Flash-F16.mmproj
-        slot_name=v4.3.0
+        slot_name=v4.4.0
         mtp_depth_default=3
         ;;
     Orca)
         model_name=Qwen3.8-Flash-CIRU-STRIX-Orca
         projector_name=mmproj-Qwen3.8-Flash-Orca-F16.mmproj
-        slot_name=orca-v4.3.0
+        slot_name=orca-v4.4.0
         mtp_depth_default=4
         ;;
     *) echo "MODEL_VARIANT must be IU4 or Orca." >&2; exit 2 ;;
@@ -32,10 +32,12 @@ slot_dir="${SLOT_DIR:-${package_root}/slot-state/${slot_name}}"
 
 # Launcher-only opt-in; remaining arguments are passed to llama-server.
 enable_vision="${ENABLE_VISION:-0}"
+enable_boost="${KAIRIC_BOOST:-0}"
 server_args=()
 for arg in "$@"; do
     case "$arg" in
         --vision) enable_vision=1 ;;
+        --kairic-boost) enable_boost=1 ;;
         *) server_args+=("$arg") ;;
     esac
 done
@@ -53,7 +55,13 @@ fi
 
 # MTP is independent of vision; ENABLE_MTP=0 selects target-only generation.
 enable_mtp="${ENABLE_MTP:-1}"
-# Apply the tuning when using this launcher with an existing v4.2 profile.
+if [[ "$enable_boost" != 0 && "$enable_boost" != 1 ]]; then
+    echo "KAIRIC_BOOST must be 0 or 1." >&2; exit 2
+fi
+if [[ "$enable_boost" == 1 && "$enable_mtp" == 0 ]]; then
+    echo "Kairic Boost requires MTP; remove ENABLE_MTP=0." >&2; exit 2
+fi
+# Retained speculative defaults.
 export LLAMA_MTP_QSA_MIN_T="${LLAMA_MTP_QSA_MIN_T:-1}"
 
 # The release qualifies MTP with exactly one slot; preserve the public guard.
@@ -71,7 +79,7 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
     esac
 done
 if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v4.3.0 MTP profile requires exactly one slot (--parallel 1)." >&2
+    echo "The CIRU v4.4.0 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
@@ -85,7 +93,18 @@ for required in "${server_bin}" "${model}" "${ple_dir}/ple.payload.bin" "${ple_d
 done
 
 server_bin="$(realpath "${server_bin}")"
-export LD_LIBRARY_PATH="$(dirname "${server_bin}")${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+runtime_root="${CIRU_RUNTIME_ROOT:-${repo_root}/runtime}"
+for runtime_file in hip/lib/libamdhip64.so rocr/lib/libhsa-runtime64.so; do
+    [[ -f "${runtime_root}/${runtime_file}" ]] || {
+        echo "The v4.4 HIP/ROCr runtime is missing: ${runtime_root}/${runtime_file}" >&2
+        echo "Install the complete v4.4 package or follow docs/BUILD_LINUX.md; set CIRU_RUNTIME_ROOT for a separate runtime." >&2
+        exit 2
+    }
+done
+export LD_LIBRARY_PATH="${runtime_root}/hip/lib:${runtime_root}/rocr/lib:$(dirname "${server_bin}")${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
+if [[ -n "${ROCM_ROOT:-}" ]]; then
+    export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${ROCM_ROOT}/lib:${ROCM_ROOT}/lib/rocm_sysdeps/lib:${ROCM_ROOT}/lib/llvm/lib"
+fi
 
 # Check the library selected by the loader, including BUILD_DIR/SERVER_BIN overrides.
 unset LD_PRELOAD
@@ -93,7 +112,7 @@ runtime_fail() {
     echo "CIRU runtime check: $*" >&2
     echo "Selected server: ${server_bin}" >&2
     echo "Updating the model folder or launcher does not update the inference runtime." >&2
-    echo "Build/install CIRU v4.2.0 or newer, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
+    echo "Build/install the complete CIRU v4.4.0 package, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
     echo "Keep its executable and shared libraries together; no model-weight download is needed." >&2
     exit 2
 }
@@ -216,6 +235,9 @@ if [[ "${enable_mtp}" != "0" ]]; then
         --spec-draft-p-min 0.0
         --spec-draft-p-split 0.10
     )
+    if [[ "$enable_boost" == 1 ]]; then
+        args+=(--spec-type ngram-mod,draft-mtp --spec-ngram-mod-n-match 24 --spec-ngram-mod-n-min 64 --spec-ngram-mod-n-max 64)
+    fi
 else
     args+=(--spec-type none)
 fi

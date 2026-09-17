@@ -1,0 +1,182 @@
+{
+  "source_archive_sha256": "2ac154ad944f906d5b1e11d816f5e2e1631d44002dd633bfbbb3a2a1a4cb2568",
+  "binary_hashes": {
+    "libggml-base.so": "988ca6568cda24be818894aae84c3efe1c7f6968fbc1fdb98688b68a5f93318d",
+    "libggml-base.so.0": "988ca6568cda24be818894aae84c3efe1c7f6968fbc1fdb98688b68a5f93318d",
+    "libggml-base.so.0.23.0": "988ca6568cda24be818894aae84c3efe1c7f6968fbc1fdb98688b68a5f93318d",
+    "libggml-cpu.so": "5498beba4fea384bd87908b019eab01a2e28db0bc60e302a66ddd93489d08afe",
+    "libggml-cpu.so.0": "5498beba4fea384bd87908b019eab01a2e28db0bc60e302a66ddd93489d08afe",
+    "libggml-cpu.so.0.23.0": "5498beba4fea384bd87908b019eab01a2e28db0bc60e302a66ddd93489d08afe",
+    "libggml-hip.so": "346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d",
+    "libggml-hip.so.0": "346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d",
+    "libggml-hip.so.0.23.0": "346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d",
+    "libggml.so": "4d061b0caf4179de131e31d2666b770441500036e155cfc820a889931bfa6280",
+    "libggml.so.0": "4d061b0caf4179de131e31d2666b770441500036e155cfc820a889931bfa6280",
+    "libggml.so.0.23.0": "4d061b0caf4179de131e31d2666b770441500036e155cfc820a889931bfa6280",
+    "libllama-bench-impl.so": "73bc9ba833d55ef859878c7adbdad2c4980dc0c5a5a57ad92577cd277b5da1c6",
+    "libllama-common.so": "334a8bb92b1151aac8befc6c18c34b41b7c1d0ae2c6792ed845306e4c923c408",
+    "libllama-common.so.0": "334a8bb92b1151aac8befc6c18c34b41b7c1d0ae2c6792ed845306e4c923c408",
+    "libllama-common.so.0.4.0": "334a8bb92b1151aac8befc6c18c34b41b7c1d0ae2c6792ed845306e4c923c408",
+    "libllama-server-impl.so": "9512847e3bce1fb83035030f8d58c4740a6391597a145fc94220e85e748e38ef",
+    "libllama.so": "cf1233a616ed082658ff45612f5ac2e16011cbb0d651d110cb60eccc5fd35517",
+    "libllama.so.0": "cf1233a616ed082658ff45612f5ac2e16011cbb0d651d110cb60eccc5fd35517",
+    "libllama.so.0.4.0": "cf1233a616ed082658ff45612f5ac2e16011cbb0d651d110cb60eccc5fd35517",
+    "libmtmd.so": "f2bd014813584ccbe026f3bf98f56a5358c9ba48d59957d2eb8596d160981c50",
+    "libmtmd.so.0": "f2bd014813584ccbe026f3bf98f56a5358c9ba48d59957d2eb8596d160981c50",
+    "libmtmd.so.0.4.0": "f2bd014813584ccbe026f3bf98f56a5358c9ba48d59957d2eb8596d160981c50",
+    "llama-bench": "38c47483355c5513f62689212dbbb21bf8e9b8120acfb5bae09418919117c174",
+    "llama-server": "d043c046f911680bef100c711cf825a06e457ad2b163abcc5f30e19dc3e5074d"
+  },
+  "inference_source": {
+    "common/speculative.cpp": "40afe9a2c840747b6d1d169e6d8e9818126bf0ec4a36cde2e8c4aa4a2d22ca6f",
+    "ggml/src/ggml-cuda/fattn-common.cuh": "1b1433a096a136506f7bdc039d2ccefd73cb2d93d6a5d97cc7076a3f3551d041",
+    "ggml/src/ggml-cuda/fattn-mma-f16.cuh": "f5ae9c989e2d778ace2cc9afdeb804e7c70fcb789b179f13b8bf94de24622935",
+    "ggml/src/ggml-cuda/gated_delta_net.cu": "faf9fc69fbc83828bbc9b0462211e73847dc2069692f6bac6a435c44a47562c7",
+    "ggml/src/ggml-cuda/ggml-cuda.cu": "a237f5425392ea8deb262db789b4046bb631ac2007f150df5c7f0b08b133e1eb",
+    "ggml/src/ggml-cuda/mmb.cu": "d5395497ac726017abed16a2519483bcd026ae3622b6bc819161eda9ec397231",
+    "ggml/src/ggml-cuda/qsa.cu": "bcd639426a22c4227900ef31415c5af6afe1494d5e53d4523a002e6b4e0bea08",
+    "src/llama-context.cpp": "244f82547ff397411182f3c31aec4936debc30372765b5afcaa633e3d29da351",
+    "src/llama-context.h": "bebc769dd72dcaaf8439dba7b10cc39f248b157b1093b467724b72b1dc35a5a7",
+    "src/llama-memory-hybrid-idx.cpp": "10a1d5e31b3599db60cd962c2deb24e6b3bbe82a0768c003478fdde0df932e1f",
+    "src/llama-memory-hybrid-idx.h": "7569c6a37d294eae28cd8c5ad39f657df2e71b1bf092b388fac08e0de691dd0a",
+    "src/models/qwen4exp.cpp": "cdf94c2277e43f2f1d0bbb7f779eecca12a07a5d132c85648f1a14aaef670d04",
+    "tools/server/server-context.cpp": "b18c206ccb83a87c685a6023f0c863a91dbfc5f9feac43deade6c72b607cb14c",
+    "src/ciru-mtp-shortlist.h": "4e496aed4a398918e5ff9b8ef44f2c19fbd0ad90406bb5bc2300789ad7abace8",
+    "src/qsa-prefix-state.h": "460fb0bbebfea248a23fb527faa7d8c07260e8ff7331194878497a17be57b34d"
+  },
+  "runtime": {
+    "status": "PASS_CUSTOM_RUNTIME_BUILD_AND_LOADER_RESOLUTION",
+    "source_revision": "7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1",
+    "time": 1789586228.2489605,
+    "steps": [
+      {
+        "name": "python-import",
+        "returncode": 0,
+        "seconds": 1.0299465656280518,
+        "live_owned_after": []
+      },
+      {
+        "name": "source-revision",
+        "returncode": 0,
+        "seconds": 1.029738187789917,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm-version",
+        "returncode": 0,
+        "seconds": 1.0292019844055176,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm-cflags",
+        "returncode": 0,
+        "seconds": 0.02365899085998535,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm-libs",
+        "returncode": 0,
+        "seconds": 0.02354741096496582,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm_amdgpu-version",
+        "returncode": 0,
+        "seconds": 0.02351093292236328,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm_amdgpu-cflags",
+        "returncode": 0,
+        "seconds": 0.02344965934753418,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libdrm_amdgpu-libs",
+        "returncode": 0,
+        "seconds": 0.023427963256835938,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libelf-version",
+        "returncode": 0,
+        "seconds": 1.0291669368743896,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libelf-cflags",
+        "returncode": 0,
+        "seconds": 0.02369236946105957,
+        "live_owned_after": []
+      },
+      {
+        "name": "pkg-libelf-libs",
+        "returncode": 0,
+        "seconds": 0.023642539978027344,
+        "live_owned_after": []
+      },
+      {
+        "name": "rocr-configure",
+        "returncode": 0,
+        "seconds": 2.034276008605957,
+        "live_owned_after": []
+      },
+      {
+        "name": "rocr-build",
+        "returncode": 0,
+        "seconds": 11.078649759292603,
+        "live_owned_after": []
+      },
+      {
+        "name": "rocr-install",
+        "returncode": 0,
+        "seconds": 1.0333073139190674,
+        "live_owned_after": []
+      },
+      {
+        "name": "hip-configure",
+        "returncode": 0,
+        "seconds": 2.039039134979248,
+        "live_owned_after": []
+      },
+      {
+        "name": "hip-build",
+        "returncode": 0,
+        "seconds": 49.2704393863678,
+        "live_owned_after": []
+      },
+      {
+        "name": "hip-install",
+        "returncode": 0,
+        "seconds": 1.02944016456604,
+        "live_owned_after": []
+      },
+      {
+        "name": "ldd-hip",
+        "returncode": 0,
+        "seconds": 1.0295474529266357,
+        "live_owned_after": []
+      },
+      {
+        "name": "ldd-rocr",
+        "returncode": 0,
+        "seconds": 1.029505968093872,
+        "live_owned_after": []
+      },
+      {
+        "name": "ldd-server",
+        "returncode": 0,
+        "seconds": 1.0292913913726807,
+        "live_owned_after": []
+      }
+    ],
+    "plan_sha256": "a1fbe36fa7ae7e39c04db3e95b2ac0210dc7e6c4fec9edf760dc1d16977ac42b",
+    "source_audit_sha256": "eb3914803ed3a3fa0de00f1928325897e32290dcc7dea5c4ba9a788dd7711f97",
+    "installed_files_sha256": "fb1bdc0bf7baf7e679ff977e34225782868399df12fa077ea00cc04e6d9b1278",
+    "loader_resolution_sha256": "65c278ce57930a18efd9150efdc6fe3c9086eaef45a80b2472b27c16a5b51d9d",
+    "model_run": false,
+    "services_changed": false,
+    "complete_runtime_execution_reproduction": false
+  },
+  "release_overlay": "Launchers, defaults, documentation and metadata only; inference sources equal the tested sealed archive."
+}

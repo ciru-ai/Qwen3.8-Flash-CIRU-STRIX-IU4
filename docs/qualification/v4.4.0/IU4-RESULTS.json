@@ -1,0 +1,1394 @@
+{
+  "performance": {
+    "scope": "Single matched final IU4 two-arm block, not independent temporal mirrors or standalone per-patch effects. Fixed-token speed probes; no quality score. Baseline B2 already contains S5 and D0.",
+    "cases": [
+      {
+        "case": "incident-r0",
+        "baseline_tg": 37.7877302722166,
+        "candidate_tg": 44.53075218801981,
+        "tg_pct": 17.84447456152458,
+        "baseline_pp": 824.2772548132926,
+        "candidate_pp": 889.1267211393995,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": true,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 12960,
+          "prompt_ms": 15722.865,
+          "prompt_per_token_ms": 1.2131840277777777,
+          "prompt_per_second": 824.2772548132926,
+          "predicted_n": 512,
+          "predicted_ms": 13522.908,
+          "predicted_per_token_ms": 26.463616438356162,
+          "predicted_per_second": 37.7877302722166,
+          "draft_n": 469,
+          "draft_n_accepted": 353
+        },
+        "candidate_timings": {
+          "cache_n": 0,
+          "prompt_n": 12960,
+          "prompt_ms": 14576.1,
+          "prompt_per_token_ms": 1.124699074074074,
+          "prompt_per_second": 889.1267211393995,
+          "predicted_n": 512,
+          "predicted_ms": 11475.216,
+          "predicted_per_token_ms": 22.456391389432486,
+          "predicted_per_second": 44.53075218801981,
+          "draft_n": 469,
+          "draft_n_accepted": 353
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789602929.0682585,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104068890624,
+            "ram_available_bytes": 30240776192,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789602958.3758624,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108090400768,
+            "ram_available_bytes": 26219266048,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 119,
+          "peak_ram_used_bytes": 108330250240,
+          "delta_ram_used_bytes": 4261359616
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603503.0725048,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 104604065792,
+            "ram_available_bytes": 29705601024,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603529.186254,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108212645888,
+            "ram_available_bytes": 26097020928,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 106,
+          "peak_ram_used_bytes": 108486135808,
+          "delta_ram_used_bytes": 3882070016
+        },
+        "pp_pct": 7.867433675674573,
+        "ttfp_ms": {
+          "baseline": 15783.607006072998,
+          "candidate": 14637.105464935303,
+          "change_pct": -7.263875365729522
+        },
+        "total_ms": {
+          "baseline": 29307.98888206482,
+          "candidate": 26114.10355567932,
+          "change_pct": -10.897661177768537
+        }
+      },
+      {
+        "case": "A1-r0",
+        "baseline_tg": 39.79633018531356,
+        "candidate_tg": 43.83965208852103,
+        "tg_pct": 10.160037079749685,
+        "baseline_pp": 917.0627147153697,
+        "candidate_pp": 951.3390182805041,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": true,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5721.528,
+          "prompt_per_token_ms": 1.0904379645511721,
+          "prompt_per_second": 917.0627147153697,
+          "predicted_n": 256,
+          "predicted_ms": 6407.626,
+          "predicted_per_token_ms": 25.127945098039216,
+          "predicted_per_second": 39.79633018531356,
+          "draft_n": 243,
+          "draft_n_accepted": 173
+        },
+        "candidate_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5515.384,
+          "prompt_per_token_ms": 1.051149990470745,
+          "prompt_per_second": 951.3390182805041,
+          "predicted_n": 256,
+          "predicted_ms": 5816.652,
+          "predicted_per_token_ms": 22.8104,
+          "predicted_per_second": 43.83965208852103,
+          "draft_n": 243,
+          "draft_n_accepted": 173
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789602958.399876,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108089262080,
+            "ram_available_bytes": 26220404736,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789602970.6784027,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109161226240,
+            "ram_available_bytes": 25148440576,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 51,
+          "peak_ram_used_bytes": 109244203008,
+          "delta_ram_used_bytes": 1154940928
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603529.2159796,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108211982336,
+            "ram_available_bytes": 26097684480,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603540.6942146,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109445541888,
+            "ram_available_bytes": 24864124928,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 47,
+          "peak_ram_used_bytes": 109457702912,
+          "delta_ram_used_bytes": 1245720576
+        },
+        "pp_pct": 3.7376182691903237,
+        "ttfp_ms": {
+          "baseline": 5869.6653842926025,
+          "candidate": 5659.878969192505,
+          "change_pct": -3.5740779306004833
+        },
+        "total_ms": {
+          "baseline": 12278.690814971924,
+          "candidate": 11478.629350662231,
+          "change_pct": -6.5158531668062185
+        }
+      },
+      {
+        "case": "B1-r0",
+        "baseline_tg": 41.541519445422345,
+        "candidate_tg": 45.189249920475774,
+        "tg_pct": 8.780926946704138,
+        "baseline_pp": 932.4374683123201,
+        "candidate_pp": 970.7405083150297,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": true,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5627.187,
+          "prompt_per_token_ms": 1.0724579759862778,
+          "prompt_per_second": 932.4374683123201,
+          "predicted_n": 256,
+          "predicted_ms": 6138.437,
+          "predicted_per_token_ms": 24.072301960784312,
+          "predicted_per_second": 41.541519445422345,
+          "draft_n": 230,
+          "draft_n_accepted": 178
+        },
+        "candidate_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5405.152,
+          "prompt_per_token_ms": 1.0301414141414142,
+          "prompt_per_second": 970.7405083150297,
+          "predicted_n": 256,
+          "predicted_ms": 5642.935,
+          "predicted_per_token_ms": 22.1291568627451,
+          "predicted_per_second": 45.189249920475774,
+          "draft_n": 230,
+          "draft_n_accepted": 178
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789602970.6939769,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109159923712,
+            "ram_available_bytes": 25149743104,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789602982.4689696,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109052878848,
+            "ram_available_bytes": 25256787968,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 48,
+          "peak_ram_used_bytes": 109159923712,
+          "delta_ram_used_bytes": 0
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603540.7137277,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109446057984,
+            "ram_available_bytes": 24863608832,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603551.8952494,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108821299200,
+            "ram_available_bytes": 25488367616,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 46,
+          "peak_ram_used_bytes": 109446057984,
+          "delta_ram_used_bytes": 0
+        },
+        "pp_pct": 4.107840075542746,
+        "ttfp_ms": {
+          "baseline": 5635.688066482544,
+          "candidate": 5537.263631820679,
+          "change_pct": -1.7464492977748436
+        },
+        "total_ms": {
+          "baseline": 11775.2685546875,
+          "candidate": 11182.04641342163,
+          "change_pct": -5.037865068731017
+        }
+      },
+      {
+        "case": "A2-r0",
+        "baseline_tg": 40.035985285597874,
+        "candidate_tg": 44.3758330257479,
+        "tg_pct": null,
+        "baseline_pp": 929.8286807933757,
+        "candidate_pp": 39.90622038210206,
+        "cross_arm_text_exact": false,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": false,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5642.975,
+          "prompt_per_token_ms": 1.0754669334858016,
+          "prompt_per_second": 929.8286807933757,
+          "predicted_n": 256,
+          "predicted_ms": 6369.27,
+          "predicted_per_token_ms": 24.977529411764706,
+          "predicted_per_second": 40.035985285597874,
+          "draft_n": 242,
+          "draft_n_accepted": 174
+        },
+        "candidate_timings": {
+          "cache_n": 5243,
+          "prompt_n": 4,
+          "prompt_ms": 100.235,
+          "prompt_per_token_ms": 25.05875,
+          "prompt_per_second": 39.90622038210206,
+          "predicted_n": 256,
+          "predicted_ms": 5746.371,
+          "predicted_per_token_ms": 22.53478823529412,
+          "predicted_per_second": 44.3758330257479,
+          "draft_n": 243,
+          "draft_n_accepted": 173
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789602982.4912872,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109052764160,
+            "ram_available_bytes": 25256902656,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789602994.5130851,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109049774080,
+            "ram_available_bytes": 25259892736,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 49,
+          "peak_ram_used_bytes": 109101096960,
+          "delta_ram_used_bytes": 48332800
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603551.9198458,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108821061632,
+            "ram_available_bytes": 25488605184,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603557.887965,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108725809152,
+            "ram_available_bytes": 25583857664,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 25,
+          "peak_ram_used_bytes": 108821061632,
+          "delta_ram_used_bytes": 0
+        },
+        "pp_pct": null,
+        "comparison_note": "Prompt restoration changes fresh-token count; use cached/fresh counts and first-token/total latency, not a PP throughput percentage.",
+        "ttfp_ms": {
+          "baseline": 5652.848482131958,
+          "candidate": 220.4749584197998,
+          "change_pct": -96.09975467913748
+        },
+        "total_ms": {
+          "baseline": 12022.283792495728,
+          "candidate": 5968.55354309082,
+          "change_pct": -50.354245115920705
+        }
+      },
+      {
+        "case": "B2-r0",
+        "baseline_tg": 41.30325203989474,
+        "candidate_tg": 46.83362455889154,
+        "tg_pct": 13.389678163005247,
+        "baseline_pp": 929.6082623341406,
+        "candidate_pp": 39.69947497444346,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": false,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 5247,
+          "prompt_ms": 5644.313,
+          "prompt_per_token_ms": 1.0757219363445778,
+          "prompt_per_second": 929.6082623341406,
+          "predicted_n": 256,
+          "predicted_ms": 6173.848,
+          "predicted_per_token_ms": 24.21116862745098,
+          "predicted_per_second": 41.30325203989474,
+          "draft_n": 230,
+          "draft_n_accepted": 178
+        },
+        "candidate_timings": {
+          "cache_n": 5243,
+          "prompt_n": 4,
+          "prompt_ms": 100.757,
+          "prompt_per_token_ms": 25.18925,
+          "prompt_per_second": 39.69947497444346,
+          "predicted_n": 256,
+          "predicted_ms": 5444.806,
+          "predicted_per_token_ms": 21.35218039215686,
+          "predicted_per_second": 46.83362455889154,
+          "draft_n": 230,
+          "draft_n_accepted": 178
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789602994.5375905,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109053657088,
+            "ram_available_bytes": 25256009728,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603006.3658593,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109109821440,
+            "ram_available_bytes": 25199845376,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 49,
+          "peak_ram_used_bytes": 109136678912,
+          "delta_ram_used_bytes": 83021824
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603557.9165292,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108725809152,
+            "ram_available_bytes": 25583857664,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603563.5847316,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108616736768,
+            "ram_available_bytes": 25692930048,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 24,
+          "peak_ram_used_bytes": 108725809152,
+          "delta_ram_used_bytes": 0
+        },
+        "pp_pct": null,
+        "comparison_note": "Prompt restoration changes fresh-token count; use cached/fresh counts and first-token/total latency, not a PP throughput percentage.",
+        "ttfp_ms": {
+          "baseline": 5652.911901473999,
+          "candidate": 221.79675102233887,
+          "change_pct": -96.07641592708165
+        },
+        "total_ms": {
+          "baseline": 11828.643798828125,
+          "candidate": 5668.706178665161,
+          "change_pct": -52.07644870304773
+        }
+      },
+      {
+        "case": "240k-r0",
+        "baseline_tg": 7.619547607925039,
+        "candidate_tg": 21.14235845035863,
+        "tg_pct": 177.47524575302353,
+        "baseline_pp": 751.1453522464128,
+        "candidate_pp": 761.2549339625284,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": true,
+        "baseline_timings": {
+          "cache_n": 0,
+          "prompt_n": 245760,
+          "prompt_ms": 327180.351,
+          "prompt_per_token_ms": 1.3313002563476564,
+          "prompt_per_second": 751.1453522464128,
+          "predicted_n": 512,
+          "predicted_ms": 67064.349,
+          "predicted_per_token_ms": 131.24138747553818,
+          "predicted_per_second": 7.619547607925039,
+          "draft_n": 623,
+          "draft_n_accepted": 302
+        },
+        "candidate_timings": {
+          "cache_n": 0,
+          "prompt_n": 245760,
+          "prompt_ms": 322835.346,
+          "prompt_per_token_ms": 1.3136203857421875,
+          "prompt_per_second": 761.2549339625284,
+          "predicted_n": 512,
+          "predicted_ms": 24169.489,
+          "predicted_per_token_ms": 47.29841291585127,
+          "predicted_per_second": 21.14235845035863,
+          "draft_n": 623,
+          "draft_n_accepted": 302
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789603006.3926795,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 109117845504,
+            "ram_available_bytes": 25191821312,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603400.972394,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 112018915328,
+            "ram_available_bytes": 22290751488,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 1578,
+          "peak_ram_used_bytes": 112572510208,
+          "delta_ram_used_bytes": 3454664704
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603563.6150782,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 108618145792,
+            "ram_available_bytes": 25691521024,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603910.903359,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 112808243200,
+            "ram_available_bytes": 21501423616,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 1389,
+          "peak_ram_used_bytes": 113941381120,
+          "delta_ram_used_bytes": 5323235328
+        },
+        "pp_pct": 1.3458888730232266,
+        "ttfp_ms": {
+          "baseline": 327505.3644180298,
+          "candidate": 323100.4581451416,
+          "change_pct": -1.3449875182092397
+        },
+        "total_ms": {
+          "baseline": 394579.9479484558,
+          "candidate": 347288.6493206024,
+          "change_pct": -11.985226029283947
+        }
+      },
+      {
+        "case": "240k-append64-r0",
+        "baseline_tg": 7.505335140312534,
+        "candidate_tg": 20.784408456008457,
+        "tg_pct": 176.92845246005845,
+        "baseline_pp": 46.97452944301333,
+        "candidate_pp": 65.88719530805655,
+        "cross_arm_text_exact": true,
+        "candidate_canonical_text_exact": true,
+        "prompt_work_comparable": true,
+        "baseline_timings": {
+          "cache_n": 245756,
+          "prompt_n": 68,
+          "prompt_ms": 1447.593,
+          "prompt_per_token_ms": 21.288132352941176,
+          "prompt_per_second": 46.97452944301333,
+          "predicted_n": 512,
+          "predicted_ms": 68084.901,
+          "predicted_per_token_ms": 133.23855381604696,
+          "predicted_per_second": 7.505335140312534,
+          "draft_n": 635,
+          "draft_n_accepted": 299
+        },
+        "candidate_timings": {
+          "cache_n": 245756,
+          "prompt_n": 68,
+          "prompt_ms": 1032.067,
+          "prompt_per_token_ms": 15.177455882352941,
+          "prompt_per_second": 65.88719530805655,
+          "predicted_n": 512,
+          "predicted_ms": 24585.737,
+          "predicted_per_token_ms": 48.112988258317024,
+          "predicted_per_second": 20.784408456008457,
+          "draft_n": 635,
+          "draft_n_accepted": 299
+        },
+        "baseline_memory": {
+          "idle": {
+            "t": 1789603401.0131505,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 112027701248,
+            "ram_available_bytes": 22281965568,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603470.7465725,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 112231673856,
+            "ram_available_bytes": 22077992960,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 280,
+          "peak_ram_used_bytes": 112231673856,
+          "delta_ram_used_bytes": 203972608
+        },
+        "candidate_memory": {
+          "idle": {
+            "t": 1789603910.9404855,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 112810250240,
+            "ram_available_bytes": 21499416576,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "last": {
+            "t": 1789603936.7776108,
+            "ram_total_bytes": 134309666816,
+            "ram_used_bytes": 113007968256,
+            "ram_available_bytes": 21301698560,
+            "vram_total_bytes": null,
+            "vram_used_bytes": null,
+            "gtt_total_bytes": null,
+            "gtt_used_bytes": null
+          },
+          "sample_count": 105,
+          "peak_ram_used_bytes": 113110175744,
+          "delta_ram_used_bytes": 299925504
+        },
+        "pp_pct": 40.26153340819927,
+        "ttfp_ms": {
+          "baseline": 1637.97926902771,
+          "candidate": 1232.0160865783691,
+          "change_pct": -24.784390750581174
+        },
+        "total_ms": {
+          "baseline": 69733.6814403534,
+          "candidate": 25837.472915649414,
+          "change_pct": -62.94835955599238
+        }
+      }
+    ],
+    "source": "final-all-v1",
+    "candidate": "final-all-v1-pm4",
+    "baseline": "d0",
+    "all_candidate_canonical_text_exact": true
+  },
+  "quality": {
+    "valid": true,
+    "tasks": 20,
+    "full_passes": 19,
+    "arithmetic_average": 98.5,
+    "canonical_score": {
+      "final-iu4-all-v1": {
+        "totalScore": 99,
+        "categories": [
+          {
+            "id": "memory_recall",
+            "label": "Memory & Recall",
+            "score": 100,
+            "weight": 20
+          },
+          {
+            "id": "workspace_orchestration",
+            "label": "Workspace Orchestration",
+            "score": 100,
+            "weight": 20
+          },
+          {
+            "id": "skills_procedural_memory",
+            "label": "Skills & Procedural Memory",
+            "score": 100,
+            "weight": 20
+          },
+          {
+            "id": "scheduling_delivery",
+            "label": "Scheduling & Delivery",
+            "score": 100,
+            "weight": 20
+          },
+          {
+            "id": "delegation_recovery_boundaries",
+            "label": "Delegation, Recovery & Boundaries",
+            "score": 93,
+            "weight": 20
+          }
+        ],
+        "summary": "Hermes passed most official scenarios, with a few verifier or model misses remaining."
+      }
+    },
+    "first_samples_only": true,
+    "new_failed_scenarios_vs_both_history": [],
+    "retained_failure": "HA-17 score70, identical verifier outcome/details to both historical runs; merged delegation artifact wrong/missing",
+    "scope": "Single final candidate run; historical engines/seeds differ. No new failed scenario observed; no statistical quality-equivalence claim.",
+    "protocol_sha256": "6465f9465b78e9ca0b1456a8dfee2fd6df7e04681c7169dfefed9ebf9e025075",
+    "historical_comparison": {
+      "1": {
+        "HA-01": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-02": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-03": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-04": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-05": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-06": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-07": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-08": {
+          "old_score": 80,
+          "new_score": 100
+        },
+        "HA-09": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-10": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-11": {
+          "old_score": 50,
+          "new_score": 100
+        },
+        "HA-12": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-13": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-14": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-15": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-16": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-17": {
+          "old_score": 70,
+          "new_score": 70
+        },
+        "HA-18": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-19": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-20": {
+          "old_score": 100,
+          "new_score": 100
+        }
+      },
+      "2": {
+        "HA-01": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-02": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-03": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-04": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-05": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-06": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-07": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-08": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-09": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-10": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-11": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-12": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-13": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-14": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-15": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-16": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-17": {
+          "old_score": 70,
+          "new_score": 70
+        },
+        "HA-18": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-19": {
+          "old_score": 100,
+          "new_score": 100
+        },
+        "HA-20": {
+          "old_score": 100,
+          "new_score": 100
+        }
+      }
+    }
+  },
+  "he0_9": {
+    "completed_at": 1789608195.1082451,
+    "build": "final-all-v1-pm4",
+    "protocol": "HumanEval0-9 canonical prompts in retained local non-thinking greedy chat adapter; served MTP3, full262144 allocation, one first trajectory per task, natural EOS",
+    "weighted_decode_tokens_per_second": 60.35102655869076,
+    "minimum_case_tps": 56.09397436570597,
+    "maximum_case_tps": 64.76202653665553,
+    "generated_tokens": 1633,
+    "timed_decode_tokens": 1623,
+    "decode_seconds": 26.892666,
+    "summed_request_seconds": 36.057379722595215,
+    "drafted_tokens": 1260.0,
+    "accepted_tokens": 1221.0,
+    "acceptance_fraction": 0.969047619047619,
+    "valid_tasks": 10,
+    "quality_score_claim": false,
+    "fresh_prompt_cache_all_tasks": true,
+    "sqlite_rows_verified": 10,
+    "persistence_note": "Task0 completed in the first load; its metadata serialization failed after the full response and JSONL were saved. Corrected only command serialization, imported the original result, then generated tasks1-9 in a second identical load. No task was regenerated. The saved panel-resume panel_elapsed_seconds covers that resumed phase only; summed request/decode times include all10 tasks.",
+    "rows": [
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 56.09397436570597,
+        "decode_seconds": 3.066283,
+        "decode_timed_tokens": 172,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 134,
+        "generated_tokens": 173,
+        "total_tokens": 307,
+        "request_wall_seconds": 4.12631893157959,
+        "ttfp_ms": 1057.2734710294753,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 173,
+          "tokens_evaluated": 134,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T011851Z-final-all-v1-pm4-HumanEval-0-api.raw",
+        "task": "HumanEval/0",
+        "recorder_exit": 1,
+        "persistence_recovered": true,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel/HumanEval-0/row-recovered.json",
+        "drafted_tokens": 135,
+        "accepted_tokens": 129
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 64.36654266122495,
+        "decode_seconds": 3.588821,
+        "decode_timed_tokens": 231,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 126,
+        "generated_tokens": 232,
+        "total_tokens": 358,
+        "request_wall_seconds": 5.121450185775757,
+        "ttfp_ms": 1530.2266778890043,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 232,
+          "tokens_evaluated": 126,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012137Z-final-all-v1-pm4-HumanEval-1-api.raw",
+        "task": "HumanEval/1",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-1/row.json",
+        "drafted_tokens": 177.0,
+        "accepted_tokens": 174.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 63.59207801688104,
+        "decode_seconds": 1.509622,
+        "decode_timed_tokens": 96,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 95,
+        "generated_tokens": 97,
+        "total_tokens": 192,
+        "request_wall_seconds": 2.163600444793701,
+        "ttfp_ms": 651.7064250074327,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 97,
+          "tokens_evaluated": 95,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012142Z-final-all-v1-pm4-HumanEval-2-api.raw",
+        "task": "HumanEval/2",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-2/row.json",
+        "drafted_tokens": 75.0,
+        "accepted_tokens": 74.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 64.76202653665553,
+        "decode_seconds": 2.408819,
+        "decode_timed_tokens": 156,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 129,
+        "generated_tokens": 157,
+        "total_tokens": 286,
+        "request_wall_seconds": 3.3317527770996094,
+        "ttfp_ms": 921.4452710002661,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 157,
+          "tokens_evaluated": 129,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012144Z-final-all-v1-pm4-HumanEval-3-api.raw",
+        "task": "HumanEval/3",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-3/row.json",
+        "drafted_tokens": 120.0,
+        "accepted_tokens": 117.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 62.50495295944211,
+        "decode_seconds": 2.6877869999999997,
+        "decode_timed_tokens": 168,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 128,
+        "generated_tokens": 169,
+        "total_tokens": 297,
+        "request_wall_seconds": 3.5662331581115723,
+        "ttfp_ms": 875.4782220348716,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 169,
+          "tokens_evaluated": 128,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012148Z-final-all-v1-pm4-HumanEval-4-api.raw",
+        "task": "HumanEval/4",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-4/row.json",
+        "drafted_tokens": 129.0,
+        "accepted_tokens": 126.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 57.36296811743736,
+        "decode_seconds": 2.6672260000000003,
+        "decode_timed_tokens": 153,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 104,
+        "generated_tokens": 154,
+        "total_tokens": 258,
+        "request_wall_seconds": 3.430769920349121,
+        "ttfp_ms": 761.1340200528502,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 154,
+          "tokens_evaluated": 104,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012151Z-final-all-v1-pm4-HumanEval-5-api.raw",
+        "task": "HumanEval/5",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-5/row.json",
+        "drafted_tokens": 123.0,
+        "accepted_tokens": 115.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 58.35354247096843,
+        "decode_seconds": 3.650164,
+        "decode_timed_tokens": 213,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 124,
+        "generated_tokens": 214,
+        "total_tokens": 338,
+        "request_wall_seconds": 4.545674085617065,
+        "ttfp_ms": 893.1537920143455,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 214,
+          "tokens_evaluated": 124,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012155Z-final-all-v1-pm4-HumanEval-6-api.raw",
+        "task": "HumanEval/6",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-6/row.json",
+        "drafted_tokens": 168.0,
+        "accepted_tokens": 160.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 59.95297742149265,
+        "decode_seconds": 1.851451,
+        "decode_timed_tokens": 111,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 104,
+        "generated_tokens": 112,
+        "total_tokens": 216,
+        "request_wall_seconds": 2.6149725914001465,
+        "ttfp_ms": 761.6006780881435,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 112,
+          "tokens_evaluated": 104,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012200Z-final-all-v1-pm4-HumanEval-7-api.raw",
+        "task": "HumanEval/7",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-7/row.json",
+        "drafted_tokens": 84.0,
+        "accepted_tokens": 83.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 59.57582016045754,
+        "decode_seconds": 2.719224,
+        "decode_timed_tokens": 162,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 126,
+        "generated_tokens": 163,
+        "total_tokens": 289,
+        "request_wall_seconds": 3.6378886699676514,
+        "ttfp_ms": 915.6202138401568,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 163,
+          "tokens_evaluated": 126,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012202Z-final-all-v1-pm4-HumanEval-8-api.raw",
+        "task": "HumanEval/8",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-8/row.json",
+        "drafted_tokens": 123.0,
+        "accepted_tokens": 122.0
+      },
+      {
+        "status": "complete",
+        "valid_speed_case": true,
+        "native_tg": 58.68910413087452,
+        "decode_seconds": 2.7432689999999997,
+        "decode_timed_tokens": 161,
+        "native_counting": "generated-minus-one",
+        "prompt_tokens": 110,
+        "generated_tokens": 162,
+        "total_tokens": 272,
+        "request_wall_seconds": 3.518718957901001,
+        "ttfp_ms": 773.098937002942,
+        "reasoning_block_detected": false,
+        "finish": {
+          "stop": true,
+          "tokens_predicted": 162,
+          "tokens_evaluated": 110,
+          "truncated": false,
+          "stop_type": "eos",
+          "stopping_word": ""
+        },
+        "error": null,
+        "raw_output": "/home/halo/bench-results/llama/20260917T012206Z-final-all-v1-pm4-HumanEval-9-api.raw",
+        "task": "HumanEval/9",
+        "recorder_exit": 0,
+        "row": "/home/halo/flash-combined-20260916/humaneval-decode-20260917/panel-resume/HumanEval-9/row.json",
+        "drafted_tokens": 126.0,
+        "accepted_tokens": 121.0
+      }
+    ]
+  },
+  "boost": {
+    "finished_at": 1789608844.7464342,
+    "status": "SHORT_HE_SPEED_LEAD_ONE_QUOTE_STYLE_DIFFERENCE",
+    "baseline_tg": 60.35102655869076,
+    "kairic_tg": 64.06719136499001,
+    "change_pct": 6.157583421858304,
+    "baseline_request_seconds": 36.057379722595215,
+    "kairic_request_seconds": 33.86439895629883,
+    "request_time_pct": -6.081919382850121,
+    "output_exact_tasks": 9,
+    "tasks": 10,
+    "generated_tokens_each_arm": 1633,
+    "same_rendered_prompts": true,
+    "same_binary_and_environment": true,
+    "actual_lookup_admission": {
+      "observed": true,
+      "basis": "Native accepted-group mean exceeds4, which MTP depth3 alone cannot produce. Only additional proposer is ngram-mod24/64/64. This proves lookup contribution without changing log verbosity or running a profiler. Exact per-strategy proposal counts are not exposed at default verbosity.",
+      "mean_accept_lengths": [
+        7.86,
+        5.95,
+        8.91,
+        8.67,
+        7.95,
+        6.33,
+        6.21,
+        8.54,
+        8.05,
+        6.48
+      ]
+    },
+    "per_task": [
+      {
+        "task": "HumanEval/0",
+        "baseline_tg": 56.09397436570597,
+        "kairic_tg": 65.53199790297606,
+        "change_pct": 16.82537856158788,
+        "generated_tokens": 173,
+        "output_exact": true,
+        "baseline_output_sha256": "693c74127c0f8ff0d37eb26261623c8234dc8bbdb3897fcc539e9e4b41f792c8",
+        "candidate_output_sha256": "693c74127c0f8ff0d37eb26261623c8234dc8bbdb3897fcc539e9e4b41f792c8",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 7.86
+      },
+      {
+        "task": "HumanEval/1",
+        "baseline_tg": 64.36654266122495,
+        "kairic_tg": 68.07682956479455,
+        "change_pct": 5.76430976430975,
+        "generated_tokens": 232,
+        "output_exact": false,
+        "baseline_output_sha256": "7f29163271dac8208879c5409b5706123765b6589a54c62f155f04d98ce67ce1",
+        "candidate_output_sha256": "3c01ecdd3836f91e31519071b59322e2d106da6d3f0c617e13b9b5c20172bb96",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 5.95
+      },
+      {
+        "task": "HumanEval/2",
+        "baseline_tg": 63.59207801688104,
+        "kairic_tg": 63.10682802731999,
+        "change_pct": -0.7630667288970105,
+        "generated_tokens": 97,
+        "output_exact": true,
+        "baseline_output_sha256": "029220b47b8f0be3c68c840f5396b450f116e3c6da677a8f5d4853e808b098e4",
+        "candidate_output_sha256": "029220b47b8f0be3c68c840f5396b450f116e3c6da677a8f5d4853e808b098e4",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 8.91
+      },
+      {
+        "task": "HumanEval/3",
+        "baseline_tg": 64.76202653665553,
+        "kairic_tg": 70.95304954842477,
+        "change_pct": 9.559649910376278,
+        "generated_tokens": 157,
+        "output_exact": true,
+        "baseline_output_sha256": "6a4eae059484f334f3a2e1c38db1c246e9cde1563e4d6053d594e5285e123065",
+        "candidate_output_sha256": "6a4eae059484f334f3a2e1c38db1c246e9cde1563e4d6053d594e5285e123065",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 8.67
+      },
+      {
+        "task": "HumanEval/4",
+        "baseline_tg": 62.50495295944211,
+        "kairic_tg": 69.01277229235782,
+        "change_pct": 10.411685834142581,
+        "generated_tokens": 169,
+        "output_exact": true,
+        "baseline_output_sha256": "0c62e457d5759dd531027976692a157cd6425ad0ff0f8493a1c2370a9cfee9d5",
+        "candidate_output_sha256": "0c62e457d5759dd531027976692a157cd6425ad0ff0f8493a1c2370a9cfee9d5",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 7.95
+      },
+      {
+        "task": "HumanEval/5",
+        "baseline_tg": 57.36296811743736,
+        "kairic_tg": 60.504919484956815,
+        "change_pct": 5.477316587047998,
+        "generated_tokens": 154,
+        "output_exact": true,
+        "baseline_output_sha256": "2a816aebf493a710e524a7029f70cda237cce08b76ebaa5e61ae48c1c740d0ec",
+        "candidate_output_sha256": "2a816aebf493a710e524a7029f70cda237cce08b76ebaa5e61ae48c1c740d0ec",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 6.33
+      },
+      {
+        "task": "HumanEval/6",
+        "baseline_tg": 58.35354247096843,
+        "kairic_tg": 56.50370961443778,
+        "change_pct": -3.170043802312361,
+        "generated_tokens": 214,
+        "output_exact": true,
+        "baseline_output_sha256": "56b27b2443cbac3922e7cf433c03c49b6df95ae881ede6bc353c1f24d63068e5",
+        "candidate_output_sha256": "56b27b2443cbac3922e7cf433c03c49b6df95ae881ede6bc353c1f24d63068e5",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 6.21
+      },
+      {
+        "task": "HumanEval/7",
+        "baseline_tg": 59.95297742149265,
+        "kairic_tg": 61.393533656930714,
+        "change_pct": 2.40281016455679,
+        "generated_tokens": 112,
+        "output_exact": true,
+        "baseline_output_sha256": "c5cdf9b7531a6e47b9643d72359f7dec793e83c6b213642fbb46edc8bc18ab24",
+        "candidate_output_sha256": "c5cdf9b7531a6e47b9643d72359f7dec793e83c6b213642fbb46edc8bc18ab24",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 8.54
+      },
+      {
+        "task": "HumanEval/8",
+        "baseline_tg": 59.57582016045754,
+        "kairic_tg": 66.12844102608481,
+        "change_pct": 10.998792543650904,
+        "generated_tokens": 163,
+        "output_exact": true,
+        "baseline_output_sha256": "545a0ec81a61cb41f2193884ae8f45130beef02d62945cbc0e8a0ebd2c4789ed",
+        "candidate_output_sha256": "545a0ec81a61cb41f2193884ae8f45130beef02d62945cbc0e8a0ebd2c4789ed",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 8.05
+      },
+      {
+        "task": "HumanEval/9",
+        "baseline_tg": 58.68910413087452,
+        "kairic_tg": 61.81577899591978,
+        "change_pct": 5.32752188220984,
+        "generated_tokens": 162,
+        "output_exact": true,
+        "baseline_output_sha256": "8f21fb93f42d7923cf137a57cfa23c432bacc0e74be98c5faeac45cb0484b69c",
+        "candidate_output_sha256": "8f21fb93f42d7923cf137a57cfa23c432bacc0e74be98c5faeac45cb0484b69c",
+        "prompt_cache_n": 0,
+        "mean_accept_length": 6.48
+      }
+    ],
+    "sqlite_rows_verified": 10,
+    "protocol": "One natural-EOS first response on HE0-9, greedy/non-thinking retained chat adapter, full262144 allocated context, MTP3 fallback; recent retained MTP-only control",
+    "limits": "One candidate load versus a recent retained control, no order-balanced repeats. Nine byte-exact outputs; HumanEval1 changes quote delimiters only and has an identical Python AST. No scored quality claim. This short non-thinking panel does not resolve the earlier long-copy/thinking trajectory concern. No production/profile change.",
+    "output_difference_review": [
+      {
+        "task": "HumanEval/1",
+        "byte_exact": false,
+        "python_ast_identical": true,
+        "ast_sha256": "8a77fd245e2f4f6d9dbd755aa8ba0a87f711b220c6f987f55708b29af473a626",
+        "diff": "--- MTP-only\n+++ Boost+MTP\n@@ -11,7 +11,7 @@\n     ['()', '(())', '(()())']\n     \"\"\"\n     # Remove all spaces\n-    paren_string = paren_string.replace(\" \", \"\")\n+    paren_string = paren_string.replace(' ', '')\n     \n     result = []\n     current_group = []\n",
+        "scope": "Parse-only syntactic comparison of generated code; no code execution or benchmark correctness score."
+      }
+    ],
+    "classification": "NARROW: promising for this short coding workload; general exactness/quality qualification remains open."
+  }
+}

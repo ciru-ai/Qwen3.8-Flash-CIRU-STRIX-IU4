@@ -1126,6 +1126,20 @@ void launch_fattn(
     int max_blocks_per_sm = 1; // Max. number of active blocks limited by occupancy.
     CUDA_CHECK(cudaOccupancyMaxActiveBlocksPerMultiprocessor(&max_blocks_per_sm, fattn_kernel, block_dim.x * block_dim.y * block_dim.z, nbytes_shared));
     GGML_ASSERT(max_blocks_per_sm > 0);
+#if defined(GGML_USE_HIP)
+    // Opt-in reproducibility policy for the qualified gfx1151 workload. HIP 7.16
+    // exposes 128 KiB LDS per WGP where the stock 7.15 occupancy calculation used
+    // 64 KiB. That changes attention split/reduction order even with identical
+    // kernels. Preserve the old LDS residency bound for matched runtime tests.
+    static const bool legacy_lds_occupancy = [] {
+        const char * value = getenv("CIRU_FA_LEGACY_LDS_OCCUPANCY");
+        return value != nullptr && atoi(value) != 0;
+    }();
+    if (legacy_lds_occupancy && cc == GGML_CUDA_CC_OFFSET_AMD + 0x1151 && nbytes_shared > 0) {
+        GGML_ASSERT(nbytes_shared <= 65536);
+        max_blocks_per_sm = std::min(max_blocks_per_sm, int(65536 / nbytes_shared));
+    }
+#endif
     int parallel_blocks = max_blocks_per_sm;
 
     const int64_t n_kv = use_sparse ? n_kv_max : K->ne[1];

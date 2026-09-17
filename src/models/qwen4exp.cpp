@@ -10,6 +10,109 @@
 #include "llama-memory-recurrent.h"
 
 #include <algorithm>
+#include <cstring>
+#include <map>
+#include <mutex>
+#include <numeric>
+#include <limits>
+#include "../ciru-mtp-shortlist.h"
+
+namespace {
+struct ciru_shortlist_state {
+    std::vector<int32_t> ids;
+    std::vector<int64_t> ids64;
+};
+std::mutex ciru_shortlist_mutex;
+std::map<const llama_model *, std::shared_ptr<ciru_shortlist_state>> ciru_shortlists;
+
+std::shared_ptr<ciru_shortlist_state> ciru_shortlist_for(const llama_model * model) {
+    std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+    auto & state = ciru_shortlists[model];
+    if (!state) {
+        state = std::make_shared<ciru_shortlist_state>();
+        const int count = ciru_mtp_shortlist_size();
+        state->ids.resize(count);
+        state->ids64.resize(count);
+        std::iota(state->ids.begin(), state->ids.end(), 0);
+        std::iota(state->ids64.begin(), state->ids64.end(), 0);
+    }
+    return state;
+}
+
+class ciru_shortlist_input : public llm_graph_input_i {
+public:
+    ggml_tensor * ids = nullptr;
+    ggml_tensor * ids64 = nullptr;
+    std::shared_ptr<ciru_shortlist_state> state;
+
+    void set_input(const llama_ubatch *) override {
+        std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+        ggml_backend_tensor_set(ids, state->ids.data(), 0, state->ids.size() * sizeof(int32_t));
+        ggml_backend_tensor_set(ids64, state->ids64.data(), 0, state->ids64.size() * sizeof(int64_t));
+    }
+    bool can_reuse(const llm_graph_params &) override { return true; }
+};
+}
+
+int ciru_mtp_shortlist_size(void) {
+    static const int count = [] {
+        const char * value = std::getenv("CIRU_MTP_SHORTLIST");
+        if (!value) return 0;
+        const int result = std::atoi(value);
+        GGML_ASSERT(result >= 1024 && result <= 248320);
+        return result;
+    }();
+    return count;
+}
+
+void ciru_mtp_shortlist_update(const llama_model * draft, const float * target_logits, int n_vocab, llama_token last) {
+    const int count = ciru_mtp_shortlist_size();
+    if (!count) return;
+    GGML_ASSERT(n_vocab == 248320 && target_logits != nullptr && count <= n_vocab);
+    auto state = ciru_shortlist_for(draft);
+    const int common_count = count / 2;
+    const bool has_last = last >= common_count && last < n_vocab;
+    const size_t needed = count - common_count - int(has_last);
+    std::vector<uint32_t> keys(n_vocab - common_count);
+    for (int id = common_count; id < n_vocab; ++id) {
+        float value = target_logits[id];
+        if (value == 0.0f) value = 0.0f;
+        uint32_t bits;
+        std::memcpy(&bits, &value, sizeof(bits));
+        keys[id-common_count] = ~((bits & 0x80000000u) ? ~bits : (bits ^ 0x80000000u));
+    }
+    uint32_t prefix = 0, mask = 0;
+    size_t rank = needed ? needed - 1 : 0;
+    if (needed) for (int shift : {22, 11, 0}) {
+        size_t histogram[2048] = {};
+        for (int id = common_count; id < n_vocab; ++id) {
+            if (id == last) continue;
+            const uint32_t key = keys[id-common_count];
+            if ((key & mask) == prefix) ++histogram[(key >> shift) & 2047u];
+        }
+        uint32_t bucket = 0;
+        while (rank >= histogram[bucket]) rank -= histogram[bucket++];
+        prefix |= bucket << shift;
+        mask |= 2047u << shift;
+    }
+    size_t ties = rank + 1;
+    std::vector<int32_t> selected;
+    selected.reserve(count);
+    for (int id = 0; id < common_count; ++id) selected.push_back(id);
+    for (int id = common_count; id < n_vocab; ++id) {
+        const uint32_t key = keys[id-common_count];
+        if (id == last || (needed && (key < prefix || (key == prefix && ties)))) {
+            selected.push_back(id);
+            if (id != last && key == prefix) --ties;
+        }
+    }
+    GGML_ASSERT(int(selected.size()) == count);
+    std::lock_guard<std::mutex> lock(ciru_shortlist_mutex);
+    state->ids = std::move(selected);
+    std::copy(state->ids.begin(), state->ids.end(), state->ids64.begin());
+}
+
+
 #include <cinttypes>
 #include "block-graph.inc"
 
@@ -818,7 +921,30 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
         GGML_ASSERT(head_w && "QWEN4EXP MTP: the target model has no LM head to borrow");
     }
 
-    cur = build_lora_mm(head_w, cur, head_s);
+    const int shortlist_count = ciru_mtp_shortlist_size();
+    if (shortlist_count > 0 && cur->ne[1] == 1) {
+        GGML_ASSERT(head_w->type == GGML_TYPE_Q8_0 && head_w->ne[0] == 2560 && head_w->ne[1] == 248320);
+        GGML_ASSERT(head_s == nullptr && "shortlist prototype requires the original unscaled Q8 head");
+        auto input = std::make_unique<ciru_shortlist_input>();
+        input->state = ciru_shortlist_for(&model);
+        input->ids = ggml_new_tensor_2d(ctx0, GGML_TYPE_I32, shortlist_count, 1);
+        input->ids64 = ggml_new_tensor_1d(ctx0, GGML_TYPE_I64, shortlist_count);
+        ggml_set_input(input->ids);
+        ggml_set_input(input->ids64);
+        cb(input->ids, "mtp_shortlist_ids", -1);
+        cb(input->ids64, "mtp_shortlist_ids64", -1);
+        auto * rows = ggml_reshape_3d(ctx0, head_w, head_w->ne[0], 1, head_w->ne[1]);
+        auto * activation = ggml_reshape_3d(ctx0, cur, cur->ne[0], 1, 1);
+        auto * small = ggml_mul_mat_id(ctx0, rows, activation, input->ids);
+        small = ggml_reshape_2d(ctx0, small, 1, shortlist_count);
+        auto * full = ggml_fill(ctx0, ggml_new_tensor_2d(ctx0, GGML_TYPE_F32, 1, head_w->ne[1]),
+                               -std::numeric_limits<float>::infinity());
+        cur = ggml_set_rows(ctx0, full, small, input->ids64);
+        cur = ggml_reshape_2d(ctx0, cur, head_w->ne[1], 1);
+        res->add_input(std::move(input));
+    } else {
+        cur = build_lora_mm(head_w, cur, head_s);
+    }
     cb(cur, "result_output", -1);
     res->t_logits = cur;
 
@@ -949,7 +1075,7 @@ public:
         const int64_t n_stream = mctx->get_n_stream();
         const int64_t n_blocks = (n_kv + ratio - 1)/ratio;
 
-        bool res = true;
+        bool res = incremental_prefix == (ratio == 4 && mctx->qsa_prefix_matches(params.ubatch));
 
         res &= params.ubatch.n_tokens % n_stream == 0;
 
@@ -985,6 +1111,7 @@ public:
     ggml_tensor * bias      = nullptr;   // F32 [n_blocks or n_kv, n_tokens/n_stream, n_stream]
 
     ggml_tensor * tail_idxs = nullptr;
+    bool incremental_prefix = false;
     bool compact = false;
     bool maskless = false;
     int64_t score_strip = 0;
@@ -1020,6 +1147,27 @@ public:
     ggml_tensor * k_idxs = nullptr;   // I32 [n_tokens]
 
     const llama_memory_hybrid_idx_context * mctx;
+};
+
+class llm_graph_input_qsa_cache : public llm_graph_input_i {
+public:
+    llm_graph_input_qsa_cache(const llama_memory_hybrid_idx_context * mctx, int il, bool fast) :
+        mctx(mctx), il(il), fast(fast) {}
+    void set_input(const llama_ubatch *) override {
+        if (fast) { mctx->qsa_fill_updates(members, positions, rows); }
+        mctx->qsa_commit(il);
+    }
+    bool can_reuse(const llm_graph_params & params) override {
+        mctx = static_cast<const llama_memory_hybrid_idx_context *>(params.mctx);
+        return mctx->qsa_prefix_matches(params.ubatch) && mctx->qsa_fast(il, params.ubatch) == fast &&
+            (!fast || rows->ne[0] == (params.ubatch.n_tokens+3)/4+1);
+    }
+    const llama_memory_hybrid_idx_context * mctx;
+    int il;
+    bool fast;
+    ggml_tensor * members = nullptr;
+    ggml_tensor * positions = nullptr;
+    ggml_tensor * rows = nullptr;
 };
 
 void llama_model_qwen4exp::graph::build_qsa_store_k(
@@ -1121,6 +1269,7 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         qsa->blk_pos   = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, 4*n_blocks*n_stream);
         const bool scalar = qwen4exp_use_block_selection(blk_bias,n_stream,r,n_kv,ubatch,cparams,hparams) &&
             hparams.n_swa==0 && mctx_hyb->qsa_scalar_visibility(ubatch);
+        qsa->incremental_prefix = r == 4 && mctx_hyb->qsa_prefix_matches(ubatch);
         qsa->compact = scalar && qwen4exp_qsa_flag("LLAMA_QSA_COMPACT_METADATA");
         qsa->maskless = scalar && qwen4exp_qsa_flag("LLAMA_QSA_NO_DENSE_MASK");
         qsa->score_strip=qwen4exp_query_strip(n_tps,n_stream);
@@ -1155,31 +1304,67 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
     ggml_tensor * k_all = mctx_idx->get_k(ctx0, il);
     k_all = ggml_view_3d(ctx0, k_all, idx_dim, n_kv, n_stream, k_all->nb[2], k_all->nb[3], 0);
 
-    // gathers per stream: blk_cells row s indexes stream s's own cells
-    ggml_tensor * members = ggml_get_rows(ctx0, k_all, inp->blk_cells);
-    members = ggml_reshape_4d(ctx0, members, idx_dim, r, n_blocks, n_stream);
-
-    // mean over the block members; r is small, so summing slices beats a transpose plus sum_rows
-    ggml_tensor * pooled = nullptr;
-    for (int64_t i = 0; i < r; ++i) {
-        ggml_tensor * slice = ggml_cont(ctx0,
-                ggml_view_3d(ctx0, members, idx_dim, n_blocks, n_stream,
-                        members->nb[2], members->nb[3], i*members->nb[1]));
-        pooled = pooled ? ggml_add(ctx0, pooled, slice) : slice;
+    ggml_tensor * cached = r == 4 && inp->compact && mctx_hyb->qsa_prefix_matches(ubatch)
+            ? mctx_hyb->qsa_cache(ctx0, il) : nullptr;
+    const bool fast_cache = cached && mctx_hyb->qsa_fast(il, ubatch);
+    const int64_t prep_blocks = fast_cache ? (n_tokens+3)/4+1 : n_blocks;
+    if (cached) {
+        static unsigned fast_logs = 0, refill_logs = 0;
+        unsigned & count = fast_cache ? fast_logs : refill_logs;
+        if (count++ < 4) {
+            LLAMA_LOG_INFO("CIRU_QSA_CACHE layer=%d tokens=%lld fast=%d prepared=%lld total=%lld\n",
+                    il, (long long) n_tokens, (int) fast_cache, (long long) prep_blocks, (long long) n_blocks);
+        }
     }
-    pooled = ggml_scale(ctx0, pooled, 1.0f/(float) r);
-    cb(pooled, "indexer_k_pooled", il);
+    ggml_tensor * member_rows = inp->blk_cells;
+    ggml_tensor * block_positions = inp->blk_pos;
+    ggml_tensor * cache_rows = nullptr;
+    if (cached) {
+        auto cache_input = std::make_unique<llm_graph_input_qsa_cache>(mctx_hyb, il, fast_cache);
+        if (fast_cache) {
+            member_rows = cache_input->members = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, r*prep_blocks);
+            block_positions = cache_input->positions = ggml_new_tensor_1d(ctx0, GGML_TYPE_I32, 4*prep_blocks);
+            cache_rows = cache_input->rows = ggml_new_tensor_1d(ctx0, GGML_TYPE_I64, prep_blocks);
+            ggml_set_input(member_rows); ggml_set_input(block_positions); ggml_set_input(cache_rows);
+        }
+        res->add_input(std::move(cache_input));
+    }
+    const auto prepare_keys = [&](ggml_tensor * member_rows, ggml_tensor * block_positions, int64_t prep_blocks) {
+        // gathers per stream: blk_cells row s indexes stream s's own cells
+        ggml_tensor * members = ggml_get_rows(ctx0, k_all, member_rows);
+        members = ggml_reshape_4d(ctx0, members, idx_dim, r, prep_blocks, n_stream);
 
-    // count blocks along ne1: rms_norm launches gridDim.y = ne2, capped at 65535, and 262144/4 = 65536
-    pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, n_blocks*n_stream, 1);
-    pooled = build_norm(pooled, model.layers[il].index_k_norm, nullptr, LLM_NORM_RMS, il);
+        // mean over the block members; r is small, so summing slices beats a transpose plus sum_rows
+        ggml_tensor * pooled = nullptr;
+        for (int64_t i = 0; i < r; ++i) {
+            ggml_tensor * slice = ggml_cont(ctx0,
+                    ggml_view_3d(ctx0, members, idx_dim, prep_blocks, n_stream,
+                            members->nb[2], members->nb[3], i*members->nb[1]));
+            pooled = pooled ? ggml_add(ctx0, pooled, slice) : slice;
+        }
+        pooled = ggml_scale(ctx0, pooled, 1.0f/(float) r);
+        cb(pooled, "indexer_k_pooled", il);
 
-    // rope wants [n_dims, n_head, n_tokens]: lay every stream's blocks flat, split after.
-    pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, 1, n_blocks*n_stream);
-    pooled = ggml_rope_multi(ctx0, pooled, inp->blk_pos, nullptr,
-            n_rot, sections, rope_type, n_ctx_orig, freq_base, freq_scale,
-            ext_factor, attn_factor, beta_fast, beta_slow);
-    pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, n_blocks, n_stream);
+        // count blocks along ne1: rms_norm launches gridDim.y = ne2, capped at 65535, and 262144/4 = 65536
+        pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, prep_blocks*n_stream, 1);
+        pooled = build_norm(pooled, model.layers[il].index_k_norm, nullptr, LLM_NORM_RMS, il);
+
+        // rope wants [n_dims, n_head, n_tokens]: lay every stream's blocks flat, split after.
+        pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, 1, prep_blocks*n_stream);
+        pooled = ggml_rope_multi(ctx0, pooled, block_positions, nullptr,
+                n_rot, sections, rope_type, n_ctx_orig, freq_base, freq_scale,
+                ext_factor, attn_factor, beta_fast, beta_slow);
+        pooled = ggml_reshape_3d(ctx0, pooled, idx_dim, prep_blocks, n_stream);
+        return pooled;
+    };
+    ggml_tensor * pooled = prepare_keys(member_rows, block_positions, prep_blocks);
+    if (cached) {
+        auto * prepared = ggml_reshape_2d(ctx0, pooled, idx_dim, prep_blocks);
+        auto * written = fast_cache ? ggml_set_rows(ctx0, cached, prepared, cache_rows) : ggml_cpy(ctx0, prepared, cached);
+        ggml_build_forward_expand(gf, written);
+        pooled = ggml_reshape_3d(ctx0, written, idx_dim, n_blocks, 1);
+        cb(pooled, "indexer_k_cached", il);
+    }
     cb(pooled, "indexer_k", il);
 
     ggml_tensor * q = build_lora_mm(model.layers[il].index_q_proj, cur);
