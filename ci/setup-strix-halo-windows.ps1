@@ -33,6 +33,8 @@ param(
     # stop the upgrade phase after staging the unit (build+verify only)
     [switch]$WhatIfUpgrade,
     [string]$ModelDir = '/models/Qwen3.8-Flash-CIRU-STRIX-IU4',
+    # pin the model download to a hub revision; empty = hub default
+    [string]$ModelRevision = '',
     # 0 = derive from the ROCm pool (see Get-AutoContext)
     [int]$ContextSize = 0,
     # 0 = nproc for a fresh build; derived from free RAM in the upgrade
@@ -74,9 +76,16 @@ function Invoke-WslText([string]$cmdline) {
 
 function Invoke-Wsl([string]$cmdline) {
     Write-Host "  \$ $cmdline" -ForegroundColor DarkGray
-    $raw = & wsl.exe -d $Distro -u root -- bash -lc $cmdline 2>&1
-    foreach ($line in ($raw -split "`n")) {
-        $t = ($line -replace "`0", '').TrimEnd()
+    # PS 5.1 turns native stderr into terminating ErrorRecords when
+    # $ErrorActionPreference is 'Stop' (this script sets it). wsl.exe
+    # forwards guest stderr (e.g. git progress), so relax the preference
+    # for the capture only, then restore the strict script default.
+    $ea = $ErrorActionPreference
+    $ErrorActionPreference = 'Continue'
+    try   { $raw = & wsl.exe -d $Distro -u root -- bash -lc $cmdline 2>&1 }
+    finally { $ErrorActionPreference = $ea }
+    foreach ($item in $raw) {
+        $t = ('' + $item -replace "`0", '').TrimEnd()
         if ($t) { Write-Host "    $t" }
     }
     return ($LASTEXITCODE -eq 0)
@@ -330,7 +339,8 @@ function Invoke-BuildPhase {
     Write-Host 'Building (this takes a while)...'
     if (-not (Invoke-Wsl "cd $RepoRoot && ROCM_ROOT=/opt/rocm ${jobsEnv}./scripts/ciru/build-linux-amd.sh")) { Write-Bad 'build failed; see the output above'; exit 1 }
 
-    $v = Invoke-WslText "LD_LIBRARY_PATH=$RepoRoot/build-gfx1151/bin $RepoRoot/build-gfx1151/bin/llama-server --version 2>/dev/null | head -1"
+    $bd = Get-BuildDirName $RepoRoot
+    $v = Invoke-WslText "LD_LIBRARY_PATH=$RepoRoot/$bd/bin $RepoRoot/$bd/bin/llama-server --version 2>&1 | head -1"
     if (-not $v) { Write-Bad 'llama-server --version failed'; exit 1 }
     Write-Ok "llama-server built: $v"
 }
@@ -343,9 +353,20 @@ function Invoke-ModelPhase {
     if (-not (Invoke-Wsl 'test -d /opt/hf-venv || python3 -m venv /opt/hf-venv')) { Write-Bad 'venv failed'; exit 1 }
     if (-not (Invoke-Wsl '/opt/hf-venv/bin/pip install -q -U ''huggingface_hub[cli]'' hf_transfer')) { Write-Bad 'pip install failed'; exit 1 }
     Write-Host 'Downloading the model (~136 GiB, resumable; rerun this phase if interrupted)...'
-    if (-not (Invoke-Wsl "HF_HUB_ENABLE_HF_TRANSFER=1 /opt/hf-venv/bin/hf download $ModelRepo --local-dir $ModelDir")) { Write-Bad 'model download failed; rerun -Phase model to resume'; exit 1 }
+    $rev = ''
+    if ($ModelRevision) { $rev = " --revision $ModelRevision" }
+    if (-not (Invoke-Wsl "HF_HUB_ENABLE_HF_TRANSFER=1 /opt/hf-venv/bin/hf download $ModelRepo --local-dir $ModelDir$rev")) { Write-Bad 'model download failed; rerun -Phase model to resume'; exit 1 }
     if (-not (Invoke-Wsl "cd $ModelDir && sha256sum -c checksums.sha256")) { Write-Bad 'checksum verification failed; rerun the download'; exit 1 }
     Write-Ok 'model files verified'
+}
+
+# Build-dir name of a release tag. Older tags default to build-gfx1151,
+# v4.x defaults to build-gfx1151-sdk; read the tag's own build script
+# instead of hardcoding the name.
+function Get-BuildDirName([string]$root) {
+    $d = Invoke-WslText "grep -m1 -oE 'build-gfx1151[A-Za-z0-9_-]+' $root/scripts/ciru/build-linux-amd.sh"
+    if (-not $d) { $d = 'build-gfx1151' }
+    return $d
 }
 
 function Write-Unit([string]$name, [string]$content) {
@@ -359,7 +380,8 @@ function Write-Unit([string]$name, [string]$content) {
 
 function Invoke-ServicePhase {
     Write-Step 'Section 5: server unit + self-keeper unit'
-    if ((Invoke-WslText "test -x $RepoRoot/build-gfx1151/bin/llama-server && echo yes || echo no") -ne 'yes') {
+    $bd = Get-BuildDirName $RepoRoot
+    if ((Invoke-WslText "test -x $RepoRoot/$bd/bin/llama-server && echo yes || echo no") -ne 'yes') {
         Write-Bad 'llama-server not built: run -Phase build first'; exit 1
     }
     if (-not (Get-ModelFilesPresent)) { Write-Bad 'model files missing: run -Phase model first'; exit 1 }
@@ -375,7 +397,7 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=10
-Environment=LD_LIBRARY_PATH=$RepoRoot/build-gfx1151/bin
+Environment=LD_LIBRARY_PATH=$RepoRoot/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
@@ -438,30 +460,45 @@ function Invoke-UpgradePhase {
     Write-Step "Upgrade: clone $RepoTag into $new (current server stays up)"
     if ((Invoke-WslText "test -d $new/.git && echo yes || echo no") -eq 'yes') {
         Write-Ok "$new already cloned"
-    } elseif (-not (Invoke-Wsl "git clone --branch $RepoTag $RepoUrl $new")) {
+    } elseif (-not (Invoke-Wsl "git clone --depth 1 --branch $RepoTag $RepoUrl $new")) {
         Write-Bad 'clone failed'; exit 1
     }
 
     Write-Host 'Building (this takes a while)...'
     if (-not (Invoke-Wsl "cd $new && ROCM_ROOT=/opt/rocm BUILD_JOBS=$jobs ./scripts/ciru/build-linux-amd.sh")) { Write-Bad 'upgrade build failed; the current server is untouched'; exit 1 }
-    $v = Invoke-WslText "LD_LIBRARY_PATH=$new/build-gfx1151/bin $new/build-gfx1151/bin/llama-server --version 2>/dev/null | head -1"
+    $bd = Get-BuildDirName $new
+    $v = Invoke-WslText "LD_LIBRARY_PATH=$new/$bd/bin $new/$bd/bin/llama-server --version 2>&1 | head -1"
     if (-not $v) { Write-Bad 'llama-server --version failed'; exit 1 }
     Write-Ok "llama-server built: $v"
 
     Write-Step 'Upgrade: check weights for this tag'
     # Releases can ship identical weights across runtime tags. Compare
     # the tag's checksums file against the installed one before paying
-    # for a ~136 GiB download.
+    # for a ~136 GiB download. Falls back to the hub default revision
+    # when the tag has no matching model revision (e.g. very old tags).
     $shaOk = $false
-    $dl = Invoke-Wsl "/opt/hf-venv/bin/hf download $ModelRepo checksums.sha256 --revision $RepoTag --local-dir /tmp/ciru-sha-$RepoTag"
-    if ($dl) {
-        $same = Invoke-WslText "cmp -s /tmp/ciru-sha-$RepoTag/checksums.sha256 $ModelDir/checksums.sha256 && echo same || echo differ"
-        if ($same -eq 'same') { Write-Ok 'tag checksums match the installed model files; no download needed'; $shaOk = $true }
+    $digest = "/tmp/ciru-sha-$RepoTag"
+    $tagOk = Invoke-Wsl "rm -rf $digest; /opt/hf-venv/bin/hf download $ModelRepo checksums.sha256 --revision $RepoTag --local-dir $digest"
+    if (-not $tagOk) {
+        Write-Manual "no model revision tagged $RepoTag on the hub; comparing against the default revision"
+        $digest = "/tmp/ciru-sha-default"
+        if (-not (Invoke-Wsl "rm -rf $digest; /opt/hf-venv/bin/hf download $ModelRepo checksums.sha256 --local-dir $digest")) {
+            Write-Bad 'could not fetch any checksums file; check network/HF auth and rerun -Phase upgrade'; exit 1
+        }
     }
-    if (-not $shaOk) {
-        # Invoke-ModelPhase exits the process on failure, exits nothing extra
-        # on success; it also (re)creates /opt/hf-venv when missing.
+    $same = Invoke-WslText "cmp -s $digest/checksums.sha256 $ModelDir/checksums.sha256 && echo same || echo differ"
+    if ($same -eq 'same') {
+        Write-Ok 'checksums match the installed model files; no download needed'
+        $shaOk = $true
+    } elseif ($tagOk) {
+        # The tag exists on the hub but its weights differ: re-download
+        # pinned to the tag so the new runtime gets matching weights.
+        $ModelRevision = $RepoTag
         Invoke-ModelPhase
+    } else {
+        # No tag on the hub and the default revision differs from what is
+        # installed: guessing would risk loading mismatched weights.
+        Write-Bad "no $RepoTag revision on the hub and the hub default checksums differ from the installed files; inspect the release notes and rerun -Phase model with -ModelRevision <tag>"; exit 1
     }
 
     $unitName = "qwen-ciru-server-v$maj.service"
@@ -475,7 +512,7 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=10
-Environment=LD_LIBRARY_PATH=$new/build-gfx1151/bin
+Environment=LD_LIBRARY_PATH=$new/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
@@ -495,8 +532,17 @@ WantedBy=multi-user.target
     # is a short outage (~6-8 minutes of model load). Do not run it while
     # anything depends on the current server.
     Write-Step 'Upgrade: cutover (current server stops; model reload takes ~6-8 min)'
-    $cmd = "systemctl stop qwen-ciru-server.service; systemctl disable qwen-ciru-server.service; systemctl enable --now $unitName"
-    if (-not (Invoke-Wsl $cmd)) { Write-Bad "cutover failed (journalctl -u $unitName to inspect)"; exit 1 }
+    # Move over whichever qwen-ciru-server unit is currently enabled -
+    # not a hardcoded name: after an earlier upgrade it is
+    # qwen-ciru-server-v<old>.service, not qwen-ciru-server.service.
+    $legacy = Invoke-WslText "systemctl list-unit-files --state=enabled --no-legend 'qwen-ciru-server*.service' 2>/dev/null | sed 's/ enabled.*//'"
+    foreach ($u in ($legacy -split "`n")) {
+        if ($u -and $u -ne $unitName) {
+            Write-Host "  stopping $u"
+            if (-not (Invoke-Wsl "systemctl stop $u; systemctl disable $u")) { Write-Bad "failed to stop $u"; exit 1 }
+        }
+    }
+    if (-not (Invoke-Wsl "systemctl enable --now $unitName")) { Write-Bad "enabling $unitName failed"; exit 1 }
     if ((Invoke-WslText "systemctl is-active $unitName") -eq 'active') {
         Write-Ok "$unitName active (CONTEXT_SIZE=$ctx); old unit stopped+disabled; boot task and keeper follow the enabled unit unchanged"
     } else { Write-Bad "$unitName not active (journalctl -u $unitName to inspect)"; exit 1 }

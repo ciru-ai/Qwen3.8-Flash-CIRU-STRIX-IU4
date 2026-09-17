@@ -379,16 +379,24 @@ cmp -s /tmp/v3-sha/checksums.sha256 \
 ```
 
 Install a second unit for the new tree: the section 5 unit with every
-`/opt/runtime` path replaced by `/opt/runtime-v3` (name it
-`qwen-ciru-server-v3.service`, keep the same `CONTEXT_SIZE`), then cut over.
+`/opt/runtime` path replaced by the new tree (name it
+`qwen-ciru-server-v<major>.service`, keep the same `CONTEXT_SIZE`). The
+build-directory name is not fixed across tags: older tags build into
+`build-gfx1151`, v4.x into `build-gfx1151-sdk`. Set
+`LD_LIBRARY_PATH` to `<new tree>/<build dir>/bin` (the upgrade phase
+resolves it from the tag's own build script) and cut over.
 Only one server can hold port 8080 and the GPU pool at a time:
 
 ```bash
 systemctl daemon-reload
-systemctl stop qwen-ciru-server.service
-systemctl disable qwen-ciru-server.service
-systemctl enable --now qwen-ciru-server-v3.service
+systemctl stop <currently enabled qwen-ciru-server unit>
+systemctl disable <currently enabled qwen-ciru-server unit>
+systemctl enable --now qwen-ciru-server-v4.service
 ```
+
+The phase discovers the currently enabled `qwen-ciru-server*.service`
+unit on its own - after an earlier upgrade that is
+`qwen-ciru-server-v3.service`, not the base name.
 
 `/health` reaches green in about 6 minutes after the cutover (357 s
 measured). Leave the old unit stopped but its tree on disk: rollback is the
