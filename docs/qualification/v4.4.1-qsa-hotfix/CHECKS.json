@@ -1,0 +1,9 @@
+{
+  "baseline": {
+    "reproducer_rc": -6
+  },
+  "candidate": {
+    "reproducer_rc": 0,
+    "matrix": "340 mapping cases PASS"
+  }
+}

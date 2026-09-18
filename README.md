@@ -1,5 +1,7 @@
 # CIRU runtime v4.4.1
 
+**Vision + MTP QSA hotfix:** the source includes the fix for `qsa: cell position runs past the cell window`. [Patch, checks and rebuild instructions](docs/qualification/v4.4.1-qsa-hotfix/QSA-HOTFIX.md). Existing v4.4.1 prebuilt archives require rebuilding; weights and MTP settings are unchanged.
+
 Fixed vision + MTP. Update the complete runtime and restart the server; keep existing model files. See [update instructions](docs/RUNNING.md).
 
 The current main-branch launcher also rejects runtimes missing the v4.2 attention correction before model load. This startup check was added after the immutable v4.3.0 tag; see [runtime verification](docs/RUNNING.md#runtime-verification-in-current-launchers).

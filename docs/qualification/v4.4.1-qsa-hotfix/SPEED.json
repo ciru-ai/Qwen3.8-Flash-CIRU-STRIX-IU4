@@ -1,0 +1,47 @@
+{
+  "scope": "Quick local CPU QSA metadata microbenchmark, O3 release flags, nine alternating rounds per shape; identical process and cache data; incremental fast metadata bypass disabled in both. Not a GPU or end-to-end token throughput benchmark.",
+  "results": [
+    {
+      "cells": 4096,
+      "queries": 4,
+      "baseline_us": 33.77,
+      "candidate_us": 32.69,
+      "change_pct": -3.2
+    },
+    {
+      "cells": 4096,
+      "queries": 128,
+      "baseline_us": 34.16,
+      "candidate_us": 32.64,
+      "change_pct": -4.44
+    },
+    {
+      "cells": 32768,
+      "queries": 4,
+      "baseline_us": 306.31,
+      "candidate_us": 295.46,
+      "change_pct": -3.54
+    },
+    {
+      "cells": 32768,
+      "queries": 128,
+      "baseline_us": 269.44,
+      "candidate_us": 258.77,
+      "change_pct": -3.96
+    },
+    {
+      "cells": 262144,
+      "queries": 4,
+      "baseline_us": 2405.18,
+      "candidate_us": 2330.9,
+      "change_pct": -3.09
+    },
+    {
+      "cells": 262144,
+      "queries": 128,
+      "baseline_us": 2158.76,
+      "candidate_us": 2072.58,
+      "change_pct": -3.99
+    }
+  ]
+}

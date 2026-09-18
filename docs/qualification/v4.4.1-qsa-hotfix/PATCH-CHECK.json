@@ -1,0 +1,6 @@
+{
+  "patch_applies_to_v4.4.1": true,
+  "source_before_sha256": "10a1d5e31b3599db60cd962c2deb24e6b3bbe82a0768c003478fdde0df932e1f",
+  "source_after_sha256": "322d8de10a77fc2e3f9b64325fe09cf181926f6a648f01fc169f86365b01af94",
+  "patch_sha256": "b2ec53c85d74d7f90b1045fbde9dda15e6b59a7392c97ba7b4eefad72f89467f"
+}

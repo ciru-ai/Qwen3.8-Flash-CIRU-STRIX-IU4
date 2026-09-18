@@ -73,5 +73,11 @@
     "CIRU": "Compatibility integration and validation"
   },
   "version_change_scope": "Fixed vision + MTP; common library rebuilt; inference kernels, HIP/ROCr and model files unchanged.",
-  "binary_candidate": "v4.4.1-vision-mtp"
+  "binary_candidate": "v4.4.1-vision-mtp",
+  "source_hotfix": {
+    "tag": "v4.4.1-qsa-hotfix",
+    "requires_rebuild": true,
+    "qualification": "docs/qualification/v4.4.1-qsa-hotfix/QSA-HOTFIX.md",
+    "scope": "QSA logical position gaps after vision with MTP; existing v4.4.1 binary hashes describe the unpatched prebuilt archives."
+  }
 }

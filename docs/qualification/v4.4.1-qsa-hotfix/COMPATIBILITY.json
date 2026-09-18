@@ -1,0 +1,6 @@
+{
+  "baseline": "1584 cases; full tensor digest 4948368694081093563",
+  "candidate": "1584 cases; full tensor digest 4948368694081093563",
+  "status": "PASS",
+  "scope": "All output tensor bytes match for valid in-window positions, including gaps, fragmentation, multiple sequences and ranked M-RoPE."
+}
