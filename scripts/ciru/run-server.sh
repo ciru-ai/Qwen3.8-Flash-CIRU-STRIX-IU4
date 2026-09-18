@@ -14,13 +14,13 @@ case "${MODEL_VARIANT:-IU4}" in
     IU4)
         model_name=Qwen3.8-Flash-CIRU-STRIX-IU4
         projector_name=mmproj-Qwen3.8-Flash-F16.mmproj
-        slot_name=v4.4.0
+        slot_name=v4.4.1
         mtp_depth_default=3
         ;;
     Orca)
         model_name=Qwen3.8-Flash-CIRU-STRIX-Orca
         projector_name=mmproj-Qwen3.8-Flash-Orca-F16.mmproj
-        slot_name=orca-v4.4.0
+        slot_name=orca-v4.4.1
         mtp_depth_default=4
         ;;
     *) echo "MODEL_VARIANT must be IU4 or Orca." >&2; exit 2 ;;
@@ -79,7 +79,7 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
     esac
 done
 if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v4.4.0 MTP profile requires exactly one slot (--parallel 1)." >&2
+    echo "The CIRU v4.4.1 MTP profile requires exactly one slot (--parallel 1)." >&2
     echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
@@ -112,7 +112,7 @@ runtime_fail() {
     echo "CIRU runtime check: $*" >&2
     echo "Selected server: ${server_bin}" >&2
     echo "Updating the model folder or launcher does not update the inference runtime." >&2
-    echo "Build/install the complete CIRU v4.4.0 package, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
+    echo "Build/install the complete CIRU v4.4.1 package, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
     echo "Keep its executable and shared libraries together; no model-weight download is needed." >&2
     exit 2
 }
@@ -122,12 +122,20 @@ done
 [[ -z "${GGML_BACKEND_PATH:-}" ]] || runtime_fail "Clear GGML_BACKEND_PATH; an extra backend can bypass this runtime check."
 runtime_dependencies="$(ldd "${server_bin}" 2>&1)" || runtime_fail "Cannot resolve shared libraries for this server. Check the SDK and loader dependencies."
 hip_library=""
+common_library=""
 while IFS= read -r runtime_line; do
     if [[ "${runtime_line}" == *"libggml-hip.so"*" => "* ]]; then
         hip_library="${runtime_line#* => }"
         hip_library="${hip_library% (*}"
     fi
+    if [[ "${runtime_line}" == *"libllama-common.so"*" => "* ]]; then
+        common_library="${runtime_line#* => }"
+        common_library="${common_library% (*}"
+    fi
 done <<< "${runtime_dependencies}"
+[[ -n "${common_library}" && -f "${common_library}" ]] || runtime_fail "The selected server does not resolve its common library."
+grep -aFq "Qwen4Exp MTP image position" "${common_library}" || runtime_fail "The common library lacks the v4.4.1 vision/MTP fix: ${common_library}"
+echo "CIRU runtime check: vision/MTP correction detected; common $(realpath "${common_library}")" >&2
 [[ -n "${hip_library}" && -f "${hip_library}" ]] || runtime_fail "The selected server does not resolve a HIP library. Use the matching CIRU shared-library build."
 hip_library="$(realpath "${hip_library}")"
 for correction_marker in flash_attn_index_mask_clear flash_attn_index_mask_set flash_attn_index_mask_empty; do

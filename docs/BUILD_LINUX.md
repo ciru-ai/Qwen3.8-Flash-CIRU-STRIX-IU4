@@ -1,6 +1,6 @@
-# Build v4.4
+# Build v4.4.1
 
-The published NixOS binary is the exact tested `final-all-v1` engine plus pinned custom HIP/ROCr, built with stock TheRock ROCm10. Its Nix/SDK dependencies remain recorded in `binary-identity.json`; this is not a portable Ubuntu binary. The inference source matches the sealed tested snapshot; packaging and launch defaults are overlaid without rebuilding it.
+The v4.4.1 NixOS package rebuilds `libllama-common` for the vision/MTP fix and retains the v4.4.0 inference kernels and pinned HIP/ROCr libraries. The compiler is stock TheRock ROCm10 with the recorded Nix host dependencies. See `binary-identity.json`; this is not a portable Ubuntu binary.
 
 The existing Ubuntu/Debian engine setup below remains the source-build entry point. To reproduce the new PM4 runtime path, build pwilkin's HIP/ROCr at commit `7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1` separately. A mainstream Linux build outline is below; only the recorded NixOS build was executed and qualified here. It needs CMake 3.27+, Ninja, a complete TheRock10 SDK, libdrm, libelf, NUMA, OpenGL development files, CppHeaderParser 2.7.4 and ply 3.11. On Ubuntu/Debian install `build-essential ninja-build pkg-config libdrm-dev libelf-dev libnuma-dev libgl-dev python3-venv`; use a venv for the Python packages.
 

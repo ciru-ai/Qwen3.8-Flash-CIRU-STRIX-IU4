@@ -1,0 +1,4 @@
+{
+  "status": "PASS",
+  "scope": "Actual image-processing and checkpoint methods extracted from release source, with model context stubs; ASan/UBSan enabled. Checks split pinned image, rectangular spatial bound, hidden-row carry, state roundtrip, invalid forward/backward positions, reset, zero-origin continuation, malformed state and missing hidden rows. Does not replace served model regression checks."
+}

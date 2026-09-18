@@ -1,36 +1,8 @@
 {
-  "version": "4.4.1",
-  "status": "vision_mtp_patch_qualified",
-  "weights_changed": false,
-  "projector_changed": false,
-  "base_source_commit": "111a66380bd368336dc1b754767f116975892999",
-  "reference_engine_commit": "f5daaa3cfa6358e5dd398911ec741813745a5440",
-  "source_identity": "docs/qualification/v4.4.1/BUILD.json",
-  "qualification": "docs/qualification/v4.4.1/QUALIFICATION.md",
-  "previous_manifest": "docs/qualification/v4.4.0/QUALIFICATION.md",
-  "target_backend": "NixOS / stock TheRock ROCm10 compiler and math / pinned pwilkin HIP+ROCr / gfx1151",
-  "profile": {
-    "context": 262144,
-    "batch": 8192,
-    "microbatch": 8192,
-    "threads": 8,
-    "slots": 1,
-    "target_kv": "f16",
-    "draft_kv": "f16",
-    "prompt_cache_mib": 1024,
-    "ple_cache_mib": 4096,
-    "vision_mtp": true,
-    "ple_io_workers": 32,
-    "vision_mtp_qualification": "Single, repeated, multi-turn, multi-image, larger non-square and cached-image checks passed on both variants; see v4.4.1 qualification.",
-    "max_mtp_depth_by_variant": {
-      "IU4": 3,
-      "Orca": 4
-    },
-    "mtp_qsa_min_t": 1,
-    "kairic_boost_default": false,
-    "mtp_shortlist": 32768
-  },
-  "release_gate": "30 served regression checks pass on IU4 MTP3 and Orca MTP4 at 256K, plus ASan/UBSan state and launcher checks.",
+  "status": "BUILT",
+  "changed_source": "common/speculative.cpp",
+  "source_sha256": "b5d3bf3855499537df30e1454a617822e73e50dc859f6c632d6a98cdb01e6082",
+  "recompiled_common_files": 49,
   "binary_hashes": {
     "libggml-cpu.so.0.23.0": "5498beba4fea384bd87908b019eab01a2e28db0bc60e302a66ddd93489d08afe",
     "libmtmd.so.0": "f2bd014813584ccbe026f3bf98f56a5358c9ba48d59957d2eb8596d160981c50",
@@ -58,20 +30,5 @@
     "libggml-cpu.so.0": "5498beba4fea384bd87908b019eab01a2e28db0bc60e302a66ddd93489d08afe",
     "libllama-common.so.0.4.0": "e02dcf7c39cbfb2cf3f87180c800663e152e570c7247421cab481bf8453fe948"
   },
-  "source_frozen": true,
-  "performance_classification": "Workload-specific measured results; see QUALIFICATION.md.",
-  "supersedes": "4.4.0",
-  "credits": {
-    "original_fast_prefill_breakthrough": {
-      "name": "Halogen creator / Peonist.ai (peonist-ai)",
-      "url": "https://github.com/peonist-ai/halogen-flash-server"
-    },
-    "open_source_implementation": {
-      "name": "pwilkin",
-      "url": "https://pwilkin.github.io/strix-halo/"
-    },
-    "CIRU": "Compatibility integration and validation"
-  },
-  "version_change_scope": "Fixed vision + MTP; common library rebuilt; inference kernels, HIP/ROCr and model files unchanged.",
-  "binary_candidate": "v4.4.1-vision-mtp"
+  "scope": "Rebuilt common library from v4.4.1 source; all inference/GPU/HIP/ROCr binaries inherited byte-for-byte from v4.4.0."
 }

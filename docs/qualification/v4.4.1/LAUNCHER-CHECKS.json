@@ -1,0 +1,33 @@
+{
+  "status": "PASS",
+  "checks": [
+    {
+      "variant": "IU4",
+      "old_runtime": false,
+      "returncode": 0,
+      "passed": true,
+      "output": "CIRU runtime check: vision/MTP correction detected; common /home/halo/release-v4.4.1-20260917/runtime/bin/libllama-common.so.0.4.0\nCIRU runtime check: indexed-attention correction detected; HIP SHA256 346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d\nCIRU runtime check: server /home/halo/release-v4.4.1-20260917/runtime/bin/llama-server; HIP /home/halo/release-v4.4.1-20260917/runtime/bin/libggml-hip.so.0.23.0\nversion: 0.4.0-dev (build 0, commit unknown)\nbuilt with GNU 15.2.0 for Linux x86_64\n"
+    },
+    {
+      "variant": "IU4",
+      "old_runtime": true,
+      "returncode": 2,
+      "passed": true,
+      "output": "CIRU runtime check: The common library lacks the v4.4.1 vision/MTP fix: /srv/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.0/bin/libllama-common.so.0\nSelected server: /srv/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.0/bin/llama-server\nUpdating the model folder or launcher does not update the inference runtime.\nBuild/install the complete CIRU v4.4.1 package, then set RUNTIME_DIR and BUILD_DIR to that installation.\nKeep its executable and shared libraries together; no model-weight download is needed.\n"
+    },
+    {
+      "variant": "Orca",
+      "old_runtime": false,
+      "returncode": 0,
+      "passed": true,
+      "output": "CIRU runtime check: vision/MTP correction detected; common /home/halo/release-v4.4.1-20260917/runtime/bin/libllama-common.so.0.4.0\nCIRU runtime check: indexed-attention correction detected; HIP SHA256 346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d\nCIRU runtime check: server /home/halo/release-v4.4.1-20260917/runtime/bin/llama-server; HIP /home/halo/release-v4.4.1-20260917/runtime/bin/libggml-hip.so.0.23.0\nversion: 0.4.0-dev (build 0, commit unknown)\nbuilt with GNU 15.2.0 for Linux x86_64\n"
+    },
+    {
+      "variant": "Orca",
+      "old_runtime": true,
+      "returncode": 2,
+      "passed": true,
+      "output": "CIRU runtime check: The common library lacks the v4.4.1 vision/MTP fix: /srv/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.0/bin/libllama-common.so.0\nSelected server: /srv/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.0/bin/llama-server\nUpdating the model folder or launcher does not update the inference runtime.\nBuild/install the complete CIRU v4.4.1 package, then set RUNTIME_DIR and BUILD_DIR to that installation.\nKeep its executable and shared libraries together; no model-weight download is needed.\n"
+    }
+  ]
+}

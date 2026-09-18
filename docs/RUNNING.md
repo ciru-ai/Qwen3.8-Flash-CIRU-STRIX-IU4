@@ -1,8 +1,8 @@
 # v4.4 runtime update
 
-Keep the existing weights and download/build the complete v4.4 runtime. MTP remains enabled by default (IU4 depth 3, Orca depth 4). Boost is optional: `KAIRIC_BOOST=1 scripts/ciru/run-server.sh` or append `--kairic-boost`. It expands to ngram-mod before draft-mtp, match 24 and 64-token proposals; it does not change MTP depth. Its current positive evidence is the IU4 short HumanEval 0–9 speed panel. Long thinking quality with Boost has not been established.
+Keep the existing weights and download/build the complete v4.4.1 runtime. MTP remains enabled by default (IU4 depth 3, Orca depth 4). Boost is optional: `KAIRIC_BOOST=1 scripts/ciru/run-server.sh` or append `--kairic-boost`. It expands to ngram-mod before draft-mtp, match 24 and 64-token proposals; it does not change MTP depth. Its current positive evidence is the IU4 short HumanEval 0–9 speed panel. Long thinking quality with Boost has not been established.
 
-The package includes pinned HIP/ROCr under `runtime/`; `CIRU_RUNTIME_ROOT` selects an alternate build. Put the complete matched inference `bin/` together. For images set `ENABLE_VISION=1 ENABLE_MTP=0`; image+MTP is currently incompatible. One slot remains required for MTP. Weight reconstruction error is unchanged because model artifacts are unchanged.
+The package includes pinned HIP/ROCr under `runtime/`; `CIRU_RUNTIME_ROOT` selects an alternate build. Put the complete matched inference `bin/` together. For images set `ENABLE_VISION=1` or pass `--vision`; v4.4.1 fixes vision with MTP enabled. One slot remains required for MTP. Weight reconstruction error is unchanged because model artifacts are unchanged.
 
 ## Retained running reference
 
@@ -30,7 +30,7 @@ Context262144; batch/microbatch 8192; target and draft F16 KV; one slot; MTP dep
 
 The sampler remains temperature 1.0, top-p 0.95, top-k 20 and min-p 0. Thinking follows the embedded template default. Request parameters or `TEMPERATURE`, `TOP_P`, `TOP_K`, `MIN_P` override sampling. Historical v4.0 qualification used explicit nonthinking requests with seed 123, temperature 0.7, top-p 0.8, top-k 20, min-p 0, presence 1.5 and repeat 1; those benchmark settings are not production defaults.
 
-`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v4.3.0`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
+`CONTEXT_SIZE`, `BATCH_SIZE`, `UBATCH_SIZE`, `PROMPT_CACHE_MIB`, `PLE_CACHE_MIB`, `CTX_CHECKPOINTS`, `CHECKPOINT_MIN_STEP` and `MTP_DEPTH` are available. `ENABLE_MTP=0` selects target-only serving. Saved-slot state defaults to the new `slot-state/v4.4.1`; old saves are not restored automatically. Prefixes without a compatible MTP state checkpoint reprocess safely.
 
 ## Parallel requests and unified KV cache
 
@@ -42,7 +42,7 @@ MTP is qualified only with one slot. The launcher rejects multi-slot MTP, includ
 MODEL_DIR=/absolute/path/to/model ./scripts/ciru/run-server.sh --vision
 ```
 
-`ENABLE_VISION=1` is equivalent. It loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`; `MMPROJ` overrides the path. **MTP stays enabled with vision by default.** Set `ENABLE_MTP=0` for target-only generation. Vision with MTP has not been newly inference-qualified; the historical image smoke checks below used target-only generation. Two image smoke checks passed with the existing 904003840-byte projector, SHA256 `db643482521c722ff1074afd5018c060ef6ce9b828421c7cfc27b2f235c2569b`.
+`ENABLE_VISION=1` is equivalent. It loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`; `MMPROJ` overrides the path. **MTP stays enabled with vision by default.** Set `ENABLE_MTP=0` for target-only generation. The v4.4.1 regression checks cover vision with MTP on IU4 and Orca; the historical image checks below used target-only generation. Two image smoke checks passed with the existing 904003840-byte projector, SHA256 `db643482521c722ff1074afd5018c060ef6ce9b828421c7cfc27b2f235c2569b`.
 
 Use image data URLs with the tested Nix binary, whose HTTPS fetching is disabled. A source build can enable remote HTTPS image fetching when OpenSSL is found. Image processing uses additional memory/context. The text performance table does not measure vision.
 

@@ -1357,6 +1357,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
     // follow both prefix checkpoints and speculative verification rollback.
     bool pending_state_enabled = false;
     std::vector<llama_pos> pending_h_pos;
+    std::vector<llama_pos> pending_image_pos;
 
     std::vector<int32_t> i_batch_beg;
     std::vector<int32_t> i_batch_end;
@@ -1449,6 +1450,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
 
         pending_h.assign(n_seq, std::vector<float>(n_embd, 0.0f));
         pending_h_pos.assign(n_seq, -1);
+        pending_image_pos.assign(n_seq, -1);
 
         i_last.assign(n_seq, -1);
         i_batch_beg.assign(n_seq, -1);
@@ -1502,8 +1504,51 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
             return true;
         }
 
-        // TODO: how to make it work with vision tokens?
         if (batch_in.token == nullptr || batch_in.embd != nullptr) {
+            if (!pending_state_enabled || batch_in.token != nullptr || batch_in.embd == nullptr) {
+                return true;
+            }
+
+            const auto rope = llama_model_rope_type(llama_get_model(params.ctx_tgt));
+            const int n_pos = rope == LLAMA_ROPE_TYPE_MROPE || rope == LLAMA_ROPE_TYPE_IMROPE ? 4 : 1;
+            const float * h = llama_get_embeddings_nextn(params.ctx_tgt);
+            if (h == nullptr) {
+                SPC_ERR("%s", "Qwen4Exp MTP image batch has no target hidden rows\n");
+                return false;
+            }
+
+            std::vector<bool> seen(n_seq, false);
+            for (int32_t i = 0; i < batch_in.n_tokens; ++i) {
+                GGML_ASSERT(batch_in.n_seq_id[i] == 1);
+                const llama_seq_id seq_id = batch_in.seq_id[i][0];
+                GGML_ASSERT(seq_id >= 0 && seq_id < (llama_seq_id) n_seq);
+                const llama_pos pos = batch_in.pos[i];
+                if (!seen[seq_id]) {
+                    if (pos == 0 && pending_image_pos[seq_id] != 0) {
+                        reset_pending_state(seq_id);
+                    }
+                    // A split M-RoPE image keeps its temporal position across batches.
+                    if ((int64_t) pending_h_pos[seq_id] + 1 != pos &&
+                            (n_pos != 4 || pending_image_pos[seq_id] != pos)) {
+                        SPC_ERR("Qwen4Exp MTP image position %d has no matching pending row\n", (int) pos);
+                        return false;
+                    }
+                    pending_image_pos[seq_id] = pos;
+                    verify_h[seq_id].clear();
+                    verify_h_pos[seq_id].clear();
+                    verify_h_rows[seq_id] = 0;
+                    seen[seq_id] = true;
+                }
+
+                // Like DFlash, skip pinned image rows in the draft KV. The MTP
+                // head needs token IDs; target image embeddings are not token IDs.
+                // Spatial coordinates bound the text resume position exactly.
+                for (int d = 0; d < n_pos; ++d) {
+                    pending_h_pos[seq_id] = std::max(pending_h_pos[seq_id], batch_in.pos[d * batch_in.n_tokens + i]);
+                }
+                std::memcpy(pending_h[seq_id].data(), h + (size_t) i * n_embd, (size_t) n_embd * sizeof(float));
+            }
+            shortlist_logits_row = -1;
             return true;
         }
 
@@ -1633,6 +1678,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
             std::memcpy(pending_h[seq_id].data(),
                     verify_h[seq_id].data() + (size_t) (n_rows - 1) * n_embd, row_bytes);
             pending_h_pos[seq_id] = verify_h_pos[seq_id].back();
+            pending_image_pos[seq_id] = -1;
         }
 
         shortlist_logits_row = -1; // last valid row after prompt/catch-up processing
@@ -1816,12 +1862,14 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
         std::memcpy(pending_h[seq_id].data(), verify_h[seq_id].data() + (size_t) i_h * n_embd, row_bytes);
         pending_h_pos[seq_id] = verify_h_pos[seq_id][i_h];
+        pending_image_pos[seq_id] = -1;
     }
 
     void reset_pending_state(llama_seq_id seq_id) {
         shortlist_logits_row = -1;
         std::fill(pending_h[seq_id].begin(), pending_h[seq_id].end(), 0.0f);
         pending_h_pos[seq_id] = -1;
+        pending_image_pos[seq_id] = -1;
         verify_h[seq_id].clear();
         verify_h_pos[seq_id].clear();
         verify_h_rows[seq_id] = 0;
@@ -1835,14 +1883,15 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         if (!pending_state_enabled || seq_id < 0 || seq_id >= (llama_seq_id) n_seq) {
             return false;
         }
-        static constexpr uint32_t magic = 0x4d545032; // MTP2: position + width + hidden row
+        static constexpr uint32_t magic = 0x4d545033; // MTP3: positions + width + hidden row
         const uint32_t width = (uint32_t) n_embd;
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
-        data.resize(sizeof(magic) + sizeof(width) + sizeof(llama_pos) + row_bytes);
+        data.resize(sizeof(magic) + sizeof(width) + 2 * sizeof(llama_pos) + row_bytes);
         uint8_t * dst = data.data();
         std::memcpy(dst, &magic, sizeof(magic)); dst += sizeof(magic);
         std::memcpy(dst, &width, sizeof(width)); dst += sizeof(width);
         std::memcpy(dst, &pending_h_pos[seq_id], sizeof(llama_pos)); dst += sizeof(llama_pos);
+        std::memcpy(dst, &pending_image_pos[seq_id], sizeof(llama_pos)); dst += sizeof(llama_pos);
         std::memcpy(dst, pending_h[seq_id].data(), row_bytes);
         return true;
     }
@@ -1853,19 +1902,21 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         }
         reset_pending_state(seq_id);
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
-        if (data.size() != 2 * sizeof(uint32_t) + sizeof(llama_pos) + row_bytes) {
+        if (data.size() != 2 * sizeof(uint32_t) + 2 * sizeof(llama_pos) + row_bytes) {
             return;
         }
         const uint8_t * src = data.data();
         uint32_t magic = 0, width = 0;
-        llama_pos pos = -1;
+        llama_pos pos = -1, image_pos = -1;
         std::memcpy(&magic, src, sizeof(magic)); src += sizeof(magic);
         std::memcpy(&width, src, sizeof(width)); src += sizeof(width);
         std::memcpy(&pos, src, sizeof(pos)); src += sizeof(pos);
-        if (magic != 0x4d545032 || width != (uint32_t) n_embd || pos < -1) {
+        std::memcpy(&image_pos, src, sizeof(image_pos)); src += sizeof(image_pos);
+        if (magic != 0x4d545033 || width != (uint32_t) n_embd || pos < -1 || image_pos < -1 || image_pos > pos) {
             return;
         }
         pending_h_pos[seq_id] = pos;
+        pending_image_pos[seq_id] = image_pos;
         std::memcpy(pending_h[seq_id].data(), src, row_bytes);
     }
 };

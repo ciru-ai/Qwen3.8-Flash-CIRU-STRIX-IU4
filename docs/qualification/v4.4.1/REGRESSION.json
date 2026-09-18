@@ -1,0 +1,872 @@
+[
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.0",
+    "case": "text-exact",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 0.6351497173309326,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 476.24,
+      "prompt_per_token_ms": 26.45777777777778,
+      "prompt_per_second": 37.79606920880228,
+      "predicted_n": 4,
+      "predicted_ms": 154.647,
+      "predicted_per_token_ms": 51.549,
+      "predicted_per_second": 19.39901840966847,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.0",
+    "case": "text-math",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.4213082790374756,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 27,
+      "prompt_ms": 290.727,
+      "prompt_per_token_ms": 10.767666666666665,
+      "prompt_per_second": 92.87063121072347,
+      "predicted_n": 3,
+      "predicted_ms": 80.793,
+      "predicted_per_token_ms": 40.3965,
+      "predicted_per_second": 24.754619830925943,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.0",
+    "case": "text-code",
+    "passed": true,
+    "text": "```python\ndef add(a, b):\n    return a + b\n```",
+    "seconds": 0.6892235279083252,
+    "usage": {
+      "completion_tokens": 18,
+      "prompt_tokens": 26,
+      "total_tokens": 44,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 285.076,
+      "prompt_per_token_ms": 10.964461538461538,
+      "prompt_per_second": 91.20374917565842,
+      "predicted_n": 18,
+      "predicted_ms": 344.571,
+      "predicted_per_token_ms": 20.268882352941176,
+      "predicted_per_second": 49.3367114469877,
+      "draft_n": 15,
+      "draft_n_accepted": 15
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "text-exact",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 0.8773167133331299,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 714.909,
+      "prompt_per_token_ms": 39.717166666666664,
+      "prompt_per_second": 25.178029651326252,
+      "predicted_n": 4,
+      "predicted_ms": 158.812,
+      "predicted_per_token_ms": 52.937333333333335,
+      "predicted_per_second": 18.890260181850238,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "text-math",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.6863276958465576,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 27,
+      "prompt_ms": 554.896,
+      "prompt_per_token_ms": 20.5517037037037,
+      "prompt_per_second": 48.65776650038927,
+      "predicted_n": 3,
+      "predicted_ms": 81.158,
+      "predicted_per_token_ms": 40.579,
+      "predicted_per_second": 24.64328840040415,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "text-code",
+    "passed": true,
+    "text": "```python\ndef add(a, b):\n    return a + b\n```",
+    "seconds": 0.6702039241790771,
+    "usage": {
+      "completion_tokens": 18,
+      "prompt_tokens": 26,
+      "total_tokens": 44,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 269.749,
+      "prompt_per_token_ms": 10.37496153846154,
+      "prompt_per_second": 96.38589948433543,
+      "predicted_n": 18,
+      "predicted_ms": 346.025,
+      "predicted_per_token_ms": 20.35441176470588,
+      "predicted_per_second": 49.129398164872484,
+      "draft_n": 15,
+      "draft_n_accepted": 15
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "red-square",
+    "passed": true,
+    "text": "Red square",
+    "seconds": 1.171177864074707,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 78,
+      "prompt_ms": 1037.223,
+      "prompt_per_token_ms": 13.29773076923077,
+      "prompt_per_second": 75.20080059929253,
+      "predicted_n": 3,
+      "predicted_ms": 82.531,
+      "predicted_per_token_ms": 41.2655,
+      "predicted_per_second": 24.233318389453657,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "text-after-image",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.24445843696594238,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 23
+      }
+    },
+    "timings": {
+      "cache_n": 23,
+      "prompt_n": 4,
+      "prompt_ms": 96.048,
+      "prompt_per_token_ms": 24.012,
+      "prompt_per_second": 41.64584374479427,
+      "predicted_n": 3,
+      "predicted_ms": 74.478,
+      "predicted_per_token_ms": 37.239,
+      "predicted_per_second": 26.853567496441904,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "second-image",
+    "passed": true,
+    "text": "Color: Blue  \nShape: Circle",
+    "seconds": 1.0000977516174316,
+    "usage": {
+      "completion_tokens": 8,
+      "prompt_tokens": 69,
+      "total_tokens": 77,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 69,
+      "prompt_ms": 729.942,
+      "prompt_per_token_ms": 10.578869565217392,
+      "prompt_per_second": 94.5280583936806,
+      "predicted_n": 8,
+      "predicted_ms": 217.726,
+      "predicted_per_token_ms": 31.103714285714286,
+      "predicted_per_second": 32.15050108852411,
+      "draft_n": 9,
+      "draft_n_accepted": 7
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "mid-conversation",
+    "passed": true,
+    "text": "Red square, 42",
+    "seconds": 1.1433007717132568,
+    "usage": {
+      "completion_tokens": 7,
+      "prompt_tokens": 109,
+      "total_tokens": 116,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 109,
+      "prompt_ms": 871.324,
+      "prompt_per_token_ms": 7.993798165137615,
+      "prompt_per_second": 125.09697885057683,
+      "predicted_n": 7,
+      "predicted_ms": 208.71,
+      "predicted_per_token_ms": 34.785000000000004,
+      "predicted_per_second": 28.748023573379328,
+      "draft_n": 9,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "two-images",
+    "passed": true,
+    "text": "Based on the images provided, here is the color and shape for each one, in order:\n- **First image**: A red square.\n\n- **Second image**: A blue circle.",
+    "seconds": 2.5297176837921143,
+    "usage": {
+      "completion_tokens": 40,
+      "prompt_tokens": 126,
+      "total_tokens": 166,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 126,
+      "prompt_ms": 1238.028,
+      "prompt_per_token_ms": 9.825619047619048,
+      "prompt_per_second": 101.77475792146865,
+      "predicted_n": 40,
+      "predicted_ms": 1039.433,
+      "predicted_per_token_ms": 26.652128205128204,
+      "predicted_per_second": 37.520455863918116,
+      "draft_n": 48,
+      "draft_n_accepted": 25
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "wide-image",
+    "passed": true,
+    "text": "Red",
+    "seconds": 1.8175384998321533,
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 538,
+      "total_tokens": 540,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 538,
+      "prompt_ms": 1653.766,
+      "prompt_per_token_ms": 3.073914498141264,
+      "prompt_per_second": 325.31809216055956,
+      "predicted_n": 2,
+      "predicted_ms": 81.967,
+      "predicted_per_token_ms": 81.967,
+      "predicted_per_second": 12.200031720082473,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "cached-image-first",
+    "passed": true,
+    "text": "Red square",
+    "seconds": 0.8510160446166992,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 78,
+      "prompt_ms": 698.038,
+      "prompt_per_token_ms": 8.949205128205127,
+      "prompt_per_second": 111.74176764015714,
+      "predicted_n": 3,
+      "predicted_ms": 77.614,
+      "predicted_per_token_ms": 38.807,
+      "predicted_per_second": 25.76854691163965,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "cached-image-repeat",
+    "passed": true,
+    "text": "Red square",
+    "seconds": 0.2500417232513428,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 74
+      }
+    },
+    "timings": {
+      "cache_n": 74,
+      "prompt_n": 4,
+      "prompt_ms": 101.23,
+      "prompt_per_token_ms": 25.3075,
+      "prompt_per_second": 39.51397806974217,
+      "predicted_n": 3,
+      "predicted_ms": 75.276,
+      "predicted_per_token_ms": 37.638,
+      "predicted_per_second": 26.568893139911793,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "IU4",
+    "runtime": "v4.4.1",
+    "case": "final-text",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 0.2875072956085205,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 211.01,
+      "prompt_per_token_ms": 11.722777777777777,
+      "prompt_per_second": 85.30401402777119,
+      "predicted_n": 4,
+      "predicted_ms": 73.123,
+      "predicted_per_token_ms": 24.374333333333336,
+      "predicted_per_second": 41.0267631251453,
+      "draft_n": 3,
+      "draft_n_accepted": 3
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.0",
+    "case": "text-exact",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 1.1176323890686035,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 763.101,
+      "prompt_per_token_ms": 42.3945,
+      "prompt_per_second": 23.587965420042696,
+      "predicted_n": 4,
+      "predicted_ms": 334.613,
+      "predicted_per_token_ms": 111.53766666666667,
+      "predicted_per_second": 8.965581134026472,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.0",
+    "case": "text-math",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.44332432746887207,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 27,
+      "prompt_ms": 292.776,
+      "prompt_per_token_ms": 10.843555555555556,
+      "prompt_per_second": 92.22067382572342,
+      "predicted_n": 3,
+      "predicted_ms": 92.235,
+      "predicted_per_token_ms": 46.1175,
+      "predicted_per_second": 21.683742613975173,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.0",
+    "case": "text-code",
+    "passed": true,
+    "text": "```python\ndef add(a, b):\n    return a + b\n```",
+    "seconds": 1.0119004249572754,
+    "usage": {
+      "completion_tokens": 18,
+      "prompt_tokens": 26,
+      "total_tokens": 44,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 630.5,
+      "prompt_per_token_ms": 24.25,
+      "prompt_per_second": 41.23711340206185,
+      "predicted_n": 18,
+      "predicted_ms": 325.38,
+      "predicted_per_token_ms": 19.14,
+      "predicted_per_second": 52.2466039707419,
+      "draft_n": 16,
+      "draft_n_accepted": 16
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "text-exact",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 0.6182446479797363,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 392.709,
+      "prompt_per_token_ms": 21.817166666666665,
+      "prompt_per_second": 45.83546595570766,
+      "predicted_n": 4,
+      "predicted_ms": 221.307,
+      "predicted_per_token_ms": 73.76899999999999,
+      "predicted_per_second": 13.555829684555842,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "text-math",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.43227124214172363,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 27,
+      "prompt_ms": 287.966,
+      "prompt_per_token_ms": 10.665407407407407,
+      "prompt_per_second": 93.76106901509206,
+      "predicted_n": 3,
+      "predicted_ms": 91.143,
+      "predicted_per_token_ms": 45.5715,
+      "predicted_per_second": 21.943539273449414,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "text-code",
+    "passed": true,
+    "text": "```python\ndef add(a, b):\n    return a + b\n```",
+    "seconds": 0.6486802101135254,
+    "usage": {
+      "completion_tokens": 18,
+      "prompt_tokens": 26,
+      "total_tokens": 44,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 26,
+      "prompt_ms": 278.391,
+      "prompt_per_token_ms": 10.707346153846155,
+      "prompt_per_second": 93.39382379459106,
+      "predicted_n": 18,
+      "predicted_ms": 313.988,
+      "predicted_per_token_ms": 18.469882352941177,
+      "predicted_per_second": 54.14219651706435,
+      "draft_n": 16,
+      "draft_n_accepted": 16
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "red-square",
+    "passed": true,
+    "text": "red square",
+    "seconds": 0.8502533435821533,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 78,
+      "prompt_ms": 702.764,
+      "prompt_per_token_ms": 9.009794871794872,
+      "prompt_per_second": 110.9903182291637,
+      "predicted_n": 3,
+      "predicted_ms": 93.3,
+      "predicted_per_token_ms": 46.65,
+      "predicted_per_second": 21.436227224008576,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "text-after-image",
+    "passed": true,
+    "text": "42",
+    "seconds": 0.2623920440673828,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 27,
+      "total_tokens": 30,
+      "prompt_tokens_details": {
+        "cached_tokens": 23
+      }
+    },
+    "timings": {
+      "cache_n": 23,
+      "prompt_n": 4,
+      "prompt_ms": 102.158,
+      "prompt_per_token_ms": 25.5395,
+      "prompt_per_second": 39.15503435854265,
+      "predicted_n": 3,
+      "predicted_ms": 85.25,
+      "predicted_per_token_ms": 42.625,
+      "predicted_per_second": 23.46041055718475,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "second-image",
+    "passed": true,
+    "text": "Color: Blue  \nShape: Circle",
+    "seconds": 0.9027776718139648,
+    "usage": {
+      "completion_tokens": 8,
+      "prompt_tokens": 69,
+      "total_tokens": 77,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 69,
+      "prompt_ms": 601.0,
+      "prompt_per_token_ms": 8.710144927536232,
+      "prompt_per_second": 114.80865224625624,
+      "predicted_n": 8,
+      "predicted_ms": 247.378,
+      "predicted_per_token_ms": 35.33971428571429,
+      "predicted_per_second": 28.2967765929064,
+      "draft_n": 12,
+      "draft_n_accepted": 8
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "mid-conversation",
+    "passed": true,
+    "text": "Red square, 42",
+    "seconds": 1.1232426166534424,
+    "usage": {
+      "completion_tokens": 7,
+      "prompt_tokens": 109,
+      "total_tokens": 116,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 109,
+      "prompt_ms": 881.15,
+      "prompt_per_token_ms": 8.083944954128441,
+      "prompt_per_second": 123.70198036656643,
+      "predicted_n": 7,
+      "predicted_ms": 172.435,
+      "predicted_per_token_ms": 28.739166666666666,
+      "predicted_per_second": 34.79572012642445,
+      "draft_n": 8,
+      "draft_n_accepted": 6
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "two-images",
+    "passed": true,
+    "text": "Based on the images provided, here is the color and shape for each one, in order:\n- **First image:**\n    - Color: Red\n    - Shape: Square\n\n- **Second image:**\n    - Color: Blue\n    - Shape: Circle",
+    "seconds": 2.1425912380218506,
+    "usage": {
+      "completion_tokens": 56,
+      "prompt_tokens": 126,
+      "total_tokens": 182,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 126,
+      "prompt_ms": 1007.792,
+      "prompt_per_token_ms": 7.998349206349206,
+      "prompt_per_second": 125.02579897439153,
+      "predicted_n": 56,
+      "predicted_ms": 1042.733,
+      "predicted_per_token_ms": 18.958781818181816,
+      "predicted_per_second": 52.746004969632686,
+      "draft_n": 56,
+      "draft_n_accepted": 43
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "wide-image",
+    "passed": true,
+    "text": "Red",
+    "seconds": 1.5778403282165527,
+    "usage": {
+      "completion_tokens": 2,
+      "prompt_tokens": 538,
+      "total_tokens": 540,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 538,
+      "prompt_ms": 1402.737,
+      "prompt_per_token_ms": 2.6073178438661713,
+      "prompt_per_second": 383.53590159809,
+      "predicted_n": 2,
+      "predicted_ms": 91.752,
+      "predicted_per_token_ms": 91.752,
+      "predicted_per_second": 10.89894498212573,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "cached-image-first",
+    "passed": true,
+    "text": "red square",
+    "seconds": 0.8454954624176025,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 78,
+      "prompt_ms": 687.281,
+      "prompt_per_token_ms": 8.811294871794871,
+      "prompt_per_second": 113.49069740033553,
+      "predicted_n": 3,
+      "predicted_ms": 87.391,
+      "predicted_per_token_ms": 43.6955,
+      "predicted_per_second": 22.885651840578547,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "cached-image-repeat",
+    "passed": true,
+    "text": "red square",
+    "seconds": 0.2604036331176758,
+    "usage": {
+      "completion_tokens": 3,
+      "prompt_tokens": 78,
+      "total_tokens": 81,
+      "prompt_tokens_details": {
+        "cached_tokens": 74
+      }
+    },
+    "timings": {
+      "cache_n": 74,
+      "prompt_n": 4,
+      "prompt_ms": 102.673,
+      "prompt_per_token_ms": 25.66825,
+      "prompt_per_second": 38.958635668578886,
+      "predicted_n": 3,
+      "predicted_ms": 87.296,
+      "predicted_per_token_ms": 43.648,
+      "predicted_per_second": 22.910557184750733,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  },
+  {
+    "variant": "Orca",
+    "runtime": "v4.4.1",
+    "case": "final-text",
+    "passed": true,
+    "text": "TEXT_ONLY_OK",
+    "seconds": 0.30599188804626465,
+    "usage": {
+      "completion_tokens": 4,
+      "prompt_tokens": 18,
+      "total_tokens": 22,
+      "prompt_tokens_details": {
+        "cached_tokens": 0
+      }
+    },
+    "timings": {
+      "cache_n": 0,
+      "prompt_n": 18,
+      "prompt_ms": 217.948,
+      "prompt_per_token_ms": 12.108222222222222,
+      "prompt_per_second": 82.58850735037714,
+      "predicted_n": 4,
+      "predicted_ms": 84.387,
+      "predicted_per_token_ms": 28.129,
+      "predicted_per_second": 35.55049948451776,
+      "draft_n": 4,
+      "draft_n_accepted": 4
+    }
+  }
+]

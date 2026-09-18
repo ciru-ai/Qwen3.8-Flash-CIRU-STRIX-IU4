@@ -1,4 +1,6 @@
-# CIRU runtime v4.4.0
+# CIRU runtime v4.4.1
+
+Fixed vision + MTP. Update the complete runtime and restart the server; keep existing model files. See [update instructions](docs/RUNNING.md).
 
 The current main-branch launcher also rejects runtimes missing the v4.2 attention correction before model load. This startup check was added after the immutable v4.3.0 tag; see [runtime verification](docs/RUNNING.md#runtime-verification-in-current-launchers).
 
@@ -24,7 +26,7 @@ Combined inference/runtime update; existing target, draft, PLE and projector fil
 - IU4 matched control → combined: 12.96K decode **37.79 → 44.53 tok/s**; 245760-token cold decode **7.62 → 21.14 tok/s**. Control already includes v4.3 + S5/D0; these are not plain-v4.3 comparisons.
 - IU4 HE0–9: **60.35 tok/s** with MTP3, **64.07 tok/s** with opt-in Boost; one short panel per setting. HA20: **19/20 full-score tasks**, **98.5/100 arithmetic mean**, **99/100 official weighted score**.
 
-Full 256K serving defaults are retained. A separate target-only 512K prefill reached 604.65 tok/s; it does not establish 512K decode or quality. Image+MTP remains incompatible in both retained and combined engines; use target-only vision. Boost has no new HA20 qualification. Weight reconstruction error is unchanged.
+Full 256K serving defaults are retained. A separate target-only 512K prefill reached 604.65 tok/s; it does not establish 512K decode or quality. The v4.4.0 image+MTP failure is fixed in v4.4.1. Boost has no new HA20 qualification. Weight reconstruction error is unchanged.
 
 [Qualification](docs/qualification/v4.4.0/QUALIFICATION.md) · [Build](docs/BUILD_LINUX.md)
 
