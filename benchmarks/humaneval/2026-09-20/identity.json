@@ -1,0 +1,34 @@
+{
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/Qwen3.8-Flash-CIRU-STRIX-IU4.gguf": {
+    "bytes": 79397818720,
+    "sha256": "c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0"
+  },
+  "/srv/llm/models/Qwen3.8-Flash-CIRU-STRIX-IU4/mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf": {
+    "bytes": 4135893248,
+    "sha256": "e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642"
+  },
+  "/srv/ssd/sn850x/data/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.1/bin/llama-server": {
+    "bytes": 15944,
+    "sha256": "d043c046f911680bef100c711cf825a06e457ad2b163abcc5f30e19dc3e5074d"
+  },
+  "/srv/ssd/sn850x/data/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.1/bin/libllama.so": {
+    "bytes": 4953560,
+    "sha256": "cf1233a616ed082658ff45612f5ac2e16011cbb0d651d110cb60eccc5fd35517"
+  },
+  "/srv/ssd/sn850x/data/llm/engines/Qwen3.8-Flash-CIRU-STRIX-v4.4.1/bin/libggml-hip.so": {
+    "bytes": 84540712,
+    "sha256": "346547c8930a41f46b72d2c8a54268cac1ee38bd0833db6be9974db95301754d"
+  },
+  "/home/crown/machine-setup/model-profiles/qwen3.8-flash-ciru-strix-iu4-v4.4.1-thinking-off-256k.env": {
+    "bytes": 1821,
+    "sha256": "ffb8adaf2c6f209fddb2d7a14d53286fc18f3a1042fd16bf0a94e4ebd63149f9"
+  },
+  "/srv/llm/work/iu4-he-speed-20260920/sources/HumanEvalPlus-v0.1.10.jsonl": {
+    "bytes": 7714666,
+    "sha256": "42526ec0e7d5f3ee0b06d6ced98f8c8bae3d76519151bfb3d36f79010645bd7f"
+  },
+  "/home/crown/.codex/skills/llama-benchmark/scripts/llama_benchmark.py": {
+    "bytes": 52408,
+    "sha256": "4da1bbcc69e27d8ce42c976523a39ea648b26a5f4968a53adfe82c3861fa61cc"
+  }
+}

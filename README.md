@@ -64,6 +64,10 @@ The integration retains the CIRUPLE1 pager, adds type-correct Q4_1 expert paths 
 
 Thanks to [pwilkin](https://pwilkin.github.io/strix-halo/), Qwen, ggml-org, AMD/ROCm and all contributors credited in [provenance](docs/PROVENANCE.md), [upstream README](docs/UPSTREAM-README.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Runtime code retains MIT/component licenses; model artifacts use Qwen Community License 1.0. Previous v3 qualification remains under docs/qualification/v3.0.0 and the v3.0.0 tag.
 
+## HumanEval evidence
+
+[Full IU4 and Orca results, raw answers, timings and reproduction inputs](benchmarks/humaneval/2026-09-20/README.md): IU4 MTP6, Boost off, 4K context scored 95.73% HumanEval / 93.90% HumanEval+, with 66.46 decode tok/s and 5.07 seconds mean complete-request time. Thinking off, temperature 0, 1024-token cap; all 164 first answers retained. The report separates serial throughput from MTP throughput and documents cross-author comparison limits.
+
 ## Community model fidelity benchmark
 
 Test your Qwen3.8 Flash GGUF against the frozen BF16 reference and plot it beside CIRU IU4 and Agention Q4/Q5: [runner, dataset, Python chart source and instructions](benchmarks/fidelity/README.md). This is numerical fidelity, not HermesAgent-20.

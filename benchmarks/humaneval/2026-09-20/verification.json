@@ -1,0 +1,11 @@
+{
+  "tasks": 164,
+  "all_complete_raw_responses": true,
+  "output_hashes_verified": true,
+  "cached_tokens": 0,
+  "reasoning_characters": 0,
+  "request_parameters_verified": true,
+  "memory_samples_verified": true,
+  "max_prompt_tokens": 455,
+  "max_completion_tokens": 1024
+}

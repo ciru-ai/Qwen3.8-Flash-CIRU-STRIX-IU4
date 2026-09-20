@@ -1,0 +1,35 @@
+{
+  "chosen_depth": 6,
+  "boost": false,
+  "confirmed_speed_win": true,
+  "mirrored_wall_reductions_percent": [
+    5.61126992039902,
+    6.505853886979606
+  ],
+  "pooled_wall_reduction_percent": 6.059626775892268,
+  "decision": "PROMOTE to full suite",
+  "scope": "HE0-9 local-custom short coding only; no production-default promotion",
+  "context": 4096,
+  "context_test": {
+    "mirrors_percent": [
+      4.274656247963716
+    ],
+    "pooled_reduction_percent": 4.274656247963716,
+    "promoted": true,
+    "design": "User-amended bounded smoke: one 4K run versus most recent matching 256K confirmation; fastest quality-passing observed context selected.",
+    "reference_arm": "confirm-0-c2",
+    "small_arm": "context-small-1"
+  },
+  "tasks": 164,
+  "base_pass": 157,
+  "plus_pass": 154,
+  "base_percent": 95.73170731707317,
+  "plus_percent": 93.90243902439023,
+  "mean_wall_seconds": 5.071372938051354,
+  "median_wall_seconds": 4.293066801503301,
+  "total_http_seconds": 831.7051618404221,
+  "decode_tps": 66.4551416783223,
+  "prompt_tps": 181.80333516552557,
+  "tokens": 42672,
+  "length_finishes": 5
+}

@@ -1,0 +1,10 @@
+{
+  "archive_files_sha256_verified": 2880,
+  "full_answers": 164,
+  "base_pass_verified": 157,
+  "plus_pass_verified": 154,
+  "reasoning_characters": 0,
+  "cached_prompt_tokens": 0,
+  "replay_helper": "Passed local HTTP fixture check for exact measured request, identical excluded warmup and byte-preserved response; no new model-performance claim.",
+  "secret_pattern_scan": "No token-shaped secret found; operational service snapshots excluded."
+}

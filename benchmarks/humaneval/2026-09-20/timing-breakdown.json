@@ -1,0 +1,11 @@
+{
+  "tasks": 164,
+  "output_tokens": 42672,
+  "mean_output_tokens": 260.1951219512195,
+  "mean_prefill_seconds": 1.045051798780488,
+  "mean_decode_seconds": 3.9153497439024387,
+  "mean_other_seconds": 0.1109713953684273,
+  "mean_wall_seconds": 5.071372938051354,
+  "pooled_decode_tok_s": 66.4551416783223,
+  "complete_http_output_tok_s": 51.3066432166588
+}

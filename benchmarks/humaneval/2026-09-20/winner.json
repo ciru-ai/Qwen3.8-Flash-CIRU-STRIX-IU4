@@ -1,0 +1,23 @@
+{
+  "chosen_depth": 6,
+  "boost": false,
+  "confirmed_speed_win": true,
+  "mirrored_wall_reductions_percent": [
+    5.61126992039902,
+    6.505853886979606
+  ],
+  "pooled_wall_reduction_percent": 6.059626775892268,
+  "decision": "PROMOTE to full suite",
+  "scope": "HE0-9 local-custom short coding only; no production-default promotion",
+  "context": 4096,
+  "context_test": {
+    "mirrors_percent": [
+      4.274656247963716
+    ],
+    "pooled_reduction_percent": 4.274656247963716,
+    "promoted": true,
+    "design": "User-amended bounded smoke: one 4K run versus most recent matching 256K confirmation; fastest quality-passing observed context selected.",
+    "reference_arm": "confirm-0-c2",
+    "small_arm": "context-small-1"
+  }
+}
