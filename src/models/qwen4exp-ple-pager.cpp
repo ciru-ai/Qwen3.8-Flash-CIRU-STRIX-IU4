@@ -1047,14 +1047,24 @@ void qwen4exp_ple_pager::gather_rows(
 
 #ifdef __linux__
     // Selector 0/unset preserves the original scalar path, including M=1.
-    // Selector 16 admits only multi-token gathers and leaves decode behavior
-    // unchanged. The environment is deliberately read per call so a matched
-    // in-process harness can switch arms without hidden static state.
+    // Selector 16 admits multi-token gathers and, by default, the 16-row
+    // decode (M=1) gather too: the scalar path reads its missed pages one
+    // after another at QD1 (~140 us each on NVMe), which put ~2 ms of host
+    // time on every plain decode token. Decode-sized gathers keep the scalar
+    // path's full per-page SHA-256; GGML_QWEN4EXP_PLE_STRICT_SHA only governs
+    // the multi-token (prefill/verify) gathers, as before.
+    // GGML_QWEN4EXP_PLE_DECODE_BULK=0 restores the old M=1 scalar path. The
+    // environment is deliberately read per call so a matched in-process
+    // harness can switch arms without hidden static state.
     const char * const workers_env = std::getenv("GGML_QWEN4EXP_PLE_WORKERS");
-    if (row_count > qwen4exp_ple_geometry::lookup_heads &&
+    const char * const decode_env  = std::getenv("GGML_QWEN4EXP_PLE_DECODE_BULK");
+    const bool decode_bulk = decode_env == nullptr || std::strcmp(decode_env, "0") != 0;
+    const size_t bulk_min_rows = decode_bulk ? 1 : qwen4exp_ple_geometry::lookup_heads;
+    if (row_count > bulk_min_rows &&
             workers_env != nullptr && std::strcmp(workers_env, "16") == 0) {
         const char * const strict_env = std::getenv("GGML_QWEN4EXP_PLE_STRICT_SHA");
-        const bool strict_sha = strict_env != nullptr && std::strcmp(strict_env, "0") != 0;
+        const bool strict_sha = row_count <= qwen4exp_ple_geometry::lookup_heads ||
+                (strict_env != nullptr && std::strcmp(strict_env, "0") != 0);
         pimpl_->gather_rows_bulk(row_ids, row_count, output, strict_sha);
         return;
     }
