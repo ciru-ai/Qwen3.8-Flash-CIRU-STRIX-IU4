@@ -2071,9 +2071,10 @@ void llm_graph_input_ple::set_input(const llama_ubatch * ubatch) {
         GGML_ASSERT(rows == nullptr && data != nullptr);
         const size_t output_count = idx.size() * hp.ple_head_dim;
         GGML_ASSERT(output_count == (size_t) ggml_nelements(data));
-        std::vector<float> values(output_count);
-        pmodel.ple_pager->gather_rows(idx.data(), idx.size(), values.data(), values.size());
-        ggml_backend_tensor_set(data, values.data(), 0, values.size() * sizeof(float));
+        // not value-initialized: the gather writes every element (about 10 KiB per token, 83 MB at 8K)
+        std::unique_ptr<float[]> values(new float[output_count]);
+        pmodel.ple_pager->gather_rows(idx.data(), idx.size(), values.get(), output_count);
+        ggml_backend_tensor_set(data, values.get(), 0, output_count * sizeof(float));
     } else if (pmodel.ple_reader) {
         staging.resize(idx.size() * pmodel.ple_reader->head_dim * sizeof(float));
         pmodel.ple_reader->gather(idx.data(), (int64_t) idx.size(), (float *) staging.data());
