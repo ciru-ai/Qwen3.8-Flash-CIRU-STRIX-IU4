@@ -114,6 +114,10 @@ public:
     // TODO: support embeddings if needed in the future
     llama_ubatch ubatch_reserve(uint32_t n_seq_tokens, uint32_t n_seqs);
 
+    // force ubatch embeddings to be copied even when they are one contiguous run of the batch
+    // (default: LLAMA_UBATCH_EMBD_COPY=1, otherwise contiguous runs point into the batch)
+    void set_embd_copy(bool force) { embd_copy = force; }
+
 private:
     void clear();
 
@@ -171,4 +175,6 @@ private:
     std::vector<bool> used;
 
     int debug;
+
+    bool embd_copy;
 };

@@ -1364,6 +1364,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
 
     // Hidden rows from the most recent target verification batch, grouped by seq.
     // Row 0 corresponds to the sampled token, row N to the Nth accepted draft token.
+    // Only the first verify_h_keep rows are stored, plus the last row when the batch is longer
+    // (a prompt chunk). accept() reads row min(n_accepted, n_rows - 1), and n_accepted is bounded by
+    // the draft length, which every speculative type keeps far below verify_h_keep; a larger value
+    // aborts instead of reading a row that was not kept.
+    static constexpr int32_t verify_h_keep = 512;
     std::vector<std::vector<float>> verify_h;
     std::vector<std::vector<llama_pos>> verify_h_pos;
     std::vector<int32_t> verify_h_rows;
@@ -1665,18 +1670,22 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
             }
 
             const int32_t n_rows = i_batch_end[seq_id] - i_batch_beg[seq_id] + 1;
+            // Stored row k holds batch row k for k < n_keep - 1; the final stored row is always
+            // batch row n_rows - 1 (they coincide when n_rows <= verify_h_keep + 1).
+            const int32_t n_keep = std::min(n_rows, verify_h_keep + 1);
             verify_h_rows[seq_id] = n_rows;
-            verify_h[seq_id].resize((size_t) n_rows * n_embd);
-            verify_h_pos[seq_id].resize(n_rows);
+            verify_h[seq_id].resize((size_t) n_keep * n_embd);
+            verify_h_pos[seq_id].resize(n_keep);
 
-            for (int32_t i = 0; i < n_rows; ++i) {
+            for (int32_t k = 0; k < n_keep; ++k) {
+                const int32_t i = k == n_keep - 1 ? n_rows - 1 : k;
                 const float * h = llama_get_embeddings_nextn_ith(ctx_tgt, i_batch_beg[seq_id] + i);
-                std::memcpy(verify_h[seq_id].data() + (size_t) i * n_embd, h, row_bytes);
-                verify_h_pos[seq_id][i] = batch_in.pos[i_batch_beg[seq_id] + i];
+                std::memcpy(verify_h[seq_id].data() + (size_t) k * n_embd, h, row_bytes);
+                verify_h_pos[seq_id][k] = batch_in.pos[i_batch_beg[seq_id] + i];
             }
 
             std::memcpy(pending_h[seq_id].data(),
-                    verify_h[seq_id].data() + (size_t) (n_rows - 1) * n_embd, row_bytes);
+                    verify_h[seq_id].data() + (size_t) (n_keep - 1) * n_embd, row_bytes);
             pending_h_pos[seq_id] = verify_h_pos[seq_id].back();
             pending_image_pos[seq_id] = -1;
         }
@@ -1859,9 +1868,13 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
 
         const int32_t i_h = std::min<int32_t>(n_accepted, n_rows - 1);
         shortlist_logits_row = i_batch_beg[seq_id] + i_h;
+        // map the batch row to its stored row (see verify_h_keep)
+        const int32_t n_keep = (int32_t) verify_h_pos[seq_id].size();
+        const int32_t k_h = i_h == n_rows - 1 ? n_keep - 1 : i_h;
+        GGML_ASSERT(k_h < n_keep - 1 || i_h == n_rows - 1);
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
-        std::memcpy(pending_h[seq_id].data(), verify_h[seq_id].data() + (size_t) i_h * n_embd, row_bytes);
-        pending_h_pos[seq_id] = verify_h_pos[seq_id][i_h];
+        std::memcpy(pending_h[seq_id].data(), verify_h[seq_id].data() + (size_t) k_h * n_embd, row_bytes);
+        pending_h_pos[seq_id] = verify_h_pos[seq_id][k_h];
         pending_image_pos[seq_id] = -1;
     }
 

@@ -16,8 +16,10 @@
 #include <cstring>
 #include <deque>
 #include <exception>
+#include <functional>
 #include <fstream>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <sstream>
 #include <stdexcept>
@@ -28,6 +30,7 @@
 
 #ifdef __linux__
 #include <fcntl.h>
+#include <sys/mman.h>
 #include <unistd.h>
 #endif
 
@@ -321,33 +324,79 @@ struct qwen4exp_ple_pager::impl {
     static constexpr size_t read_latency_histogram_us = 10000;
     size_t bulk_worker_count = 16;
 
+    // Cache slot metadata. The page bytes of slot i live in the page arena at
+    // i * page_bytes, so bulk reads can land in their cache slot directly.
     struct cache_slot {
-        uint64_t  tag;
-        bool      referenced;
-        page_data data;
+        uint64_t tag;
+        bool     referenced;
+    };
 
-        cache_slot(uint64_t tag, const page_data & data) : tag(tag), referenced(true), data(data) {}
+    // capacity * 4 KiB, reserved up front and touched on demand: Linux maps it
+    // MAP_NORESERVE, so resident memory grows with the slots in use, as the
+    // per-slot heap allocations did. 4 KiB aligned for O_DIRECT.
+    struct page_arena {
+        unsigned char * base = nullptr;
+        size_t bytes = 0;
+
+        void allocate(size_t size) {
+            if (size == 0) {
+                return;
+            }
+#ifdef __linux__
+            void * mapped = ::mmap(nullptr, size, PROT_READ | PROT_WRITE,
+                    MAP_PRIVATE | MAP_ANONYMOUS | MAP_NORESERVE, -1, 0);
+            if (mapped == MAP_FAILED) {
+                fail("cannot reserve the PLE page cache arena: " + std::string(std::strerror(errno)));
+            }
+            base = static_cast<unsigned char *>(mapped);
+#else
+            base = static_cast<unsigned char *>(std::malloc(size));
+            if (base == nullptr) {
+                fail("cannot allocate the PLE page cache arena");
+            }
+#endif
+            bytes = size;
+        }
+
+        ~page_arena() {
+            if (base == nullptr) {
+                return;
+            }
+#ifdef __linux__
+            ::munmap(base, bytes);
+#else
+            std::free(base);
+#endif
+        }
     };
 
 #ifdef __linux__
+    // One unique page of a bulk gather. `data` points at the page bytes: a
+    // cache arena slot for a miss read in place, or a side buffer for a hit
+    // (and for misses when the gather has more misses than the cache holds).
     struct bulk_page_plan {
         uint64_t page_id = 0;
-        page_data data = {};
+        unsigned char * data = nullptr;
         bool cache_hit = false;
         std::streamsize read_bytes = -1;
         int read_error = 0;
         uint64_t read_latency_ns = 0;
     };
 
-    struct bulk_batch {
+    // One parallel job on the bulk pool. Workers and the caller claim chunks
+    // of [0, count) through `next`; the caller waits for `remaining` to reach
+    // zero, retracts the job and then waits for `users` to drain before the
+    // job (on the caller's stack) goes away.
+    struct bulk_job {
+        const std::function<void(size_t, size_t)> * fn = nullptr;
+        size_t count = 0;
+        size_t chunk = 1;
+        std::atomic<size_t> next { 0 };
+        std::atomic<size_t> remaining { 0 };
+        std::atomic<size_t> users { 0 };
         std::mutex mutex;
-        std::condition_variable ready;
-        size_t remaining = 0;
-    };
-
-    struct bulk_task {
-        bulk_page_plan * page = nullptr;
-        bulk_batch * batch = nullptr;
+        std::condition_variable done;
+        std::exception_ptr error;
     };
 #endif
 
@@ -357,8 +406,10 @@ struct qwen4exp_ple_pager::impl {
         if (io_workers != nullptr) {
             if (std::strcmp(io_workers, "32") == 0) {
                 bulk_worker_count = 32;
+            } else if (std::strcmp(io_workers, "64") == 0) {
+                bulk_worker_count = 64;
             } else if (std::strcmp(io_workers, "16") != 0) {
-                fail("PLE I/O workers must be 16 or 32");
+                fail("PLE I/O workers must be 16, 32 or 64");
             }
         }
 #endif
@@ -370,6 +421,10 @@ struct qwen4exp_ple_pager::impl {
             fail("cache page count does not fit in size_t");
         }
         cache_capacity_pages = static_cast<size_t>(pages);
+        if (cache_capacity_pages > std::numeric_limits<size_t>::max() / qwen4exp_ple_geometry::page_bytes) {
+            fail("cache size does not fit in size_t");
+        }
+        arena.allocate(cache_capacity_pages * qwen4exp_ple_geometry::page_bytes);
         slots.reserve(cache_capacity_pages);
         locations.reserve(cache_capacity_pages);
 
@@ -384,14 +439,6 @@ struct qwen4exp_ple_pager::impl {
             payload_fd = -1;
             fail("cannot allocate an aligned O_DIRECT page buffer");
         }
-        if (::posix_memalign(&bulk_direct_buffers, qwen4exp_ple_geometry::page_bytes,
-                    bulk_worker_count * qwen4exp_ple_geometry::page_bytes) != 0) {
-            std::free(direct_buffer);
-            direct_buffer = nullptr;
-            ::close(payload_fd);
-            payload_fd = -1;
-            fail("cannot allocate the aligned P16 O_DIRECT buffers");
-        }
 #else
         payload.rdbuf()->pubsetbuf(nullptr, 0);
         payload.open(payload_path, std::ios::binary);
@@ -404,7 +451,7 @@ struct qwen4exp_ple_pager::impl {
 #ifdef __linux__
             bulk_workers.reserve(bulk_worker_count);
             for (size_t i = 0; i < bulk_worker_count; ++i) {
-                bulk_workers.emplace_back([this, i]() { bulk_worker_loop(i); });
+                bulk_workers.emplace_back([this]() { bulk_worker_loop(); });
             }
 #endif
         } catch (...) {
@@ -427,8 +474,6 @@ struct qwen4exp_ple_pager::impl {
                     bulk_worker.join();
                 }
             }
-            std::free(bulk_direct_buffers);
-            bulk_direct_buffers = nullptr;
             std::free(direct_buffer);
             direct_buffer = nullptr;
             if (payload_fd >= 0) {
@@ -460,7 +505,6 @@ struct qwen4exp_ple_pager::impl {
                 bulk_worker.join();
             }
         }
-        std::free(bulk_direct_buffers);
         std::free(direct_buffer);
         if (payload_fd >= 0) {
             ::close(payload_fd);
@@ -469,46 +513,91 @@ struct qwen4exp_ple_pager::impl {
     }
 
 #ifdef __linux__
-    void bulk_worker_loop(size_t worker_index) noexcept {
-        auto * const buffer = static_cast<unsigned char *>(bulk_direct_buffers) +
-                worker_index * qwen4exp_ple_geometry::page_bytes;
+    void run_bulk_items(bulk_job & job) noexcept {
         for (;;) {
-            bulk_task * task = nullptr;
-            {
-                std::unique_lock<std::mutex> lock(bulk_queue_mutex);
-                bulk_queue_ready.wait(lock, [this]() { return bulk_stopping || !bulk_queue.empty(); });
-                if (bulk_stopping && bulk_queue.empty()) {
-                    return;
-                }
-                task = bulk_queue.front();
-                bulk_queue.pop_front();
+            const size_t begin = job.next.fetch_add(job.chunk, std::memory_order_relaxed);
+            if (begin >= job.count) {
+                return;
             }
-
-            const auto started = std::chrono::steady_clock::now();
-            ssize_t result;
-            do {
-                result = ::pread(payload_fd, buffer, qwen4exp_ple_geometry::page_bytes,
-                        static_cast<off_t>(task->page->page_id * qwen4exp_ple_geometry::page_bytes));
-            } while (result < 0 && errno == EINTR);
-            task->page->read_latency_ns = static_cast<uint64_t>(
-                    std::chrono::duration_cast<std::chrono::nanoseconds>(
-                            std::chrono::steady_clock::now() - started).count());
-            task->page->read_bytes = result;
-            task->page->read_error = result < 0 ? errno : 0;
-            if (result > 0) {
-                std::memcpy(task->page->data.data(), buffer,
-                        std::min<size_t>(static_cast<size_t>(result), task->page->data.size()));
-            }
-
-            {
-                std::lock_guard<std::mutex> lock(task->batch->mutex);
-                --task->batch->remaining;
-                if (task->batch->remaining == 0) {
-                    task->batch->ready.notify_one();
+            const size_t end = std::min(job.count, begin + job.chunk);
+            try {
+                (*job.fn)(begin, end);
+            } catch (...) {
+                std::lock_guard<std::mutex> lock(job.mutex);
+                if (!job.error) {
+                    job.error = std::current_exception();
                 }
+            }
+            if (job.remaining.fetch_sub(end - begin, std::memory_order_acq_rel) == end - begin) {
+                std::lock_guard<std::mutex> lock(job.mutex);
+                job.done.notify_all();
             }
         }
     }
+
+    void bulk_worker_loop() noexcept {
+        uint64_t seen = 0;
+        for (;;) {
+            bulk_job * job = nullptr;
+            {
+                std::unique_lock<std::mutex> lock(bulk_queue_mutex);
+                bulk_queue_ready.wait(lock, [this, &seen]() {
+                    return bulk_stopping || (bulk_current != nullptr && bulk_generation != seen);
+                });
+                if (bulk_stopping) {
+                    return;
+                }
+                job = bulk_current;
+                seen = bulk_generation;
+                job->users.fetch_add(1, std::memory_order_relaxed);
+            }
+            run_bulk_items(*job);
+            {
+                std::lock_guard<std::mutex> lock(job->mutex);
+                job->users.fetch_sub(1, std::memory_order_relaxed);
+                job->done.notify_all();
+            }
+        }
+    }
+
+    // Run fn over [0, count) in chunks on the bulk pool, the caller included.
+    // The first exception thrown by any chunk is rethrown here.
+    void run_bulk_job(const std::function<void(size_t, size_t)> & fn, size_t count, size_t chunk) {
+        if (count == 0) {
+            return;
+        }
+        bulk_job job;
+        job.fn = &fn;
+        job.count = count;
+        job.chunk = chunk;
+        job.remaining.store(count, std::memory_order_relaxed);
+        {
+            std::lock_guard<std::mutex> lock(bulk_queue_mutex);
+            if (bulk_stopping) {
+                fail("PLE bulk worker pool is stopping");
+            }
+            bulk_current = &job;
+            ++bulk_generation;
+        }
+        bulk_queue_ready.notify_all();
+        run_bulk_items(job);
+        {
+            std::unique_lock<std::mutex> lock(job.mutex);
+            job.done.wait(lock, [&job]() { return job.remaining.load(std::memory_order_acquire) == 0; });
+        }
+        {
+            std::lock_guard<std::mutex> lock(bulk_queue_mutex);
+            bulk_current = nullptr;
+        }
+        {
+            std::unique_lock<std::mutex> lock(job.mutex);
+            job.done.wait(lock, [&job]() { return job.users.load(std::memory_order_relaxed) == 0; });
+        }
+        if (job.error) {
+            std::rethrow_exception(job.error);
+        }
+    }
+
 #endif
 
     void worker_loop() noexcept {
@@ -545,7 +634,7 @@ struct qwen4exp_ple_pager::impl {
         counters.requests += request.row_count;
 
         for (size_t p = 0; p < request.unique_page_count; ++p) {
-            request.pages[p] = page(request.page_ids[p]);
+            std::memcpy(request.pages[p].data(), page(request.page_ids[p]), qwen4exp_ple_geometry::page_bytes);
         }
 
         for (size_t i = 0; i < request.row_count; ++i) {
@@ -573,8 +662,12 @@ struct qwen4exp_ple_pager::impl {
     }
 
     void validate_page(const page_data & page, uint64_t page_index, bool strict_sha = true) {
+        validate_page(page.data(), page_index, strict_sha);
+    }
+
+    void validate_page(const unsigned char * page, uint64_t page_index, bool strict_sha) {
         constexpr size_t trailer = qwen4exp_ple_geometry::row_region_bytes;
-        const unsigned char * const fields = page.data() + trailer;
+        const unsigned char * const fields = page + trailer;
 
         if (std::memcmp(fields, "CIRUPLE1", 8) != 0) {
             page_failure(page_index, "magic is not CIRUPLE1");
@@ -604,7 +697,7 @@ struct qwen4exp_ple_pager::impl {
 
         if (strict_sha) {
             const std::string actual_hash = hash_sha256_hex(
-                    page.data(), qwen4exp_ple_geometry::row_region_bytes);
+                    page, qwen4exp_ple_geometry::row_region_bytes);
             if (actual_hash != bytes_to_hex(fields + 32, 32)) {
                 page_failure(page_index, "row-region SHA-256 mismatch", true);
             }
@@ -615,7 +708,7 @@ struct qwen4exp_ple_pager::impl {
 
         if (expected_rows < qwen4exp_ple_geometry::rows_per_page) {
             const size_t valid_bytes = expected_rows * qwen4exp_ple_geometry::row_bytes;
-            if (!std::all_of(page.begin() + valid_bytes, page.begin() + qwen4exp_ple_geometry::row_region_bytes,
+            if (!std::all_of(page + valid_bytes, page + qwen4exp_ple_geometry::row_region_bytes,
                     [](unsigned char value) { return value == 0; })) {
                 page_failure(page_index, "unused final-page row slots are nonzero");
             }
@@ -690,33 +783,43 @@ struct qwen4exp_ple_pager::impl {
 
     // cache_mutex must be held. The insertion order is part of H69's stable
     // bulk plan, so CLOCK state is independent of worker completion order.
-    void cache_insert(uint64_t page_index, const page_data & data) {
+    unsigned char * slot_data(size_t slot_index) const {
+        return arena.base + slot_index * qwen4exp_ple_geometry::page_bytes;
+    }
+
+    // cache_mutex must be held and the page must not be resident. Picks the
+    // page's slot exactly as an insertion does (append while there is room,
+    // CLOCK victim after that) and registers it; the caller fills the bytes.
+    size_t reserve_slot(uint64_t page_index) {
+        size_t slot_index;
+        if (slots.size() < cache_capacity_pages) {
+            slot_index = slots.size();
+            slots.push_back({ page_index, true });
+        } else {
+            while (slots[clock_hand].referenced) {
+                slots[clock_hand].referenced = false;
+                clock_hand = (clock_hand + 1) % cache_capacity_pages;
+            }
+            slot_index = clock_hand;
+            locations.erase(slots[slot_index].tag);
+            slots[slot_index].tag        = page_index;
+            slots[slot_index].referenced = true;
+            clock_hand = (clock_hand + 1) % cache_capacity_pages;
+        }
+        locations[page_index] = slot_index;
+        return slot_index;
+    }
+
+    void cache_insert(uint64_t page_index, const unsigned char * data) {
         if (cache_capacity_pages == 0) {
             return;
         }
         const auto existing = locations.find(page_index);
         if (existing != locations.end()) {
-            slots[existing->second]->referenced = true;
+            slots[existing->second].referenced = true;
             return;
         }
-
-        size_t slot_index;
-        if (slots.size() < cache_capacity_pages) {
-            slot_index = slots.size();
-            slots.emplace_back(std::make_unique<cache_slot>(page_index, data));
-        } else {
-            while (slots[clock_hand]->referenced) {
-                slots[clock_hand]->referenced = false;
-                clock_hand = (clock_hand + 1) % cache_capacity_pages;
-            }
-            slot_index = clock_hand;
-            locations.erase(slots[slot_index]->tag);
-            slots[slot_index]->tag        = page_index;
-            slots[slot_index]->referenced = true;
-            slots[slot_index]->data       = data;
-            clock_hand = (clock_hand + 1) % cache_capacity_pages;
-        }
-        locations[page_index] = slot_index;
+        std::memcpy(slot_data(reserve_slot(page_index)), data, qwen4exp_ple_geometry::page_bytes);
     }
 
 #ifdef __linux__
@@ -725,14 +828,32 @@ struct qwen4exp_ple_pager::impl {
             size_t          row_count,
             float *         output,
             bool            strict_sha) {
+        // One bulk gather at a time: the pool runs a single job and the plan
+        // table is shared scratch. The cache stays locked for the whole gather
+        // because missed pages are read straight into slots registered up
+        // front.
+        std::lock_guard<std::mutex> gather_lock(bulk_gather_mutex);
+        std::lock_guard<std::mutex> cache_lock(cache_mutex);
         const auto total_started = std::chrono::steady_clock::now();
-        std::vector<size_t> row_page(row_count);
-        std::vector<uint8_t> row_slot(row_count);
+        constexpr size_t page_bytes = qwen4exp_ple_geometry::page_bytes;
+        constexpr size_t row_bytes = qwen4exp_ple_geometry::row_bytes;
         std::vector<bulk_page_plan> page_plan;
-        page_plan.reserve(row_count);
-        std::unordered_map<uint64_t, size_t> page_to_plan;
-        page_to_plan.reserve(row_count);
+        page_plan.reserve(std::min<size_t>(row_count, qwen4exp_ple_geometry::page_count));
+        std::vector<uint32_t> row_page(row_count);
+        std::vector<uint8_t> row_slot(row_count);
 
+        // Plan in first-appearance page order through a flat open-addressing
+        // table (power of two, at least twice the row count). The table is
+        // pager-owned scratch reused across gathers: 12 bytes per slot, about
+        // 3 MiB for an 8K-token ubatch.
+        size_t table_size = 1024;
+        while (table_size < 2 * row_count) {
+            table_size <<= 1;
+        }
+        const unsigned table_shift = 64 - static_cast<unsigned>(__builtin_ctzll(table_size));
+        constexpr uint64_t empty_key = std::numeric_limits<uint64_t>::max();
+        plan_keys.assign(table_size, empty_key);
+        plan_values.resize(table_size);
         for (size_t i = 0; i < row_count; ++i) {
             const int32_t row_id = row_ids[i];
             if (row_id < 0 || static_cast<uint64_t>(row_id) >= qwen4exp_ple_geometry::total_rows) {
@@ -740,117 +861,152 @@ struct qwen4exp_ple_pager::impl {
             }
             const uint64_t page_id = static_cast<uint64_t>(row_id) /
                     qwen4exp_ple_geometry::rows_per_page;
-            const auto inserted = page_to_plan.emplace(page_id, page_plan.size());
-            if (inserted.second) {
+            size_t h = static_cast<size_t>((page_id * 0x9E3779B97F4A7C15ull) >> table_shift);
+            while (plan_keys[h] != page_id && plan_keys[h] != empty_key) {
+                h = (h + 1) & (table_size - 1);
+            }
+            if (plan_keys[h] == empty_key) {
+                plan_keys[h] = page_id;
+                plan_values[h] = static_cast<uint32_t>(page_plan.size());
                 bulk_page_plan plan;
                 plan.page_id = page_id;
-                page_plan.push_back(std::move(plan));
+                page_plan.push_back(plan);
             }
-            row_page[i] = inserted.first->second;
+            row_page[i] = plan_values[h];
             row_slot[i] = static_cast<uint8_t>(
                     static_cast<uint64_t>(row_id) % qwen4exp_ple_geometry::rows_per_page);
         }
         const auto plan_done = std::chrono::steady_clock::now();
 
-        size_t miss_count = 0;
-        {
-            std::lock_guard<std::mutex> lock(cache_mutex);
-            counters.requests += row_count;
-            for (auto & planned : page_plan) {
-                const auto found = locations.find(planned.page_id);
-                if (found == locations.end()) {
-                    ++miss_count;
-                    continue;
-                }
-                auto & slot = *slots[found->second];
-                slot.referenced = true;
-                planned.cache_hit = true;
-                planned.data = slot.data;
+        // Probe. Hits are copied to a side buffer before any slot is reused:
+        // a hit's slot can be chosen as a CLOCK victim for a later miss of
+        // this same gather once the cache is full.
+        std::vector<uint32_t> misses;
+        misses.reserve(page_plan.size());
+        std::vector<uint32_t> hits;
+        counters.requests += row_count;
+        for (size_t p = 0; p < page_plan.size(); ++p) {
+            const auto found = locations.find(page_plan[p].page_id);
+            if (found == locations.end()) {
+                misses.push_back(static_cast<uint32_t>(p));
+                continue;
             }
-            // This matches the scalar semantics: the first access to a new
-            // page misses, while later rows in that page are logical hits.
-            counters.cache_misses += miss_count;
-            counters.cache_hits += row_count - miss_count;
+            slots[found->second].referenced = true;
+            page_plan[p].cache_hit = true;
+            hits.push_back(static_cast<uint32_t>(p));
+        }
+        const size_t miss_count = misses.size();
+        // This matches the scalar semantics: the first access to a new
+        // page misses, while later rows in that page are logical hits.
+        counters.cache_misses += miss_count;
+        counters.cache_hits += row_count - miss_count;
+
+        // Side buffer: hits, plus every miss when they cannot all stay
+        // resident (no cache, or more misses than slots). Not zeroed: each
+        // page is copied or read in full before use.
+        const bool in_place = cache_capacity_pages > 0 && miss_count <= cache_capacity_pages;
+        const size_t side_pages = hits.size() + (in_place ? 0 : miss_count);
+        std::unique_ptr<unsigned char, void (*)(void *)> side(nullptr, std::free);
+        if (side_pages > 0) {
+            void * buffer = nullptr;
+            if (::posix_memalign(&buffer, page_bytes, side_pages * page_bytes) != 0) {
+                fail("cannot allocate the bulk gather page buffer");
+            }
+            side.reset(static_cast<unsigned char *>(buffer));
+        }
+        size_t side_used = 0;
+        for (const uint32_t p : hits) {
+            page_plan[p].data = side.get() + side_used++ * page_bytes;
+            std::memcpy(page_plan[p].data, slot_data(locations.at(page_plan[p].page_id)), page_bytes);
+        }
+        // Register the misses' slots in plan order: the same CLOCK sequence
+        // the insertion after the reads used to run, so cache contents and
+        // order come out identical.
+        for (const uint32_t p : misses) {
+            page_plan[p].data = in_place ? slot_data(reserve_slot(page_plan[p].page_id))
+                                         : side.get() + side_used++ * page_bytes;
         }
         const auto probe_done = std::chrono::steady_clock::now();
 
-        bulk_batch batch;
-        batch.remaining = miss_count;
-        std::vector<bulk_task> tasks;
-        tasks.reserve(miss_count);
-        for (auto & planned : page_plan) {
-            if (!planned.cache_hit) {
-                tasks.push_back({ &planned, &batch });
-            }
-        }
-
-        if (!tasks.empty()) {
-            {
-                std::lock_guard<std::mutex> lock(bulk_queue_mutex);
-                if (bulk_stopping) {
-                    fail("P16 worker pool is stopping");
+        try {
+            // O_DIRECT reads land in their final place, one page per claim, in
+            // plan order.
+            const std::function<void(size_t, size_t)> read_pages = [&](size_t begin, size_t end) {
+                for (size_t m = begin; m < end; ++m) {
+                    auto & planned = page_plan[misses[m]];
+                    const auto started = std::chrono::steady_clock::now();
+                    ssize_t result;
+                    do {
+                        result = ::pread(payload_fd, planned.data, page_bytes,
+                                static_cast<off_t>(planned.page_id * page_bytes));
+                    } while (result < 0 && errno == EINTR);
+                    planned.read_latency_ns = static_cast<uint64_t>(
+                            std::chrono::duration_cast<std::chrono::nanoseconds>(
+                                    std::chrono::steady_clock::now() - started).count());
+                    planned.read_bytes = result;
+                    planned.read_error = result < 0 ? errno : 0;
                 }
-                for (auto & task : tasks) {
-                    bulk_queue.push_back(&task);
-                }
-            }
-            bulk_queue_ready.notify_all();
-
-            std::unique_lock<std::mutex> lock(batch.mutex);
-            batch.ready.wait(lock, [&batch]() { return batch.remaining == 0; });
+            };
+            run_bulk_job(read_pages, miss_count, 1);
+        } catch (...) {
+            unregister_misses(page_plan, misses, in_place);
+            throw;
         }
         const auto io_done = std::chrono::steady_clock::now();
 
-        uint64_t physical_bytes = 0;
-        for (auto & planned : page_plan) {
-            if (planned.cache_hit) {
-                continue;
+        try {
+            for (const uint32_t p : misses) {
+                const auto & planned = page_plan[p];
+                if (planned.read_bytes < 0) {
+                    ++counters.read_errors;
+                    fail("payload read failed at page " + std::to_string(planned.page_id) +
+                            ": " + std::strerror(planned.read_error));
+                }
+                if (planned.read_bytes != static_cast<std::streamsize>(page_bytes)) {
+                    ++counters.read_errors;
+                    fail("short payload read at page " + std::to_string(planned.page_id));
+                }
+                // Structural validation always remains in the candidate. Full
+                // per-page SHA is available only through the explicit strict mode.
+                validate_page(planned.data, planned.page_id, strict_sha);
             }
-            if (planned.read_bytes > 0) {
-                physical_bytes += static_cast<uint64_t>(planned.read_bytes);
-            }
-            if (planned.read_bytes < 0) {
-                ++counters.read_errors;
-                fail("payload read failed at page " + std::to_string(planned.page_id) +
-                        ": " + std::strerror(planned.read_error));
-            }
-            if (planned.read_bytes != static_cast<std::streamsize>(planned.data.size())) {
-                ++counters.read_errors;
-                fail("short payload read at page " + std::to_string(planned.page_id));
-            }
-            // Structural validation always remains in the candidate. Full
-            // per-page SHA is available only through the explicit strict mode.
-            validate_page(planned.data, planned.page_id, strict_sha);
+        } catch (...) {
+            unregister_misses(page_plan, misses, in_place);
+            throw;
         }
         const auto validate_done = std::chrono::steady_clock::now();
 
-        {
-            std::lock_guard<std::mutex> lock(cache_mutex);
-            counters.physical_bytes += physical_bytes;
-            for (auto & planned : page_plan) {
-                if (planned.cache_hit) {
-                    continue;
-                }
-                record_read_latency(std::chrono::nanoseconds(planned.read_latency_ns));
-                cache_insert(planned.page_id, planned.data);
+        counters.physical_bytes += static_cast<uint64_t>(miss_count) * page_bytes;
+        for (const uint32_t p : misses) {
+            record_read_latency(std::chrono::nanoseconds(page_plan[p].read_latency_ns));
+        }
+        if (!in_place) {
+            // As before: insert in plan order after the reads (a no-op
+            // without a cache).
+            for (const uint32_t p : misses) {
+                cache_insert(page_plan[p].page_id, page_plan[p].data);
             }
         }
         const auto commit_done = std::chrono::steady_clock::now();
 
-        for (size_t i = 0; i < row_count; ++i) {
-            const auto & planned = page_plan[row_page[i]];
-            const unsigned char * const encoded = planned.data.data() +
-                    row_slot[i] * qwen4exp_ple_geometry::row_bytes;
-            float * const decoded = output + i * qwen4exp_ple_geometry::row_bytes;
-            for (size_t j = 0; j < qwen4exp_ple_geometry::row_bytes; ++j) {
-                const float value = qwen4exp_ple_pager::decode_e4m3fn(encoded[j]);
-                if (std::isnan(value)) {
-                    fail("FP8 E4M3FN NaN code at row " + std::to_string(row_ids[i]) +
-                            ", column " + std::to_string(j));
+        // Same arithmetic as before, split across the pool. A NaN code still
+        // fails the gather; with several bad rows the reported one may differ.
+        const std::function<void(size_t, size_t)> decode_rows = [&](size_t begin, size_t end) {
+            for (size_t i = begin; i < end; ++i) {
+                const unsigned char * const encoded = page_plan[row_page[i]].data + row_slot[i] * row_bytes;
+                float * const decoded = output + i * row_bytes;
+                for (size_t j = 0; j < row_bytes; ++j) {
+                    const float value = qwen4exp_ple_pager::decode_e4m3fn(encoded[j]);
+                    if (std::isnan(value)) {
+                        fail("FP8 E4M3FN NaN code at row " + std::to_string(row_ids[i]) +
+                                ", column " + std::to_string(j));
+                    }
+                    decoded[j] = bf16_to_f32(f32_to_bf16_rne(value * scale_f32));
                 }
-                decoded[j] = bf16_to_f32(f32_to_bf16_rne(value * scale_f32));
             }
-        }
+        };
+        // 256 rows (160 KiB of output) per claim.
+        run_bulk_job(decode_rows, row_count, 256);
         const auto decode_done = std::chrono::steady_clock::now();
 
         // H69A targeted diagnostic: emit exactly one phase record for the
@@ -884,35 +1040,55 @@ struct qwen4exp_ple_pager::impl {
                     read_latency_max_ms, strict_sha ? 1 : 0);
         }
     }
+
+    // A failed read or validation must not leave registered slots with
+    // unread bytes: drop those pages from the cache again. (Their CLOCK
+    // victims stay evicted.)
+    void unregister_misses(const std::vector<bulk_page_plan> & page_plan,
+            const std::vector<uint32_t> & misses, bool in_place) {
+        if (!in_place) {
+            return;
+        }
+        for (const uint32_t p : misses) {
+            const auto found = locations.find(page_plan[p].page_id);
+            if (found != locations.end()) {
+                slots[found->second].tag = std::numeric_limits<uint64_t>::max();
+                slots[found->second].referenced = false;
+                locations.erase(found);
+            }
+        }
+    }
 #endif
 
-    const page_data & page(uint64_t page_index) {
+    const unsigned char * page(uint64_t page_index) {
         const auto found = locations.find(page_index);
         if (found != locations.end()) {
             ++counters.cache_hits;
-            auto & slot = *slots[found->second];
-            slot.referenced = true;
-            return slot.data;
+            slots[found->second].referenced = true;
+            return slot_data(found->second);
         }
 
         ++counters.cache_misses;
         read_page(page_index, scratch);
         if (cache_capacity_pages == 0) {
-            return scratch;
+            return scratch.data();
         }
-        cache_insert(page_index, scratch);
-        return slots[locations.at(page_index)]->data;
+        cache_insert(page_index, scratch.data());
+        return slot_data(locations.at(page_index));
     }
 
 #ifdef __linux__
     int payload_fd = -1;
     void * direct_buffer = nullptr;
-    void * bulk_direct_buffers = nullptr;
     std::mutex bulk_queue_mutex;
     std::condition_variable bulk_queue_ready;
-    std::deque<bulk_task *> bulk_queue;
+    bulk_job * bulk_current = nullptr;
+    uint64_t bulk_generation = 0;
     std::vector<std::thread> bulk_workers;
     bool bulk_stopping = false;
+    std::mutex bulk_gather_mutex;
+    std::vector<uint64_t> plan_keys;
+    std::vector<uint32_t> plan_values;
 #else
     std::ifstream payload;
 #endif
@@ -926,7 +1102,8 @@ struct qwen4exp_ple_pager::impl {
     float scale_f32 = 0.0f;
     size_t cache_capacity_pages = 0;
     size_t clock_hand = 0;
-    std::vector<std::unique_ptr<cache_slot>> slots;
+    page_arena arena;
+    std::vector<cache_slot> slots;
     std::unordered_map<uint64_t, size_t> locations;
     page_data scratch = {};
     std::array<uint64_t, read_latency_histogram_us + 1> read_latency_us = {};
@@ -1070,8 +1247,8 @@ void qwen4exp_ple_pager::gather_rows(
 
         const uint64_t page_index = static_cast<uint64_t>(row_id) / qwen4exp_ple_geometry::rows_per_page;
         const uint64_t slot = static_cast<uint64_t>(row_id) % qwen4exp_ple_geometry::rows_per_page;
-        const auto & page = pimpl_->page(page_index);
-        const unsigned char * const encoded = page.data() + slot * qwen4exp_ple_geometry::row_bytes;
+        const unsigned char * const page = pimpl_->page(page_index);
+        const unsigned char * const encoded = page + slot * qwen4exp_ple_geometry::row_bytes;
         float * const decoded = output + i * qwen4exp_ple_geometry::row_bytes;
         for (size_t j = 0; j < qwen4exp_ple_geometry::row_bytes; ++j) {
             const float value = decode_e4m3fn(encoded[j]);

@@ -13,6 +13,9 @@ llama_batch_allocr::llama_batch_allocr(uint32_t n_pos_per_embd) : n_pos_per_embd
     const char * LLAMA_BATCH_DEBUG = getenv("LLAMA_BATCH_DEBUG");
     debug = LLAMA_BATCH_DEBUG ? atoi(LLAMA_BATCH_DEBUG) : 0;
 
+    const char * LLAMA_UBATCH_EMBD_COPY = getenv("LLAMA_UBATCH_EMBD_COPY");
+    embd_copy = LLAMA_UBATCH_EMBD_COPY && atoi(LLAMA_UBATCH_EMBD_COPY) != 0;
+
     seq_pos.resize(LLAMA_MAX_SEQ);
     seq_cpl.resize(LLAMA_MAX_SEQ);
     for (auto & cur : seq_cpl) {
@@ -753,7 +756,17 @@ llama_ubatch llama_batch_allocr::ubatch_add(const std::vector<int32_t> & idxs, u
 
     auto udata = std::make_shared<llama_ubatch::data_t>();
 
-    const int64_t n_embd_all = batch.embd ? (int64_t) n_tokens*n_embd : 0;
+    // When the rows are one contiguous run of the batch in batch order (a single-sequence prompt or
+    // an MTP catch-up chunk), the ubatch embeddings point straight into batch.embd instead of being
+    // copied: at 8K tokens and 10240 floats per row the copy was a fresh 317 MiB per ubatch.
+    // The ubatch only lives inside llama_decode/encode, where the caller's batch stays valid and
+    // unmodified, and its embeddings are only read (set_input uploads them synchronously).
+    bool embd_view = batch.embd && !embd_copy && n_tokens > 0;
+    for (size_t i = 1; embd_view && i < idxs.size(); ++i) {
+        embd_view = idxs[i] == idxs[0] + (int32_t) i;
+    }
+
+    const int64_t n_embd_all = batch.embd && !embd_view ? (int64_t) n_tokens*n_embd : 0;
     const int64_t n_pos_all  =              (int64_t) n_tokens*n_pos_per_embd;
 
     udata->token     .resize(n_tokens);
@@ -774,7 +787,7 @@ llama_ubatch llama_batch_allocr::ubatch_add(const std::vector<int32_t> & idxs, u
             udata->token[i] = batch.token[idxs[i]];
         }
 
-        if (batch.embd) {
+        if (batch.embd && !embd_view) {
             memcpy(udata->embd.data() + i*n_embd, batch.embd + (int64_t) idxs[i]*n_embd, n_embd*sizeof(float));
         }
 
@@ -824,7 +837,7 @@ llama_ubatch llama_batch_allocr::ubatch_add(const std::vector<int32_t> & idxs, u
         /*.n_pos        =*/ n_pos_per_embd,
 
         /*.token        =*/ batch.token ? udata->token.data() : nullptr,
-        /*.embd         =*/ batch.embd ? udata->embd.data() : nullptr,
+        /*.embd         =*/ !batch.embd ? nullptr : embd_view ? batch.embd + (int64_t) idxs[0]*n_embd : udata->embd.data(),
         /*.pos          =*/ udata->pos.data(),
         /*.n_seq_id     =*/ udata->n_seq_id.data(),
         /*.seq_id       =*/ udata->seq_id.data(),

@@ -7,6 +7,8 @@
 #include "../src/llama-vocab.h"
 
 #include <cstdlib>
+#include <cstring>
+#include <functional>
 #include <initializer_list>
 #include <map>
 #include <string>
@@ -650,6 +652,77 @@ static void test_mrope(testing & t) {
     });
 }
 
+// ubatch embeddings point into the batch only when their rows are one contiguous run in batch
+// order; every split must give the same bytes as the forced-copy path
+static void test_embd_view(testing & t) {
+    llama_vocab vocab;
+
+    struct split_case {
+        const char * name;
+        std::function<llama_ubatch(llama_batch_allocr &)> split;
+    };
+    const std::vector<split_case> splits = {
+        { "simple",          [](llama_batch_allocr & ba) { return ba.split_simple(5); } },
+        { "equal",           [](llama_batch_allocr & ba) { return ba.split_equal(6, false, 0); } },
+        { "equal_seq",       [](llama_batch_allocr & ba) { return ba.split_equal(6, true, 0); } },
+        { "seq",             [](llama_batch_allocr & ba) { return ba.split_seq(5); } },
+    };
+
+    // single sequence (contiguous) and two interleaved sequences (non-contiguous)
+    for (bool interleaved : {false, true}) {
+        batch_builder bb(3);
+        for (int i = 0; i < 12; ++i) {
+            const llama_seq_id s = interleaved ? i % 2 : 0;
+            bb.add(interleaved ? i / 2 : i, {s}, i >= 10);
+        }
+
+        for (const auto & sc : splits) {
+            t.test(std::string(interleaved ? "interleaved_" : "single_") + sc.name, [&](testing & t) {
+                llama_batch_allocr ba_view(1);
+                llama_batch_allocr ba_copy(1);
+                ba_view.set_embd_copy(false);
+                ba_copy.set_embd_copy(true);
+                const llama_batch batch = bb.make();
+                t.assert_true(ba_view.init(batch, vocab, nullptr, bb.n_embd, 4, false));
+                t.assert_true(ba_copy.init(batch, vocab, nullptr, bb.n_embd, 4, false));
+
+                uint32_t n_seen = 0;
+                int n_view = 0;
+                while (true) {
+                    const llama_ubatch uv = sc.split(ba_view);
+                    const llama_ubatch uc = sc.split(ba_copy);
+                    t.assert_equal(uc.n_tokens, uv.n_tokens);
+                    if (uv.n_tokens == 0) {
+                        break;
+                    }
+                    // batch indices, read back from the forced copy (embd row i starts with 100*i)
+                    std::vector<int32_t> idxs(uv.n_tokens);
+                    for (uint32_t i = 0; i < uv.n_tokens; ++i) {
+                        idxs[i] = (int32_t) (uc.embd[(size_t) i*bb.n_embd] / 100.0f);
+                    }
+                    bool contiguous = true;
+                    for (size_t i = 1; i < idxs.size(); ++i) {
+                        contiguous &= idxs[i] == idxs[0] + (int32_t) i;
+                    }
+                    const float * row0 = batch.embd + (size_t) idxs[0]*bb.n_embd;
+                    t.assert_true("view iff contiguous", (uv.embd == row0) == contiguous);
+                    t.assert_true("forced copy never aliases the batch", uc.embd != row0);
+                    t.assert_true("same bytes", std::memcmp(uv.embd, uc.embd, (size_t) uv.n_tokens*bb.n_embd*sizeof(float)) == 0);
+                    for (uint32_t i = 0; i < uv.n_tokens; ++i) {
+                        t.assert_equal("row traces to its batch index", 100.0f*idxs[i], uv.embd[(size_t) i*bb.n_embd]);
+                    }
+                    n_seen += uv.n_tokens;
+                    n_view += contiguous ? 1 : 0;
+                }
+                t.assert_equal(12u, n_seen);
+                if (!interleaved) {
+                    t.assert_true("single-sequence splits use the view", n_view > 0);
+                }
+            });
+        }
+    }
+}
+
 int main(int argc, char ** argv) {
     testing t;
 
@@ -669,6 +742,7 @@ int main(int argc, char ** argv) {
     t.test("split",     test_split);
     t.test("keep_tail", test_keep_tail);
     t.test("mrope",     test_mrope);
+    t.test("embd_view", test_embd_view);
 
     return t.summary();
 }
