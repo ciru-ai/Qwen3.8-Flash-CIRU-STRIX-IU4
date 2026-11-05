@@ -1555,8 +1555,17 @@ ggml_tensor * llm_graph_context::build_lora_mm_id(
           ggml_tensor * w,   // ggml_tensor * as
           ggml_tensor * cur, // ggml_tensor * b
           ggml_tensor * ids,
-          ggml_tensor * w_s) const {
+          ggml_tensor * w_s,
+          ggml_tensor * c1_rows,
+          ggml_tensor * c1_table) const {
     ggml_tensor * res = ggml_mul_mat_id(ctx0, w, cur, ids);
+
+    if (w->type == GGML_TYPE_C1_G16_K2560 || w->type == GGML_TYPE_C1_G16_K640) {
+        GGML_ASSERT(c1_rows && c1_table && c1_rows->type == GGML_TYPE_F16 && c1_table->type == GGML_TYPE_F16);
+        // The CUDA C1 dispatcher consumes these as required graph inputs.
+        res->src[3] = c1_rows;
+        res->src[4] = c1_table;
+    }
 
     if (w_s) {
         const int64_t n_expert = w_s->ne[0];
@@ -1972,7 +1981,13 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
          ggml_tensor * up_exps_s,
          ggml_tensor * gate_exps_s,
          ggml_tensor * down_exps_s,
-         ggml_tensor * selected_experts_in) const {
+         ggml_tensor * selected_experts_in,
+         ggml_tensor * gate_c1_rows,
+         ggml_tensor * gate_c1_table,
+         ggml_tensor * up_c1_rows,
+         ggml_tensor * up_c1_table,
+         ggml_tensor * down_c1_rows,
+         ggml_tensor * down_c1_table) const {
     return build_moe_ffn(
         cur,
         gate_inp,  /* gate_inp_b  */ nullptr,
@@ -1993,7 +2008,13 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         up_exps_s,
         gate_exps_s,
         down_exps_s,
-        selected_experts_in
+        selected_experts_in,
+        gate_c1_rows,
+        gate_c1_table,
+        up_c1_rows,
+        up_c1_table,
+        down_c1_rows,
+        down_c1_table
     );
 }
 
@@ -2021,7 +2042,13 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
          ggml_tensor * up_exps_s,
          ggml_tensor * gate_exps_s,
          ggml_tensor * down_exps_s,
-         ggml_tensor * selected_experts_in) const {
+         ggml_tensor * selected_experts_in,
+         ggml_tensor * gate_c1_rows,
+         ggml_tensor * gate_c1_table,
+         ggml_tensor * up_c1_rows,
+         ggml_tensor * up_c1_table,
+         ggml_tensor * down_c1_rows,
+         ggml_tensor * down_c1_table) const {
     const int64_t n_embd   = cur->ne[0];
     const int64_t n_tokens = cur->ne[1];
     const bool weight_before_ffn = arch == LLM_ARCH_LLAMA4; // for llama4, we apply the sigmoid-ed weights before the FFN
@@ -2193,7 +2220,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         cb(up, "ffn_moe_up", il);
     } else {
         // separate gate and up path
-        up = build_lora_mm_id(up_exps, cur, selected_experts, up_exps_s); // [n_ff, n_expert_used, n_tokens]
+        up = build_lora_mm_id(up_exps, cur, selected_experts, up_exps_s, up_c1_rows, up_c1_table); // [n_ff, n_expert_used, n_tokens]
         cb(up, "ffn_moe_up", il);
 
         if (up_exps_s) {
@@ -2206,7 +2233,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
         }
 
         if (gate_exps) {
-            cur = build_lora_mm_id(gate_exps, cur, selected_experts, gate_exps_s); // [n_ff, n_expert_used, n_tokens]
+            cur = build_lora_mm_id(gate_exps, cur, selected_experts, gate_exps_s, gate_c1_rows, gate_c1_table); // [n_ff, n_expert_used, n_tokens]
             cb(cur, "ffn_moe_gate", il);
         } else {
             cur = up;
@@ -2307,7 +2334,7 @@ ggml_tensor * llm_graph_context::build_moe_ffn(
             GGML_ABORT("fatal error");
     }
 
-    experts = build_lora_mm_id(down_exps, cur, selected_experts, down_exps_s); // [n_embd, n_expert_used, n_tokens]
+    experts = build_lora_mm_id(down_exps, cur, selected_experts, down_exps_s, down_c1_rows, down_c1_table); // [n_embd, n_expert_used, n_tokens]
     cb(experts, "ffn_moe_down", il);
 
     if (down_exps_s) {

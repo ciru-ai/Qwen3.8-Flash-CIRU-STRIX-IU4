@@ -379,6 +379,36 @@ void llama_model_qwen4exp::load_arch_tensors(llama_model_loader & ml) {
 
     const int mtp_flags = !ml.load_mtp ? TENSOR_SKIP : 0;
 
+    auto load_c1_aux = [&](llama_layer & layer, int il, int flags, int64_t n_ff_exp) {
+        auto load_one = [&](ggml_tensor * weight, ggml_tensor *& rows, ggml_tensor *& table,
+                            llm_tensor tensor_name, int64_t output_rows, ggml_type expected_type) {
+            const auto rows_name = tn(tensor_name, "c1_rows", il);
+            const auto table_name = tn(tensor_name, "c1_table", il);
+            const bool has_rows = ml.get_weight(rows_name.str().c_str()) != nullptr;
+            const bool has_table = ml.get_weight(table_name.str().c_str()) != nullptr;
+            if (!has_rows && !has_table && (!weight || weight->type != expected_type)) {
+                return;
+            }
+            if (!has_rows || !has_table || !weight || weight->type != expected_type) {
+                throw std::runtime_error("C1 aux/weight mismatch for " + rows_name.str() +
+                    ": rows=" + std::to_string(has_rows) + " table=" + std::to_string(has_table) +
+                    " weight_type=" + std::to_string(weight ? int(weight->type) : -1) +
+                    " expected_type=" + std::to_string(int(expected_type)));
+            }
+            rows = create_tensor(rows_name, {output_rows, n_expert}, flags);
+            table = create_tensor(table_name, {2, 256, n_expert}, flags);
+            if (!(flags & TENSOR_SKIP) && (!rows || !table || rows->type != GGML_TYPE_F16 || table->type != GGML_TYPE_F16)) {
+                throw std::runtime_error("C1 routed weight requires FP16 row-scale and table tensors");
+            }
+        };
+        load_one(layer.ffn_gate_exps, layer.ffn_gate_exps_c1_rows, layer.ffn_gate_exps_c1_table,
+                 LLM_TENSOR_FFN_GATE_EXPS, n_ff_exp, GGML_TYPE_C1_G16_K2560);
+        load_one(layer.ffn_up_exps, layer.ffn_up_exps_c1_rows, layer.ffn_up_exps_c1_table,
+                 LLM_TENSOR_FFN_UP_EXPS, n_ff_exp, GGML_TYPE_C1_G16_K2560);
+        load_one(layer.ffn_down_exps, layer.ffn_down_exps_c1_rows, layer.ffn_down_exps_c1_table,
+                 LLM_TENSOR_FFN_DOWN_EXPS, n_embd, GGML_TYPE_C1_G16_K640);
+    };
+
     for (int il = 0; il < (int) hparams.n_layer_all; ++il) {
         auto & layer = layers[il];
 
@@ -442,6 +472,7 @@ void llama_model_qwen4exp::load_arch_tensors(llama_model_loader & ml) {
         layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  "weight", il), { n_embd, n_expert }, flags);
         layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il), { n_ff_exp, n_embd, n_expert }, flags);
         create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, flags);
+        load_c1_aux(layer, il, flags, n_ff_exp);
 
         layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, "weight", il), { n_embd }, flags);
         layer.ffn_gate_shexp     = create_tensor(tn(LLM_TENSOR_FFN_GATE_SHEXP,     "weight", il), { n_embd, n_ff_shexp }, flags);
@@ -503,6 +534,17 @@ ggml_tensor * llama_model_qwen4exp::graph::build_hc_mix(
         ggml_is_matrix(w_down) && ggml_is_matrix(w_inject) &&
         ggml_is_contiguous(w_down) && ggml_is_contiguous(w_inject) &&
         w_down->ne[0] == w_inject->ne[0];
+    // Build the two independent Q8 projections together, before graph allocation.
+    // Their original weights and F32 outputs remain separate; the CUDA backend
+    // may then fuse the adjacent MUL_MAT nodes without writing a future buffer.
+    const char * pair_env = getenv("LLAMA_HC_Q8_PAIR");
+    const bool pair_q8 = pair_env && atoi(pair_env) != 0 && inject && nt >= 4096 &&
+        loras->empty() && w_down->type == GGML_TYPE_Q8_0 && w_inject->type == GGML_TYPE_Q8_0 &&
+        ggml_is_matrix(w_down) && ggml_is_matrix(w_inject) &&
+        ggml_is_contiguous(w_down) && ggml_is_contiguous(w_inject) &&
+        w_down->ne[0] == 10240 && w_down->ne[1] == 320 &&
+        w_inject->ne[0] == 10240 && w_inject->ne[1] == 4 &&
+        xn->ne[0] == 10240 && xn->ne[1] == nt;
     ggml_tensor * lo;
     if (pack_di) {
         ggml_build_forward_expand(gf, xn);
@@ -513,6 +555,15 @@ ggml_tensor * llama_model_qwen4exp::graph::build_hc_mix(
         lo = ggml_cont(ctx0, ggml_view_2d(ctx0, projected, w_down->ne[1], nt, projected->nb[1], 0));
         *inject = ggml_cont(ctx0, ggml_view_2d(ctx0, projected, w_inject->ne[1], nt,
                 projected->nb[1], w_down->ne[1] * sizeof(float)));
+        ggml_build_forward_expand(gf, *inject);
+    } else if (pair_q8) {
+        ggml_build_forward_expand(gf, xn);
+        lo      = build_lora_mm(w_down, xn);
+        *inject = build_lora_mm(w_inject, xn);
+        // This marker exists only in the no-LoRA branch; backend fusion must
+        // require it in addition to adjacency and exact tensor geometry.
+        ggml_set_name(lo, "hc_q8_pair_down");
+        ggml_build_forward_expand(gf, lo);
         ggml_build_forward_expand(gf, *inject);
     } else {
         lo = build_lora_mm(w_down, xn);
@@ -538,7 +589,7 @@ ggml_tensor * llama_model_qwen4exp::graph::build_hc_mix(
     cb(mixed, "hc_mixed", il);
 
     if (inject) {
-        if (!pack_di) {
+        if (!pack_di && !pair_q8) {
             *inject = build_lora_mm(w_inject, xn);
         }
         cb(*inject, "hc_inject", il);
@@ -740,7 +791,6 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
     res->add_input(std::move(inp));
 
     ggml_tensor * inp_pos     = build_inp_pos();
-    ggml_tensor * inp_out_ids = build_inp_out_ids();
 
     // with LLAMA_MTP_QSA the MTP context is a hybrid-idx memory, so the draft head can use the same sparse
     // attention path as the trunk (this is what Halogen does: one sparse attention call per target chunk)
@@ -839,6 +889,28 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
     cb(Qcur, "mtp_Qcur", il);
     cb(Kcur, "mtp_Kcur", il);
 
+    const char * kv_only_env = getenv("CIRU_MTP_KV_ONLY");
+    const bool kv_only = kv_only_env && atoi(kv_only_env) != 0 && n_outputs == 0 &&
+        !cparams.embeddings && (!cparams.embeddings_nextn || cparams.embeddings_nextn_masked) &&
+        inp_attn->self_k_rot == nullptr && inp_attn->self_v_rot == nullptr;
+    if (kv_only) {
+        // Catch-up consumes only cache state. Preserve the normal K/V store order.
+        ggml_build_forward_expand(gf, Vcur);
+        ggml_build_forward_expand(gf, Kcur);
+        ggml_build_forward_expand(gf, inp_attn->mctx->cpy_k(ctx0, Kcur, inp_attn->get_k_idxs(), il));
+        ggml_build_forward_expand(gf, inp_attn->mctx->cpy_v(ctx0, Vcur, inp_attn->get_v_idxs(), il));
+        if (mctx_hyb && hparams.dsv4_compress_ratios[il] > 0) {
+            build_qsa_store_k(mctx_hyb, cur, il);
+        }
+        static unsigned logged = 0;
+        if (logged++ < 12) {
+            fprintf(stderr, "CIRU_MTP_KV_ONLY tokens=%lld outputs=0 qsa_cache=%d\n",
+                    (long long) n_tokens, mctx_hyb != nullptr);
+        }
+        return;
+    }
+    ggml_tensor * inp_out_ids = build_inp_out_ids();
+
     const float kq_scale = hparams.f_attention_scale == 0.0f
             ? 1.0f / sqrtf(float(n_embd_head)) : hparams.f_attention_scale;
 
@@ -922,7 +994,7 @@ llama_model_qwen4exp::graph_mtp::graph_mtp(const llama_model & model, const llm_
     }
 
     const int shortlist_count = ciru_mtp_shortlist_size();
-    if (shortlist_count > 0 && cur->ne[1] == 1) {
+    if (shortlist_count > 0 && cparams.n_seq_max == 1 && cur->ne[1] == 1) {
         GGML_ASSERT(head_w->type == GGML_TYPE_Q8_0 && head_w->ne[0] == 2560 && head_w->ne[1] == 248320);
         GGML_ASSERT(head_s == nullptr && "shortlist prototype requires the original unscaled Q8 head");
         auto input = std::make_unique<ciru_shortlist_input>();
@@ -997,7 +1069,7 @@ static bool qwen4exp_use_block_selection(bool blk_bias, int64_t n_stream, int64_
     const char * block_env=getenv("LLAMA_QSA_BLOCK_SELECTION");
     const char * direct_env=getenv("LLAMA_QSA_DIRECT_INDICES");
     return block_env && atoi(block_env)!=0 && direct_env && atoi(direct_env)!=0 &&
-        blk_bias && n_stream==1 && ratio>1 && hparams.indexer_top_k%ratio==0 &&
+        blk_bias && n_stream>=1 && ratio>1 && hparams.indexer_top_k%ratio==0 &&
         n_kv>hparams.indexer_top_k+ratio-1 && n_kv<=16777216 && ubatch.token && qwen4exp_qsa_embd_ok(ubatch) &&
         cparams.flash_attn && cparams.offload_kqv && hparams.f_max_alibi_bias==0.0f &&
         !hparams.attn_soft_cap && hparams.n_embd_head_k()==256 && hparams.n_embd_head_v()==256;
@@ -1007,6 +1079,28 @@ static bool qwen4exp_qsa_flag(const char *name) {
     const char *value=getenv(name);
     return value && atoi(value)!=0;
 }
+
+static bool qwen4exp_sequence_dense(const llama_memory_hybrid_idx_context * mctx,
+        const llama_ubatch & ubatch, int64_t budget) {
+    if (!qwen4exp_qsa_flag("CIRU_QSA_SEQUENCE_DENSE")) { return false; }
+    const int64_t count = mctx->qsa_sequence_cells(ubatch);
+    return count > 0 && count <= budget;
+}
+
+// Physical n_kv may stay constant when a different pooled sequence is admitted.
+// Such a graph must not be reused across an active-sequence dispatch change.
+class llm_graph_input_qsa_sequence_dispatch : public llm_graph_input_i {
+public:
+    llm_graph_input_qsa_sequence_dispatch(bool dense, int64_t budget) : dense(dense), budget(budget) {}
+    void set_input(const llama_ubatch *) override {}
+    bool can_reuse(const llm_graph_params & params) override {
+        const auto * mctx = static_cast<const llama_memory_hybrid_idx_context *>(params.mctx);
+        return mctx && dense == qwen4exp_sequence_dense(mctx, params.ubatch, budget);
+    }
+private:
+    bool dense;
+    int64_t budget;
+};
 
 static int64_t qwen4exp_query_strip(int64_t n_tokens, int64_t n_stream);
 
@@ -1185,7 +1279,9 @@ void llama_model_qwen4exp::graph::build_qsa_store_k(
         res->add_input(std::move(inp));
     }
 
-    ggml_tensor * k_raw = build_lora_mm(model.layers[il].index_k_proj, cur);
+    ggml_tensor * k_raw = qwen4exp_indexer_projection(ctx0, cur, [&](ggml_tensor * column) {
+        return build_lora_mm(model.layers[il].index_k_proj, column);
+    });
     k_raw = ggml_reshape_3d(ctx0, k_raw, idx_dim, 1, n_tokens);
     cb(k_raw, "indexer_k_raw", il);
 
@@ -1294,7 +1390,9 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
     }
 
     // cached indexer keys are raw: pooling precedes norm and rotation, so apply neither
-    ggml_tensor * k_raw = build_lora_mm(model.layers[il].index_k_proj, cur);
+    ggml_tensor * k_raw = qwen4exp_indexer_projection(ctx0, cur, [&](ggml_tensor * column) {
+        return build_lora_mm(model.layers[il].index_k_proj, column);
+    });
     k_raw = ggml_reshape_3d(ctx0, k_raw, idx_dim, 1, n_tokens);
     cb(k_raw, "indexer_k_raw", il);
 
@@ -1367,7 +1465,9 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
     }
     cb(pooled, "indexer_k", il);
 
-    ggml_tensor * q = build_lora_mm(model.layers[il].index_q_proj, cur);
+    ggml_tensor * q = qwen4exp_indexer_projection(ctx0, cur, [&](ggml_tensor * column) {
+        return build_lora_mm(model.layers[il].index_q_proj, column);
+    });
     q = ggml_reshape_3d(ctx0, q, idx_dim, n_idx_h, n_tokens);
     q = build_norm(q, model.layers[il].index_q_norm, nullptr, LLM_NORM_RMS, il);
     q = ggml_rope_multi(ctx0, q, inp_pos, nullptr,
@@ -1377,8 +1477,16 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
 
     const int64_t strip = qwen4exp_query_strip(n_tps, n_stream);
     const char * fused_score_env = getenv("LLAMA_QSA_SCORE_WMMA");
-    const bool use_fused_score = fused_score_env && atoi(fused_score_env) != 0 &&
-        n_tps >= 128 && idx_dim == 128 && n_idx_h == 4;
+    const char * deep_score_env = getenv("CIRU_QSA_SCORE_FUSED_DEEP");
+    const bool deep_score = deep_score_env && atoi(deep_score_env) != 0 &&
+        n_stream == 1 && n_tps >= 128 && n_tps <= 4096 && n_blocks >= 8192 &&
+        idx_dim == 128 && n_idx_h == 4;
+    const bool use_fused_score = deep_score || (fused_score_env && atoi(fused_score_env) != 0 &&
+        n_tps >= 128 && idx_dim == 128 && n_idx_h == 4);
+    // Research-only, default-off: let the active RDNA scorer apply compact visibility.
+    const bool compact_fused = deep_score && inp->compact && n_stream == 1 &&
+        n_blocks <= INT32_MAX && n_tps <= INT32_MAX &&
+        getenv("CIRU_QSA_COMPACT_FUSED") && atoi(getenv("CIRU_QSA_COMPACT_FUSED")) != 0;
     ggml_tensor * shared_weights = nullptr;
     ggml_tensor * shared_zero_mask = nullptr;
     if (use_fused_score) {
@@ -1402,9 +1510,8 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
     std::vector<ggml_tensor *> selected;
     for (int64_t first = 0; first < n_tps; first += strip) {
         const int64_t n_query = std::min(strip, n_tps - first);
-        // [QSA_SCORE_BOUNDS] trim the scorer to the blocks this strip can actually see.
-        // The fused WMMA scorer sizes its shared zero mask from n_blocks, so it opts out.
-        const int64_t score_blocks = (use_fused_score || inp->score_key_limits.empty())
+        // Keep each deep strip's key bound; the shared zero mask may use a larger row stride.
+        const int64_t score_blocks = ((use_fused_score && !deep_score) || inp->score_key_limits.empty())
                 ? n_blocks : inp->score_key_limits[first/strip];
         ggml_tensor * score_keys = pooled;
         if (score_blocks < n_blocks) {
@@ -1422,16 +1529,24 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         if (use_fused_score) {
             ggml_tensor * query = ggml_view_4d(ctx0, q, idx_dim, n_idx_h, n_query, n_stream,
                     q->nb[1], q->nb[2], q->nb[2]*n_tps, first*q->nb[2]);
-            ggml_tensor * key = ggml_reshape_4d(ctx0, pooled, idx_dim, 1, n_blocks, n_stream);
+            ggml_tensor * key = ggml_reshape_4d(ctx0, score_keys, idx_dim, 1, score_blocks, n_stream);
             ggml_tensor * weights = n_query == strip ? shared_weights : ggml_view_4d(ctx0, shared_weights,
                     n_idx_h, n_query, 1, n_stream, shared_weights->nb[1], shared_weights->nb[2], shared_weights->nb[3], 0);
-            ggml_tensor * zero_mask = n_query == strip ? shared_zero_mask : ggml_view_4d(ctx0, shared_zero_mask,
-                    n_blocks, n_query, 1, n_stream, shared_zero_mask->nb[1], shared_zero_mask->nb[2], shared_zero_mask->nb[3], 0);
-            score = ggml_reshape_3d(ctx0, ggml_lightning_indexer(ctx0, query, key, weights, zero_mask),
-                    n_blocks, n_query, n_stream);
+            ggml_tensor * zero_mask = n_query == strip && score_blocks == n_blocks ? shared_zero_mask : ggml_view_4d(ctx0, shared_zero_mask,
+                    score_blocks, n_query, 1, n_stream, shared_zero_mask->nb[1], shared_zero_mask->nb[2], shared_zero_mask->nb[3], 0);
+            ggml_tensor * scored = compact_fused
+                    ? ggml_lightning_indexer_compact(ctx0, query, key, weights, zero_mask,
+                            inp->bias, (int32_t) n_blocks, (int32_t) first)
+                    : ggml_lightning_indexer(ctx0, query, key, weights, zero_mask);
+            score = ggml_reshape_3d(ctx0, scored, score_blocks, n_query, n_stream);
+            if (deep_score && il == 3) fprintf(stderr,
+                    "V5_INDEXER_SCORE_PATH layer=%d tokens=%lld first=%lld queries=%lld blocks=%lld total=%lld\n",
+                    il, (long long)n_tps, (long long)first, (long long)n_query,
+                    (long long)score_blocks, (long long)n_blocks);
         } else {
-        score = ggml_mul_mat(ctx0, score_keys,
-                ggml_view_3d(ctx0, q, idx_dim, n_idx_h*n_query, n_stream, q->nb[1], q->nb[2]*n_tps, first*q->nb[2]));
+        score = qwen4exp_indexer_scores(ctx0, score_keys,
+                ggml_view_3d(ctx0, q, idx_dim, n_idx_h*n_query, n_stream,
+                    q->nb[1], q->nb[2]*n_tps, first*q->nb[2]), n_idx_h);
         score = ggml_reshape_4d(ctx0, score, score_blocks, n_idx_h, n_query, n_stream);
         score = ggml_relu(ctx0, score);
 
@@ -1448,9 +1563,9 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         cb(score, "indexer_score", il);
 
         // one value per block, so it is cheaper to bias here than after the cells are expanded
-        if (inp->compact) {
+        if (inp->compact && !compact_fused) {
             score = qwen4exp_apply_compact_visibility(ctx0,score,inp->bias,n_blocks,first,n_query);
-        } else if (blk_bias) {
+        } else if (!inp->compact && blk_bias) {
             score = ggml_add(ctx0, score, bias);
         }
 
@@ -1484,6 +1599,13 @@ ggml_tensor * llama_model_qwen4exp::graph::build_qsa_top_k(
         const int64_t width = std::min<int64_t>(n_kv, (int64_t) hparams.indexer_top_k + r - 1);
 
         ggml_tensor * top_k = ggml_cont(ctx0, ggml_top_k(ctx0, expanded, width));
+
+        // Image batches use the cell-level fallback instead of sorted block
+        // selection. HIP TOP_K may emit the same cells in different orders;
+        // indexed attention must see a stable order just as the block path does.
+        if (qwen4exp_qsa_flag("LLAMA_QSA_DIRECT_INDICES")) {
+            top_k = qwen4exp_order_selected_cells(ctx0, top_k);
+        }
 
         // build_attn_qsa reads [n_top_k, n_batch, 1, n_stream], matching the KQ mask.
         top_k = ggml_reshape_4d(ctx0, top_k, width, n_query, 1, n_stream);
@@ -1538,9 +1660,52 @@ ggml_tensor * llama_model_qwen4exp::graph::build_attn_qsa(
     ggml_tensor * indices_all = top_k;
     const int64_t n_stream = mask_all->ne[3];
     const int64_t n_tps = mask_all->ne[1];
+    // Keep the same complete-block plus tail selection and indexed-attention
+    // path when another slot is active. Cell-level TOP_K can choose a partial
+    // extra block, while a dense attention fallback changes reduction kernels.
+    // Each stream retains its own keys, values, visibility and local indices.
+    if (n_stream > 1 && qwen4exp_qsa_flag("LLAMA_QSA_DIRECT_INDICES") &&
+            cparams.flash_attn && cparams.offload_kqv &&
+            hparams.f_max_alibi_bias == 0.0f && !hparams.attn_soft_cap) {
+        auto * keys = mctx_cur->get_k(ctx0, il);
+        auto * values = mctx_cur->get_v(ctx0, il);
+        GGML_ASSERT(q_cur->ne[2] == n_tps*n_stream);
+        GGML_ASSERT(keys->ne[3] == n_stream && values->ne[3] == n_stream);
+        GGML_ASSERT(q_cur->ne[0] == 256 && keys->type == GGML_TYPE_F16 && values->type == GGML_TYPE_F16);
+        ggml_tensor * output = nullptr;
+        for (int64_t stream = 0; stream < n_stream; ++stream) {
+            auto * q = ggml_view_3d(ctx0, q_cur, q_cur->ne[0], q_cur->ne[1], n_tps,
+                    q_cur->nb[1], q_cur->nb[2], stream*n_tps*q_cur->nb[2]);
+            auto * k = ggml_view_4d(ctx0, keys, keys->ne[0], keys->ne[1], keys->ne[2], 1,
+                    keys->nb[1], keys->nb[2], keys->nb[3], stream*keys->nb[3]);
+            auto * v = ggml_view_4d(ctx0, values, values->ne[0], values->ne[1], values->ne[2], 1,
+                    values->nb[1], values->nb[2], values->nb[3], stream*values->nb[3]);
+            auto * mask = ggml_cont(ctx0, ggml_view_4d(ctx0, mask_all, mask_all->ne[0], n_tps, 1, 1,
+                    mask_all->nb[1], mask_all->nb[2], mask_all->nb[3], stream*mask_all->nb[3]));
+            auto * indices = ggml_cont(ctx0, ggml_view_4d(ctx0, indices_all, indices_all->ne[0], n_tps, 1, 1,
+                    indices_all->nb[1], indices_all->nb[2], indices_all->nb[3], stream*indices_all->nb[3]));
+            auto * q_view = ggml_permute(ctx0, q, 0, 2, 1, 3);
+            auto * k_view = ggml_permute(ctx0, k, 0, 2, 1, 3);
+            auto * v_view = ggml_permute(ctx0, v, 0, 2, 1, 3);
+            if (v->nb[1] > v->nb[2]) { v_view = ggml_transpose(ctx0, v_view); }
+            auto * cur = ggml_flash_attn_ext(ctx0, q_view, k_view, v_view, mask, kq_scale, 0.0f, 0.0f);
+            cur->src[5] = indices;
+            ggml_flash_attn_ext_set_n_kv_max(cur, static_cast<int32_t>(indices->ne[0]));
+            ggml_flash_attn_ext_set_prec(cur, GGML_PREC_F32);
+            res->add_fused_node({LLM_FUSED_OP_FLASH_ATTN, cur, il});
+            cur = ggml_reshape_2d(ctx0, cur, cur->ne[0]*cur->ne[1], cur->ne[2]*cur->ne[3]);
+            ggml_build_forward_expand(gf, cur);
+            output = output ? ggml_concat(ctx0, output, cur, 1) : cur;
+        }
+        cb(output, "kqv_out", il);
+        if (inp->self_v_rot) { output = llama_mul_mat_hadamard(ctx0, output, inp->self_v_rot); }
+        return output;
+    }
     const auto shared_qsa=qsa_inps.find((uint32_t)hparams.dsv4_compress_ratios[il]);
     const char * direct_option=getenv("LLAMA_QSA_DIRECT_INDICES");
-    const bool layout_prefill=n_tps>=128 && n_stream==1 && direct_option && atoi(direct_option)!=0 &&
+    const char * per_query_option=getenv("LLAMA_QSA_PER_QUERY");
+    const bool per_query_prefill=per_query_option && atoi(per_query_option)!=0 && n_tps<=520;
+    const bool layout_prefill=n_tps>=128 && !per_query_prefill && n_stream==1 && direct_option && atoi(direct_option)!=0 &&
         cparams.flash_attn && cparams.offload_kqv && hparams.f_max_alibi_bias==0.0f && !hparams.attn_soft_cap &&
         shared_qsa!=qsa_inps.end() && shared_qsa->second->maskless;
     const char * whole_option=getenv("LLAMA_QSA_WHOLE_ATTN");
@@ -1679,7 +1844,18 @@ ggml_tensor * llama_model_qwen4exp::graph::build_layer_attn(
             const char * env = getenv("LLAMA_QSA_DENSE_SHORTCUT");
             return env == nullptr || atoi(env) != 0;
         }();
-        if (shortcut && n_kv <= width) {
+        const bool sequence_dense = qwen4exp_sequence_dense(mctx_hyb, ubatch, hparams.indexer_top_k);
+        if (qwen4exp_qsa_flag("CIRU_QSA_SEQUENCE_DENSE")) {
+            res->add_input(std::make_unique<llm_graph_input_qsa_sequence_dispatch>(sequence_dense, hparams.indexer_top_k));
+        }
+        if (qwen4exp_qsa_flag("CIRU_QSA_SEQUENCE_TRACE") && il == 3) {
+            fprintf(stderr, "CIRU_SEQUENCE_DISPATCH seq=%d tokens=%u image=%d physical=%lld own=%lld dense=%d\n",
+                    ubatch.seq_id && ubatch.n_tokens ? ubatch.seq_id[0][0] : -1,
+                    ubatch.n_tokens, ubatch.embd && !ubatch.token,
+                    (long long)n_kv, (long long)mctx_hyb->qsa_sequence_cells(ubatch),
+                    shortcut && (n_kv <= width || sequence_dense));
+        }
+        if (shortcut && (n_kv <= width || sequence_dense)) {
             build_qsa_store_k(mctx_hyb, cur, il);
         } else {
             top_k = build_qsa_top_k(mctx_hyb, cur, inp_pos, inp->get_kq_mask(), sections, il);
@@ -1784,12 +1960,20 @@ ggml_tensor * llama_model_qwen4exp::graph::build_layer_attn_linear(
     beta = ggml_reshape_4d(ctx0, beta, 1, num_v_heads, n_seq_tokens, n_seqs);
     cb(beta, "beta", il);
 
-    beta = ggml_sigmoid(ctx0, beta);
-    cb(beta, "beta_sigmoid", il);
-
     ggml_tensor * alpha = build_lora_mm(model.layers[il].ssm_alpha, cur, model.layers[il].ssm_alpha_s);
     alpha = ggml_reshape_3d(ctx0, alpha, num_v_heads, n_seq_tokens, n_seqs);
     cb(alpha, "alpha", il);
+
+    // HaloBox c750386bb: make the gate available to the chunked GDN epilogue.
+    static const bool halo_prefill = getenv("CIRU_HALO_PREFILL") && atoi(getenv("CIRU_HALO_PREFILL")) != 0;
+    if (halo_prefill && n_seq_tokens >= 512) {
+        ggml_build_forward_expand(gf, qkv_mixed);
+        ggml_build_forward_expand(gf, z);
+        ggml_build_forward_expand(gf, beta);
+        ggml_build_forward_expand(gf, alpha);
+    }
+    beta = ggml_sigmoid(ctx0, beta);
+    cb(beta, "beta_sigmoid", il);
 
     ggml_tensor * alpha_biased   = ggml_add(ctx0, alpha, model.layers[il].ssm_dt);
     ggml_tensor * alpha_softplus = ggml_softplus(ctx0, alpha_biased);
@@ -1900,7 +2084,14 @@ ggml_tensor * llama_model_qwen4exp::graph::build_layer_ffn(ggml_tensor * cur, co
             nullptr, model.layers[il].ffn_gate_up_exps,
             model.layers[il].ffn_up_exps_s,
             model.layers[il].ffn_gate_exps_s,
-            model.layers[il].ffn_down_exps_s);
+            model.layers[il].ffn_down_exps_s,
+            nullptr,
+            model.layers[il].ffn_gate_exps_c1_rows,
+            model.layers[il].ffn_gate_exps_c1_table,
+            model.layers[il].ffn_up_exps_c1_rows,
+            model.layers[il].ffn_up_exps_c1_table,
+            model.layers[il].ffn_down_exps_c1_rows,
+            model.layers[il].ffn_down_exps_c1_table);
     cb(moe_out, "ffn_moe_out", il);
 
     // shared experts, as in the Qwen3Next reference

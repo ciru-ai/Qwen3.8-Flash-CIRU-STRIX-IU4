@@ -1,4 +1,7 @@
 #include "mmvq.cuh"
+#if defined(GGML_USE_HIP)
+#include "q5_short.cuh"
+#endif
 #include "quantize.cuh"
 #include "unary.cuh"
 #include "vecdotq.cuh"
@@ -1464,6 +1467,12 @@ void ggml_cuda_mul_mat_vec_q(
     GGML_ASSERT(        src1->type == GGML_TYPE_F32);
     GGML_ASSERT(        dst->type  == GGML_TYPE_F32);
     GGML_ASSERT(!ids || ids->type  == GGML_TYPE_I32); // Optional, used for batched GGML_MUL_MAT_ID.
+
+#if defined(GGML_USE_HIP)
+    if (!ids && !fusion && ggml_cuda_q5_short_f32(ctx, src0, src1, dst)) {
+        return;
+    }
+#endif
 
     GGML_TENSOR_BINARY_OP_LOCALS;
 

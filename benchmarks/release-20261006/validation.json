@@ -1,0 +1,139 @@
+{
+  "schema": 1,
+  "runtime_version": "5.5.0",
+  "model_weights_version": "5.0",
+  "date": "2026-10-06",
+  "hardware": "Ciru: Ryzen AI Max+ 395 / Radeon 8060S (gfx1151), 128 GB UMA, NixOS, local NVMe",
+  "build": "Arch Linux; GNU 16.2.1; CMake 4.1.2; TheRock/ROCm 10.0 gfx1151; pinned custom HIP/ROCr 7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1",
+  "scope": "Release functional and synthetic memory checks, each request once. Not a model quality or speed benchmark.",
+  "configuration": "256K total context; b16384; u8192/32 checkpoints for one slot; u2048/4 checkpoints per slot for two-slot pool; F16 KV; IU4 MTP3 / Orca MTP4; vision enabled; UMA input ring1 with synchronization; GDN option off.",
+  "results": [
+    {
+      "configuration": "iu4-single",
+      "memory": {
+        "minimum_available_GiB": 26.584026336669922,
+        "guard_stop": null
+      },
+      "vision": [
+        {
+          "lane": 0,
+          "expected": "BLUE",
+          "first_word": "BLUE",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "BLUE The top-center shape is a blue square."
+        },
+        {
+          "lane": 1,
+          "expected": "GREEN",
+          "first_word": "GREEN",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "GREEN The bottom-left shape is a green circle located in the lower-left corner of the grid."
+        }
+      ]
+    },
+    {
+      "configuration": "iu4-pool",
+      "memory": {
+        "minimum_available_GiB": 27.492015838623047,
+        "guard_stop": null
+      },
+      "vision": [
+        {
+          "lane": 0,
+          "expected": "BLUE",
+          "first_word": "BLUE",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "BLUE The top-center shape is a blue square."
+        },
+        {
+          "lane": 1,
+          "expected": "GREEN",
+          "first_word": "GREEN",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "GREEN The bottom-left shape is a green circle located in the lower-left corner of the grid."
+        }
+      ]
+    },
+    {
+      "configuration": "orca-single",
+      "memory": {
+        "minimum_available_GiB": 26.60504913330078,
+        "guard_stop": null
+      },
+      "vision": [
+        {
+          "lane": 0,
+          "expected": "BLUE",
+          "first_word": "BLUE",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "BLUE The top-center shape is a blue square."
+        },
+        {
+          "lane": 1,
+          "expected": "GREEN",
+          "first_word": "GREEN",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "GREEN The bottom-left shape is a green circle located in the lower-left corner of the grid."
+        }
+      ]
+    },
+    {
+      "configuration": "orca-memory",
+      "memory": {
+        "minimum_available_GiB": 13.489818572998047,
+        "guard_stop": null
+      },
+      "warmup": {
+        "prompt_tokens": 179848,
+        "output_tokens": 16,
+        "complete": true
+      },
+      "replay": {
+        "prompt_tokens": 226712,
+        "output_tokens": 16,
+        "complete": true
+      }
+    },
+    {
+      "configuration": "orca-pool",
+      "memory": {
+        "minimum_available_GiB": 26.932598114013672,
+        "guard_stop": null
+      },
+      "vision": [
+        {
+          "lane": 0,
+          "first_word": "BLUE",
+          "expected": "BLUE",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "BLUE The top-center shape is a blue square."
+        },
+        {
+          "lane": 1,
+          "first_word": "GREEN",
+          "expected": "GREEN",
+          "pass": true,
+          "finish_reason": "stop",
+          "content": "GREEN The bottom-left shape is a green circle located in the lower-left corner of the grid."
+        }
+      ]
+    }
+  ],
+  "warmup": "Orca memory check retained one 179848-token unscored warmup, 60s idle, then 226712-token two-image replay with 16 forced outputs each.",
+  "preserved_failure": "The initial Orca long warmup was rejected with HTTP400 before generation because the old fixture used a fixed media marker. The corrected request resolved the per-process marker through /props and changed only the two markers. The six already-completed image requests were not repeated.",
+  "limits": "Simple color/shape checks are narrow functional coverage. Synthetic replay is resource coverage, not a general leak fix or vision-quality guarantee.",
+  "version_label_correction": {
+    "previous_label": "4.5.0",
+    "corrected_label": "5.5.0",
+    "compiled_code_changed": false,
+    "model_weights_changed": false,
+    "benchmarks_repeated": false
+  }
+}

@@ -175,6 +175,9 @@ public:
     uint32_t get_n_stream() const;
     bool qsa_scalar_visibility(const llama_ubatch & ubatch) const;
     bool qsa_position_prefix(const llama_ubatch & ubatch) const;
+    // Experimental dispatch diagnostic: count this sequence's cells, including image rows
+    // with repeated temporal positions. Foreign cells must not consume its dense budget.
+    int64_t qsa_sequence_cells(const llama_ubatch & ubatch) const;
 
     void set_input_qsa(ggml_tensor * cell_blk, ggml_tensor * blk_cells, ggml_tensor * blk_pos,
                        ggml_tensor * bias, const llama_ubatch * ubatch, uint32_t ratio,

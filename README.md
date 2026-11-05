@@ -1,73 +1,299 @@
-# CIRU runtime v4.4.1
+---
+license: other
+license_name: qwen-community-1.0
+license_link: LICENSE
+base_model:
+  - Qwen/Qwen3.8-Flash-Next
+  - Qwen/Qwen3.8-Flash-Next-FP8
+base_model_relation: quantized
+library_name: llama.cpp
+pipeline_tag: image-text-to-text
+inference: false
+tags:
+  - qwen
+  - gguf
+  - amd
+  - rocm
+  - gfx1151
+  - strix-halo
+  - iu4
+  - mtp
+  - long-context
+  - vision
+---
 
-**Vision + MTP QSA hotfix:** the source includes the fix for `qsa: cell position runs past the cell window`. [Patch, checks and rebuild instructions](docs/qualification/v4.4.1-qsa-hotfix/QSA-HOTFIX.md). Existing v4.4.1 prebuilt archives require rebuilding; weights and MTP settings are unchanged.
+# Qwen3.8 Flash CIRU Strix IU4 — v5.5.0 runtime update
 
-Fixed vision + MTP. Update the complete runtime and restart the server; keep existing model files. See [update instructions](docs/RUNNING.md).
+Compact weights and a native CIRU runtime for AMD Strix Halo. **The original
+v4.4.1 GGUF remains in this repository** at its existing filename. v5.0 is
+an additional, versioned GGUF. Both use the same multi-token prediction
+(MTP) draft model and the required SSD-paged embedding files under
+`ple/`.
+This package is for Flash. Orca uses a separate model package and its own
+matching draft; do not interchange their model or draft files.
 
-The current main-branch launcher also rejects runtimes missing the v4.2 attention correction before model load. This startup check was added after the immutable v4.3.0 tag; see [runtime verification](docs/RUNNING.md#runtime-verification-in-current-launchers).
+> [!IMPORTANT]
+> This is a custom-runtime model with text and image input. Stock llama.cpp and hosted
+> inference do not support its compact expert format or required SSD-paged
+> embedding table.
+> Build the included matching [CIRU runtime](INSTALL.md)
+> and keep all three `ple/` files on fast local storage.
 
-V4.3 makes the tested speculative-decoding settings the defaults: **MTP depth 3 for IU4, depth 4 for Orca, and `LLAMA_MTP_QSA_MIN_T=1` for both**. Shorter draft batches reduce discarded speculative work; the lower threshold enables sparse draft attention for small batches. The corrected v4.2 inference binaries and existing model files are retained.
+## One slot by default; optional multi-slot serving
 
-| Model | Hermes mean score /100, passes 1 / 2 | Full-score tasks, passes 1 / 2 | Prompt tok/s | Generation tok/s |
-| --- | ---: | ---: | ---: | ---: |
-| IU4 | 95.0 / 98.5 | 17/20 / 19/20 | 548.5 | 34.74 |
-| Orca | 92.5 / 98.5 | 17/20 / 19/20 | 551.3 | 34.44 |
+Runtime **v5.5.0** retains the v5 model and runtime features, adding the
+corrected concurrent MTP/attention paths and post-image memory-pressure fix.
+The existing v5.0 weights are unchanged.
+The default remains **one slot, 262,144 context tokens, MTP3**, with a
+16,384-token batch and an **8,192-token microbatch**.
 
-Hermes Agent 20: two passes per model, 80 completed scenario attempts and 449 model requests, a 32-turn allowance, production sampling and native xhigh thinking. Speeds are pooled across each model's two passes; generation includes reasoning. Both hosts are 128 GB Strix Halo / gfx1151, NixOS / ROCm 10; IU4 ran on Sozo and Orca on Ciru. These are observed tuned-configuration results, not a matched Hermes speedup over v4.2. Native verifier scores are retained; the detailed report records grading limitations and Orca's memory-persistence behavior.
+After rebuilding the matching source as described in [INSTALL.md](INSTALL.md),
+opt into two slots by adding `PARALLEL_SLOTS=2` to the launch command:
 
-Existing v4.2 users can update the launcher without rebuilding or downloading weights. `MTP_DEPTH` and `LLAMA_MTP_QSA_MIN_T` remain overridable; `MTP_DEPTH=6 LLAMA_MTP_QSA_MIN_T=128` restores the previous speculative defaults. Earlier runtimes must first obtain the v4.2 attention correction. Context remains 262144, batch/microbatch 8192, with F16 target/draft KV and unchanged sampling and thinking.
+```bash
+PARALLEL_SLOTS=2 MODEL_VARIANT=IU4 MODEL_RELEASE=5.0 ENABLE_UI=0 \
+  MODEL_DIR="$MODEL_DIR" RUNTIME_DIR="$RUNTIME_DIR" \
+  bash "$RUNTIME_DIR/scripts/ciru/run-server.sh"
+```
 
-[Detailed Hermes results](docs/qualification/v4.3.0/HERMES-RESULTS.md) | [Run and upgrade](docs/RUNNING.md) | [Release downloads](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v4.3.0)
+Two slots share **one 262,144-token context pool**, use microbatch 2,048 and
+four retained checkpoints per slot. A request can borrow most of the pool
+while its peer is idle; both requests cannot each consume the full pool at
+the same time. **Multi-slot mode has a performance penalty:** it disables
+the single-slot MTP draft-head shortlist. MTP itself remains enabled.
+The matched IU4 test measured **47.00 to 42.20 tok/s (-10.21%)** for one
+active request when the second slot was configured but idle. Both test arms
+used microbatch 2,048; this is not a comparison of the launcher defaults.
 
-## v4.4 combined runtime
+The completed IU4 226,712-token, two-image replay finished without swap or
+OOM. Its minimum available RAM improved from **7.788 to 13.162 GiB** with
+the fenced single-copy input path at microbatch 8,192. This addresses the
+demonstrated replay workspace pressure; it is not a claim that all possible
+image-memory failures or an idle leak have been eliminated.
 
-Combined inference/runtime update; existing target, draft, PLE and projector files are unchanged.
+The rebuilt runtime also passed **eight image checks across IU4 and Orca,
+each in one- and two-slot modes** on Ciru. Orca's separate 226,712-token
+two-image replay completed with **13.490 GiB minimum available RAM**,
+no swap and no memory-guard event. This confirms the shared correction is
+installed and exercised for both variants; there is no matched Orca
+before/after memory-gain claim. See the [release check record](benchmarks/release-20261006/validation.json).
 
-- Integrates MTP shortlisting, duplicate-attention cleanup, separate graph arenas, incremental QSA caching, fused Q8 gate work, masked attention tile skipping, prompt branch reuse, attention occupancy, wide-context indexing and GDN vector/decay paths.
-- Uses stock TheRock10 compiler/math with pinned pwilkin HIP/ROCr (`7dda3ac6`). MTP stays default: IU4 depth 3, Orca depth 4. Kairic Boost is opt-in (`--kairic-boost` / `KAIRIC_BOOST=1`).
-- IU4 matched control → combined: 12.96K decode **37.79 → 44.53 tok/s**; 245760-token cold decode **7.62 → 21.14 tok/s**. Control already includes v4.3 + S5/D0; these are not plain-v4.3 comparisons.
-- IU4 HE0–9: **60.35 tok/s** with MTP3, **64.07 tok/s** with opt-in Boost; one short panel per setting. HA20: **19/20 full-score tasks**, **98.5/100 arithmetic mean**, **99/100 official weighted score**.
+See [multi-slot instructions, sweeps and machine/settings details](CONCURRENCY.md)
+for the 256K pool comparison, the separate 1/2/4-request diagnostic, optional
+GDN prefill results, memory budgets and validation limits. The historical
+IU4 measurements must not be read as Orca benchmark results. Existing v5.0
+and v5.0.1 benchmark and vision records below remain preserved.
 
-Full 256K serving defaults are retained. A separate target-only 512K prefill reached 604.65 tok/s; it does not establish 512K decode or quality. The v4.4.0 image+MTP failure is fixed in v4.4.1. Boost has no new HA20 qualification. Weight reconstruction error is unchanged.
+## Earlier vision update in v5.0.1
 
-[Qualification](docs/qualification/v4.4.0/QUALIFICATION.md) · [Build](docs/BUILD_LINUX.md)
+The v5.0.1 runtime enables image input by default with the matching
+projector and keeps MTP depth 3. It restores the QSA attention
+position-gap correction needed when image tokens are followed by
+speculative decoding. Model, draft and projector weights are unchanged.
+Install the new source package and rebuild the runtime; replacing only
+the launcher does not apply this fix. Existing v5 users can apply the
+[small source update](INSTALL.md#update-an-existing-v50-build) without
+rebuilding GPU kernels. Set `ENABLE_VISION=0` for a
+text-only launch. See [vision setup and validation](vision/README.md).
 
-## Previous v4.2.0 release
+On Radeon 8060S, Flash IU4 passed six functional checks with its
+default MTP depth 3: two separate image descriptions, image
+follow-up, two images in one request, a thinking-mode image request,
+and a text regression. These are synthetic-image smoke tests, not a
+broad vision benchmark. [Validation record](vision/validation-v5.0.1.json).
+The speed and memory tables below remain the v5.0 text-only measurements.
+Loading the vision projector adds encoder memory; those tables do not
+measure the new image-enabled default.
 
-V4.2 fixes selected-key attention on the small-batch fallback used by the v4.0/v4.1 engine. QSA3 remains enabled. The existing IU4 and Orca model files are reused, and long thinking and production reasoning settings are unchanged.
+## What changed in v5.0
 
-The correction passes 48/48 independent numerical checks and completed the captured medium-effort tool-use replay on both variants. On one matched IU4 workload, decode measured 16.9% lower while prefill remained within the 5% parity band. Both mirrored comparisons agreed, but the figure is workload-specific and includes changed draft acceptance; it is not a universal or Orca speed claim.
+The routed expert weights use a **4.5175-bits-per-weight compact indexed
+affine representation**. Its GGUF is 72,112,333,312 bytes (67.16 GiB),
+6.785 GiB smaller than the retained v4.4.1 GGUF. The runtime uses native
+packed IU4 for short expert operations and tiled BF16 decoding for matrix
+prefill. Projection, recurrent-state, SSD paging and long-context attention
+paths were also improved. IU4 here means four-bit integer dot-product arithmetic
+on the AMD GPU; it does not mean every model weight uses four-bit storage.
+These are complete-model gains: the large prefill improvements are **not
+established as IU4-specific**. The limits of the same-value IU8
+comparison are explained in [BENCHMARKS.md](BENCHMARKS.md#interpretation).
 
-We are investigating new GPU kernels and profiling the corrected attention path to increase performance further while preserving correctness.
+## How the model works
 
-[Patch notes and evidence](docs/qualification/v4.2.0/QUALIFICATION.md) | [Run and upgrade](docs/RUNNING.md) | [Build](docs/BUILD_LINUX.md) | [Release downloads](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v4.2.0)
+Qwen3.8 Flash is a mixture-of-experts model: each token activates a
+selected subset of expert networks. This release adapts its storage and
+inference kernels for 128-GiB AMD Strix Halo systems. It is intended for
+local chat, coding and tool-enabled applications. It is a quantized adaptation of the base model with a matching native runtime.
 
-## Previous v4.1.0 release
+The v5.0 expert representation stores four-bit weight codes plus compact
+indices into scale/offset tables and per-row multipliers. Including those
+extra values, the expert bank averages 4.5175 bits per weight. The rest
+of the model keeps mixed higher-precision formats; the entire model is
+not uniformly four-bit.
 
-V4.1 enables 32-worker bulk PLE loading for the existing IU4 and Orca packages, with a 16-worker override. Model files and GPU arithmetic are unchanged. Non-Orca native 16k prefill improved 4.44%; a quick matched MTP6 check found no observed TG loss and identical paired outputs. Orca uses the same runtime; no new Orca speed claim is made.
+For short expert operations, the runtime uses packed four-bit integer
+dot products, activation scaling and sums, and the matching affine
+corrections. For long prompt batches, it reconstructs only the temporary
+BF16 tiles needed by the GPU and reuses efficient batched expert matrix
+kernels. The resident expert weights remain compact. These two paths let
+the runtime use appropriate arithmetic for different workloads.
 
-[Run and upgrade](docs/RUNNING.md) | [Build](docs/BUILD_LINUX.md) | [v4.1 validation](docs/qualification/v4.1.0/QUALIFICATION.md) | [Release downloads](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v4.1.0)
+A separate large n-gram embedding table is paged from fast local NVMe
+through the three required `ple/` files. It is distinct from the compact
+routed experts. Multi-token prediction (MTP) uses the matching draft to
+propose tokens that the main model verifies; the default depth is three.
+Thinking can be enabled for reasoning or disabled for direct responses.
+The published task comparison below uses thinking off throughout.
 
-## Previous v4.0.0 release
+## Benchmarks at a glance
 
-The pwilkin Strix Halo reference stack now runs with the existing CIRU Qwen3.8 Flash IU4 weights and CIRUPLE1 files. On our Strix Halo host, five cold 30.8K coding prompts measured approximately **992–1,001 prompt tokens/s**; cold 65K recall measured **948 PP**. These are diagnostic serving observations, not a clean repeated before/after comparison. Model weights are unchanged.
+The complete [benchmark report](BENCHMARKS.md) contains **all six tested
+stacks**: CIRU v4.4.1, CIRU v5.0, HaloBox, Gufo, AgentionAI AP-Q5_K_XL,
+and Halogen. It includes all **18 prompt/depth points per stack through
+256,000 prior tokens**, each requesting 512 output tokens; full-prefix
+prefill; objective accuracy; resident memory; HumanEval 0–9 speed;
+the 15-case hard tool set; and two HermesAgent-20 passes. Download the
+[108-row speed CSV](speed-grid.csv) or [numerical results](benchmark-data.json).
 
-Credit for the original fast-prefill breakthrough goes to Halogen's creator, [Peonist.ai (`peonist-ai`)](https://github.com/peonist-ai/halogen-flash-server). [pwilkin](https://pwilkin.github.io/strix-halo/) reproduced that performance in an open-source llama.cpp implementation and published the kernels and configuration that CIRU adapted for these existing weights. CIRU's contribution is the compatibility integration and validation.
+### Historical v5.0 versus retained v4.4.1
 
-[Qualification and measured tradeoffs](docs/qualification/v4.0.0/QUALIFICATION.md) · [Run](docs/RUNNING.md) · [Build](docs/BUILD_LINUX.md) · [Model download](https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4/tree/v4.0.0)
+Same Ryzen AI Max+ 395 / Radeon 8060S, one slot, 262,144 context,
+F16 attention cache and MTP depth 3. Each request appends 2,048 new tokens
+to the cached depth, then generates 512. Each row is one observation;
+PP is prompt tok/s and TG is generation tok/s. TG uses the server's
+511 inter-token timing convention.
 
-The text profile uses context 262144, batch/microbatch 8192, F16 target/draft KV, MTP 6, one slot and a 1024 MiB prompt cache. It passed the 15-request serving panel, cache/recall checks and 261888-input+128-output capacity check. The original standalone coding score is 7/8; a uniform prompt-provided-import rescore of the same answers is 8/8. Both scopes and the original failure are retained. Decode gains are workload-dependent; full-context decode remains slow.
+| Prior depth | v4.4.1 PP | v5.0 PP | v4.4.1 TG | v5.0 TG |
+| --- | --- | --- | --- | --- |
+| 64,000 | 716.52 | 902.73 | 42.91 | 55.48 |
+| 256,000 | 453.78 | 675.56 | 32.58 | 51.39 |
 
-The historical v4.0 vision smoke used the existing projector with MTP disabled; current launcher behavior is documented in docs/RUNNING.md. The reused inference binaries and UI application assets passed UI, OpenAI chat and two image smoke checks; v4 updates the displayed UI version. The tested binary requires its recorded NixOS/ROCm10 dependencies. Other hosts should build this matching source. The included external UI matches the engine; keep the complete executable/shared-library set together.
+The full six-stack suite used the preceding v5.0 build. The release build
+above preserves the measured output token IDs and selected attention
+positions/scores, but the full quality panel and task suite were not rerun
+after its final long-context change.
 
-The integration retains the CIRUPLE1 pager, adds type-correct Q4_1 expert paths to the reference kernels and repairs MTP pending-state and external-draft parameter handling. Some reference optimizations remain unavailable for incompatible quantization types. The remaining gap to the author's different reference weights is not fully attributed.
+### Complete-suite quality, memory and behavior
 
-Thanks to [pwilkin](https://pwilkin.github.io/strix-halo/), Qwen, ggml-org, AMD/ROCm and all contributors credited in [provenance](docs/PROVENANCE.md), [upstream README](docs/UPSTREAM-README.md) and [third-party notices](THIRD_PARTY_NOTICES.md). Runtime code retains MIT/component licenses; model artifacts use Qwen Community License 1.0. Previous v3 qualification remains under docs/qualification/v3.0.0 and the v3.0.0 tag.
+The objective panel scores 2,048 next-token positions against the same
+BF16 full-vocabulary reference. Lower KL/PPL is better; higher top-1
+agreement is better. Native rows use their actual width-four path.
+Memory below is loaded GPU-visible unified-memory allocation, not total
+physical memory. These are different complete weights/runtime stacks.
 
-## HumanEval evidence
+| Stack | KL ↓ | Top-1 ↑ | Tail PPL ↓ | Ready GPU GiB |
+| --- | --- | --- | --- | --- |
+| CIRU v4.4.1 | 0.056117 | 93.750% | 2.05516 | 90.60 |
+| CIRU v5.0 | 0.050030 | 94.482% | 2.04505 | 87.20 |
+| HaloBox | 0.029182 | 96.143% | 2.03642 | 93.40 |
+| Gufo | 0.027966 | 96.436% | 2.03502 | 88.54 |
+| AgentionAI AP | 0.029135 | 96.436% | 2.02636 | 99.64 |
+| Halogen | 0.085905 | 92.773% | 2.07968 | 34.47† |
 
-[Full IU4 and Orca results, raw answers, timings and reproduction inputs](benchmarks/humaneval/2026-09-20/README.md): IU4 MTP6, Boost off, 4K context scored 95.73% HumanEval / 93.90% HumanEval+, with 66.46 decode tok/s and 5.07 seconds mean complete-request time. Thinking off, temperature 0, 1024-token cap; all 164 first answers retained. The report separates serial throughput from MTP throughput and documents cross-author comparison limits.
+† Halogen also had 78.16 GiB engine process PSS at 64K. GTT, RSS/PSS and
+system RAM overlap on unified memory and must not be added. See the
+[resident-memory details](BENCHMARKS.md#actual-resident-memory).
+The small quality panel does not establish long-context factual accuracy.
 
-## Community model fidelity benchmark
+| Stack | HumanEval speed TG | Hard tools /100 | Hermes pass 1 /100 | Hermes pass 2 /100 |
+| --- | --- | --- | --- | --- |
+| CIRU v4.4.1 | 60.77 | 67 | 89 | 88 |
+| CIRU v5.0 | 55.70 | 80 | 93 | 96 |
+| HaloBox | 45.84 | 63 | 90 | 96 |
+| Gufo | 58.75 | 73 | 95 | 95 |
+| AgentionAI AP | 46.42 | 73 | 91 | 91 |
+| Halogen | 69.28 | 70 | 93 | 92 |
 
-Test your Qwen3.8 Flash GGUF against the frozen BF16 reference and plot it beside CIRU IU4 and Agention Q4/Q5: [runner, dataset, Python chart source and instructions](benchmarks/fidelity/README.md). This is numerical fidelity, not HermesAgent-20.
+HumanEval 0–9 produced ten normal first responses on every stack and was
+used for speed, **not code pass@1**. v5.0 was slower on this short-generation
+check than v4.4.1. Hermes uses a fixed turn budget, and scores can coexist
+with incomplete runs; exact completion counts, harness corrections and
+client-error audits are in [the report](BENCHMARKS.md#thinking-off-task-checks).
+
+## Choose a version
+
+| File | Purpose | Bytes | SHA-256 |
+| --- | --- | ---: | --- |
+| `Qwen3.8-Flash-CIRU-STRIX-IU4.gguf` | Retained v4.4.1 | 79,397,818,720 | `c0ea11e4e24d0f909720b6c4e7462aa1e6fbf5e0f6acc796063f2aed4cf46ed0` |
+| `Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf` | New compact v5.0 | 72,112,333,312 | `745bf5b48ef5bd4ded36b3136cde3d35145b2ec5a3aabf03da0e5a792bc5a27d` |
+| `mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf` | Shared draft | 4,135,893,248 | `e6743badef1f2619fcb5addfa4344a2a3368cb75214735117e3af80c70b80642` |
+| `ple/ple.payload.bin` | Required SSD-paged embedding table | 52,429,053,952 | `687fc742efb6888c6cd7cf9c80cb4b1ac8cb4707b9409c206699c43363e239b2` |
+
+The other required embedding files are `ple.manifest.json` and
+`ple.scale.bf16`; the v5.0 model and installation files are listed in
+[`checksums-v5.5.0.sha256`](checksums-v5.5.0.sha256). The v4.4.1 file is retained
+unchanged for existing users and can be downloaded alone with its matching
+runtime.
+
+## Download and run v5.5.0
+
+Download the versioned GGUF, matching MTP draft, the three embedding-table
+files, the matching vision projector, and the complete source package. Existing users can reuse the same
+verified MTP and `ple/` files.
+
+```bash
+python3 -m venv .venv-hf
+.venv-hf/bin/pip install --upgrade huggingface_hub
+.venv-hf/bin/hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
+  --revision v5.5.0 \
+  Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf \
+  mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf \
+  ple/ple.payload.bin ple/ple.manifest.json ple/ple.scale.bf16 \
+  vision/mmproj-Qwen3.8-Flash-F16.mmproj \
+  source-tree-flash-v5.5.0.tar.gz run-server-v5.5.0.sh INSTALL.md CONCURRENCY.md checksums-v5.5.0.sha256 \
+  --local-dir ./flash-model
+cd flash-model
+sha256sum -c checksums-v5.5.0.sha256
+```
+
+On Ubuntu/Debian, install `python3-venv` first if needed. Continue with
+**[INSTALL.md](INSTALL.md)** for the complete source build and launch steps.
+The included source archive supplies the v5.0 inference code; the guide builds
+its pinned AMD SDK and custom HIP/ROCr dependencies from public sources.
+It also covers health checks, chat, function calling, thinking settings,
+image input, and common setup errors. No earlier CIRU installation or
+unpublished GitHub tag is required.
+
+Use 128 GiB unified memory and fast local NVMe for the measured configuration.
+The model files take about 120 GiB, with additional space needed for the SDK
+and build. The default local server uses one slot, 16,384-token batches and 8,192-token microbatches,
+262,144-token context, F16 attention cache, and MTP depth three.
+Performance was measured on NixOS; the Ubuntu/Debian guide is a source-build
+route, not a claim of equal measured performance on every distribution.
+
+The download includes the matching vision projector, and the v5.5.0
+launcher enables it by default. Text benchmark results do not measure image
+performance. See [vision/README.md](vision/README.md) for the image test scope.
+
+To keep using v4.4.1, follow its
+[retained model card and instructions](https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/b5c87a5f009fec986f94f2f6acd40f7c4046e591/README.md).
+Its GGUF, matching runtime packages, original launcher, and checksums remain
+available. The new model, source archive and launcher use separate filenames.
+
+## Historical v4 benchmark record
+
+Earlier 2026 builds of the retained v4 model recorded
+HumanEval **160/164**, HumanEval+ **155/164**, ARC-Challenge
+**1,143/1,172**, ToolEval Standard **115/138** and ToolEval Hard
+**23/30**. These were separate local runs with earlier runtime/settings,
+not reruns of the v5.0 model and not directly comparable to the small
+thinking-off checks above. The [release history](HISTORY.md) preserves v4.1–v4.4.1 changes,
+v3 comparisons, their caveats and immutable old instructions. Detailed
+quality history is in [BENCHMARKS.md](BENCHMARKS.md#historical-published-results).
+
+## Credits
+
+Qwen produced [Qwen3.8-Flash-Next](https://huggingface.co/Qwen/Qwen3.8-Flash-Next)
+and its FP8 source. CIRU builds on
+[llama.cpp/ggml](https://github.com/ggml-org/llama.cpp). The Strix Halo
+runtime draws on the work of
+[pwilkin](https://github.com/pwilkin/strix-halo) and the
+[Halogen project](https://github.com/peonist-ai/halogen-flash-server).
+Ported Q5 kernels and the expert prefill architecture use
+[Gufo](https://github.com/gufo-org/gufo) work; relevant source notices
+and its MIT terms are retained. The Qwen experimental/MTP work credits
+Ryan Monsurate; the chunked GDN gate incorporates a
+[HaloBox](https://github.com/halo-box/strix-llama.cpp) lead. AMD's
+ROCm/TheRock projects provide the toolchain. See [NOTICE.md](NOTICE.md)
+and the runtime source notices for provenance. This community release
+is independent of Qwen and AMD.

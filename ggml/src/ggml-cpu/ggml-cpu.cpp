@@ -451,7 +451,15 @@ static bool ggml_backend_cpu_device_supports_op(ggml_backend_dev_t dev, const st
                 op->type != GGML_TYPE_IQ1_S   &&
                 op->type != GGML_TYPE_IQ1_M; // missing type_traits.from_float
         case GGML_OP_MUL_MAT:
+            // C1 requires its auxiliary row scales and affine table, and has
+            // an experimental HIP implementation only. Reject CPU placement
+            // before ggml-cpu.c attempts a nonexistent vec_dot function.
+            if (src0->type == GGML_TYPE_C1_G16_K2560 || src0->type == GGML_TYPE_C1_G16_K640) {
+                return false;
+            }
             return src1->type == GGML_TYPE_F32 || src1->type == ggml_get_type_traits_cpu(src0->type)->vec_dot_type;
+        case GGML_OP_MUL_MAT_ID:
+            return src0->type != GGML_TYPE_C1_G16_K2560 && src0->type != GGML_TYPE_C1_G16_K640;
         case GGML_OP_SOFT_MAX_BACK: {
             if (op->src[0]->type != GGML_TYPE_F32 || op->src[1]->type != GGML_TYPE_F32) {
                 return false;

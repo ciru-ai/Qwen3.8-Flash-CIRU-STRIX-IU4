@@ -10,12 +10,15 @@
 #include "ngram-map.h"
 #include "ngram-mod.h"
 #include "sampling.h"
+#include "mtp_cost_policy.h"
 
 #include "../src/llama-ext.h" // staging API: llama_set_embeddings_nextn / llama_get_embeddings_nextn_ith (used by MTP)
 
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
 #include <iomanip>
 #include <map>
@@ -30,6 +33,31 @@
 
 #define SPEC_VOCAB_MAX_SIZE_DIFFERENCE  128
 #define SPEC_VOCAB_CHECK_START_TOKEN_ID 5
+
+static bool ciru_mtp_proposal_log_enabled() {
+    static const bool enabled = [] {
+        const char * value = std::getenv("CIRU_MTP_PROPOSAL_LOG");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return enabled;
+}
+
+static bool ciru_mtp_cost_policy_enabled() {
+    static const bool enabled = [] {
+        const char * value = std::getenv("CIRU_MTP_COST_POLICY");
+        return value != nullptr && std::strcmp(value, "1") == 0;
+    }();
+    return enabled;
+}
+
+static std::string ciru_mtp_json_float(float value) {
+    if (!std::isfinite(value)) {
+        return "null";
+    }
+    char buffer[32];
+    std::snprintf(buffer, sizeof(buffer), "%.9g", (double) value);
+    return buffer;
+}
 
 const std::map<std::string, common_speculative_type> common_speculative_type_from_name_map = {
     {"none",          COMMON_SPECULATIVE_TYPE_NONE},
@@ -1348,6 +1376,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
     int32_t n_mtp_layers  = 1;
     bool    is_mem_shared = false;   // gemma4
     bool    chain_heads   = false;   // derived in the ctor: n_mtp_layers > 1 && !is_mem_shared
+    bool    cost_policy_enabled = false;
 
     // Per-sequence cross-batch carryover: pair (h_p, x_{p+1}) at MTP pos p+1.
     // The last h-row of one process() call needs the first token of the NEXT
@@ -1380,8 +1409,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         GGML_ASSERT(ctx_tgt && ctx_dft && "MTP requires ctx_tgt and ctx_dft to be set");
 
         if (ciru_mtp_shortlist_size()) {
-            GGML_ASSERT(n_seq == 1 && "shortlist prototype requires one MTP slot");
-            SPC_INF("CIRU MTP shortlist enabled: %d / 248320 vocabulary rows; full target verification retained\n", ciru_mtp_shortlist_size());
+            if (n_seq == 1) {
+                SPC_INF("CIRU MTP shortlist enabled: %d / 248320 vocabulary rows; full target verification retained\n", ciru_mtp_shortlist_size());
+            } else {
+                SPC_INF("%s", "CIRU MTP uses the full draft vocabulary with multiple slots\n");
+            }
         }
         n_embd = llama_model_n_embd_out(llama_get_model(ctx_dft));
         GGML_ASSERT(n_embd == llama_model_n_embd_out(llama_get_model(ctx_tgt)) &&
@@ -1437,6 +1469,17 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         pending_state_enabled = std::strcmp(arch, "qwen4exp") == 0;
         is_mem_shared = llama_get_ctx_other(ctx_dft) == ctx_tgt && std::strcmp(arch, "gemma4-assistant") == 0;
         chain_heads   = n_mtp_layers > 1 && !is_mem_shared;
+        cost_policy_enabled = ciru_mtp_cost_policy_enabled();
+        if (cost_policy_enabled) {
+            if (n_seq != 1 || !pending_state_enabled || is_mem_shared || n_mtp_layers != 1 ||
+                    chain_heads || this->params.n_max < 1 ||
+                    this->params.n_max > ciru_mtp_cost_policy::kNativeMaxDepth || this->params.n_min > 1) {
+                throw std::invalid_argument("CIRU_MTP_COST_POLICY=1 requires one slot, qwen4exp, "
+                    "one nonshared MTP head, configured n_max in [1,7], and n_min<=1");
+            }
+            SPC_INF("CIRU MTP cost policy enabled: configured_n_max=%d, native_cap=%d\n",
+                    this->params.n_max, ciru_mtp_cost_policy::kNativeMaxDepth);
+        }
 
         if (chain_heads) {
             this->params.n_max = std::min(this->params.n_max, n_mtp_layers);
@@ -1693,6 +1736,11 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
         // keep track of which sequences are still drafting
         int n_drafting = 0;
         std::vector<bool> drafting(n_seq);
+        // Local to this draft invocation: no cross-cycle or checkpoint learning.
+        std::vector<ciru_mtp_cost_policy::ChainState> policy_states;
+        if (cost_policy_enabled) {
+            policy_states.resize(n_seq);
+        }
 
         const size_t row_bytes = (size_t) n_embd * sizeof(float);
 
@@ -1703,13 +1751,17 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
                 continue;
             }
 
+            if (cost_policy_enabled && ciru_mtp_cost_policy::effective_cap(params.n_max, dp.n_max) < 1) {
+                throw std::invalid_argument("CIRU_MTP_COST_POLICY effective cycle cap must be in [1,7]");
+            }
+
             if (pending_state_enabled && (int64_t) pending_h_pos[seq_id] + 1 != dp.pos0) {
                 SPC_ERR("Qwen4Exp MTP draft position %d has no matching pending hidden row\n", (int) dp.pos0);
                 dp.result->clear();
                 continue;
             }
 
-            if (ciru_mtp_shortlist_size()) {
+            if (n_seq == 1 && ciru_mtp_shortlist_size()) {
                 ciru_mtp_shortlist_update(llama_get_model(ctx_dft),
                     llama_get_logits_ith(params.ctx_tgt, shortlist_logits_row),
                     llama_vocab_n_tokens(llama_model_get_vocab(llama_get_model(params.ctx_tgt))), dp.id_last);
@@ -1769,6 +1821,7 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
                 const float * h_row = llama_get_embeddings_nextn_ith(ctx_dft, i_last[seq_id]);
 
                 const auto * cur_p = common_sampler_get_candidates(smpl, true);
+                const float proposal_confidence = cur_p->data[0].p;
 
                 for (int k = 0; k < std::min(3, (int) cur_p->size); ++k) {
                     SPC_DBG(" - seq_id %d, draft candidate %3d, pos %3d: %6d (%8.3f) '%s'\n",
@@ -1776,11 +1829,27 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
                             common_token_to_piece(ctx_dft, cur_p->data[k].id).c_str());
                 }
 
+                // One record per sampled proposal, including p_min rejections.
+                // Record the candidate state before accept(), result or drafting changes it.
+                auto & dp = dparams.at(seq_id);
+                if (ciru_mtp_proposal_log_enabled()) {
+                    const std::string top_p = ciru_mtp_json_float(proposal_confidence);
+                    const std::string runner_up_p = cur_p->size > 1 ?
+                        ciru_mtp_json_float(cur_p->data[1].p) : "null";
+                    const std::string logit_gap = cur_p->size > 1 ?
+                        ciru_mtp_json_float(cur_p->data[0].logit - cur_p->data[1].logit) : "null";
+                    const std::string p_min = ciru_mtp_json_float(params.p_min);
+                    const char * decision = proposal_confidence < params.p_min ? "rejected_pmin" : "kept";
+                    SPC_INF("CIRU_MTP_PROPOSAL_JSON {\"schema\":\"ciru.mtp.proposal.v1\",\"seq_id\":%d,\"pos0\":%d,\"step\":%d,\"top_p\":%s,\"runner_up_p\":%s,\"top_minus_runner_up_logit\":%s,\"configured_n_max\":%d,\"cycle_n_max\":%d,\"p_min\":%s,\"decision\":\"%s\"}\n",
+                            (int) seq_id, (int) dp.pos0, i, top_p.c_str(), runner_up_p.c_str(),
+                            logit_gap.c_str(), params.n_max, dp.n_max, p_min.c_str(), decision);
+                }
+
                 // add drafted token for each sequence
                 const llama_token id = cur_p->data[0].id;
 
                 // only collect very high-confidence draft tokens
-                if (cur_p->data[0].p < params.p_min) {
+                if (proposal_confidence < params.p_min) {
                     drafting[seq_id] = false;
                     n_drafting--;
 
@@ -1789,12 +1858,36 @@ struct common_speculative_impl_draft_mtp : public common_speculative_impl {
 
                 common_sampler_accept(smpl, id, true);
 
-                auto & dp = dparams.at(seq_id);
                 auto & result = *dp.result;
 
                 result.push_back(id);
 
-                if (params.n_max <= (int) result.size()) {
+                bool stop_for_cost = false;
+                if (cost_policy_enabled) {
+                    const int depth = (int) result.size();
+                    const int cap = ciru_mtp_cost_policy::effective_cap(params.n_max, dp.n_max);
+                    auto decision = ciru_mtp_cost_policy::after_kept_proposal(
+                        policy_states[seq_id], proposal_confidence, depth, cap);
+                    if (!decision.valid) {
+                        throw std::runtime_error("CIRU_MTP_COST_POLICY state/cap invalid after kept proposal");
+                    }
+                    stop_for_cost = decision.stop;
+                    if (ciru_mtp_proposal_log_enabled()) {
+                        SPC_INF("CIRU_MTP_POLICY_JSON {\"schema\":\"ciru.mtp.policy.v1\",\"seq_id\":%d,\"pos0\":%d,\"depth\":%d,\"cap\":%d,\"calibrated_p\":%.9g,\"prefix_survival\":%.9g,\"expected_committed\":%.9g,\"current_score\":%.9g,\"best_depth\":%d,\"best_score\":%.9g,\"stop\":%s}\n",
+                                (int) seq_id, (int) dp.pos0, depth, cap, decision.calibrated_p,
+                                decision.prefix_survival, decision.expected_committed,
+                                decision.current_score, decision.best_depth, decision.best_score,
+                                decision.stop ? "true" : "false");
+                    }
+                }
+
+                // Honor the caller's current cycle budget before another draft
+                // decode. Truncating in common_speculative_draft() afterward
+                // preserves the prefix but cannot recover the wasted GPU work.
+                if (params.n_max <= (int) result.size() ||
+                    (dp.n_max > 0 && dp.n_max <= (int) result.size()) ||
+                    (cost_policy_enabled &&
+                     ((int) result.size() >= ciru_mtp_cost_policy::kNativeMaxDepth || stop_for_cost))) {
                     drafting[seq_id] = false;
                     n_drafting--;
                     continue;

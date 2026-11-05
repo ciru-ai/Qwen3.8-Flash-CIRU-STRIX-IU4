@@ -1,3 +1,58 @@
+// Indexer projections decide a discrete top-k selection. Short-batch F16 GEMM
+// and GEMV can use different arithmetic, changing the selected blocks during
+// speculative verification. Keep these small projections on the single-token
+// path, including LoRA supplied by the caller; leave large prefills batched.
+template <typename Project>
+static ggml_tensor * qwen4exp_indexer_projection(ggml_context * ctx, ggml_tensor * input, Project project) {
+    const int64_t tokens = input->ne[1];
+    if (tokens <= 1 || tokens > 32 || input->ne[2] != 1 || input->ne[3] != 1) {
+        return project(input);
+    }
+    ggml_tensor * result = nullptr;
+    for (int64_t token = 0; token < tokens; ++token) {
+        auto * column = ggml_view_2d(ctx, input, input->ne[0], 1, input->nb[1], token*input->nb[1]);
+        auto * output = project(column);
+        result = result ? ggml_concat(ctx, result, output, 1) : output;
+    }
+    return result;
+}
+
+// Keep short indexer dot products independent of the number of active streams
+// and verification queries. Batched GEMM can round a near-tied block score
+// differently from a single-query call before the discrete selection.
+static ggml_tensor * qwen4exp_indexer_scores(
+        ggml_context * ctx, ggml_tensor * keys, ggml_tensor * queries, int64_t heads) {
+    GGML_ASSERT(queries->ne[1] % heads == 0 && keys->ne[2] == queries->ne[2]);
+    const int64_t count = queries->ne[1]/heads;
+    if (count > 32 || queries->ne[3] != 1 || keys->ne[3] != 1) {
+        return ggml_mul_mat(ctx, keys, queries);
+    }
+    ggml_tensor * result = nullptr;
+    for (int64_t stream = 0; stream < queries->ne[2]; ++stream) {
+        auto * k = ggml_view_2d(ctx, keys, keys->ne[0], keys->ne[1], keys->nb[1], stream*keys->nb[2]);
+        ggml_tensor * columns = nullptr;
+        for (int64_t token = 0; token < count; ++token) {
+            auto * q = ggml_view_2d(ctx, queries, queries->ne[0], heads, queries->nb[1],
+                    stream*queries->nb[2] + token*heads*queries->nb[1]);
+            auto * score = ggml_mul_mat(ctx, k, q);
+            columns = columns ? ggml_concat(ctx, columns, score, 1) : score;
+        }
+        result = result ? ggml_concat(ctx, result, columns, 2) : columns;
+    }
+    return result;
+}
+
+// TOP_K returns an unordered set. Direct indexed attention consumes that order,
+// so canonicalize the selected cell IDs before its floating-point reduction.
+// This only permutes the selected cells; their scores and visibility are unchanged.
+static ggml_tensor * qwen4exp_order_selected_cells(ggml_context * ctx, ggml_tensor * cells) {
+    GGML_ASSERT(cells->type == GGML_TYPE_I32 && ggml_is_contiguous(cells) && cells->ne[3] == 1);
+    const int64_t width = cells->ne[0], queries = cells->ne[1], streams = cells->ne[2];
+    auto * order = ggml_argsort(ctx, ggml_cast(ctx, cells, GGML_TYPE_F32), GGML_SORT_ORDER_ASC);
+    auto * rows = ggml_reshape_4d(ctx, cells, 1, width, queries, streams);
+    return ggml_reshape_3d(ctx, ggml_get_rows(ctx, rows, order), width, queries, streams);
+}
+
 static ggml_tensor * qwen4exp_apply_compact_visibility(ggml_context *ctx,ggml_tensor *score,
         ggml_tensor *limits,int64_t blocks,int64_t first,int64_t queries) {
     GGML_ASSERT(limits->type==GGML_TYPE_I32 && score->ne[0]<=blocks && score->ne[1]==queries && score->ne[2]==1);

@@ -352,6 +352,13 @@ struct qwen4exp_ple_pager::impl {
 #endif
 
     explicit impl(const fs::path & payload_path, uint64_t cache_bytes, float scale_f32) : scale_f32(scale_f32) {
+        // Every possible FP8 payload byte has one exact graph-visible BF16
+        // result for this pager's immutable BF16 scale. Build it using the
+        // original arithmetic so the opt-in bulk path changes only lookup.
+        for (size_t code = 0; code < decoded_lut.size(); ++code) {
+            const float value = qwen4exp_ple_pager::decode_e4m3fn(static_cast<uint8_t>(code));
+            decoded_lut[code] = std::isnan(value) ? value : bf16_to_f32(f32_to_bf16_rne(value * scale_f32));
+        }
 #ifdef __linux__
         const char * const io_workers = std::getenv("GGML_QWEN4EXP_PLE_IO_WORKERS");
         if (io_workers != nullptr) {
@@ -837,21 +844,55 @@ struct qwen4exp_ple_pager::impl {
         }
         const auto commit_done = std::chrono::steady_clock::now();
 
-        for (size_t i = 0; i < row_count; ++i) {
-            const auto & planned = page_plan[row_page[i]];
-            const unsigned char * const encoded = planned.data.data() +
-                    row_slot[i] * qwen4exp_ple_geometry::row_bytes;
-            float * const decoded = output + i * qwen4exp_ple_geometry::row_bytes;
-            for (size_t j = 0; j < qwen4exp_ple_geometry::row_bytes; ++j) {
-                const float value = qwen4exp_ple_pager::decode_e4m3fn(encoded[j]);
-                if (std::isnan(value)) {
-                    fail("FP8 E4M3FN NaN code at row " + std::to_string(row_ids[i]) +
-                            ", column " + std::to_string(j));
+        const char * const lut_env = std::getenv("CIRU_PLE_DECODE_LUT");
+        const bool use_lut = lut_env && lut_env[0] == '1' && lut_env[1] == '\0';
+        if (use_lut) {
+            for (size_t i = 0; i < row_count; ++i) {
+                const auto & planned = page_plan[row_page[i]];
+                const unsigned char * const encoded = planned.data.data() +
+                        row_slot[i] * qwen4exp_ple_geometry::row_bytes;
+                float * const decoded = output + i * qwen4exp_ple_geometry::row_bytes;
+                for (size_t j = 0; j < qwen4exp_ple_geometry::row_bytes; ++j) {
+                    const float value = decoded_lut[encoded[j]];
+                    if (std::isnan(value)) {
+                        fail("FP8 E4M3FN NaN code at row " + std::to_string(row_ids[i]) +
+                                ", column " + std::to_string(j));
+                    }
+                    decoded[j] = value;
                 }
-                decoded[j] = bf16_to_f32(f32_to_bf16_rne(value * scale_f32));
+            }
+        } else {
+            for (size_t i = 0; i < row_count; ++i) {
+                const auto & planned = page_plan[row_page[i]];
+                const unsigned char * const encoded = planned.data.data() +
+                        row_slot[i] * qwen4exp_ple_geometry::row_bytes;
+                float * const decoded = output + i * qwen4exp_ple_geometry::row_bytes;
+                for (size_t j = 0; j < qwen4exp_ple_geometry::row_bytes; ++j) {
+                    const float value = qwen4exp_ple_pager::decode_e4m3fn(encoded[j]);
+                    if (std::isnan(value)) {
+                        fail("FP8 E4M3FN NaN code at row " + std::to_string(row_ids[i]) +
+                                ", column " + std::to_string(j));
+                    }
+                    decoded[j] = bf16_to_f32(f32_to_bf16_rne(value * scale_f32));
+                }
             }
         }
         const auto decode_done = std::chrono::steady_clock::now();
+
+        if (row_count >= 200000) {
+            const auto elapsed_ms = [](auto begin, auto end) {
+                return std::chrono::duration<double, std::milli>(end - begin).count();
+            };
+            std::fprintf(stderr,
+                    "CIRU_PLE_BULK_PHASE rows=%zu unique=%zu misses=%zu lut=%d "
+                    "plan=%.3f probe=%.3f io=%.3f validate=%.3f commit=%.3f "
+                    "decode=%.3f total=%.3f ms\n",
+                    row_count, page_plan.size(), miss_count, (int) use_lut,
+                    elapsed_ms(total_started, plan_done), elapsed_ms(plan_done, probe_done),
+                    elapsed_ms(probe_done, io_done), elapsed_ms(io_done, validate_done),
+                    elapsed_ms(validate_done, commit_done), elapsed_ms(commit_done, decode_done),
+                    elapsed_ms(total_started, decode_done));
+        }
 
         // H69A targeted diagnostic: emit exactly one phase record for the
         // frozen PP512 gather. This is deliberately not general telemetry.
@@ -924,6 +965,7 @@ struct qwen4exp_ple_pager::impl {
     std::shared_ptr<qwen4exp_ple_request::state> queued_request;
     std::shared_ptr<qwen4exp_ple_request::state> active_request;
     float scale_f32 = 0.0f;
+    std::array<float, 256> decoded_lut = {};
     size_t cache_capacity_pages = 0;
     size_t clock_hand = 0;
     std::vector<std::unique_ptr<cache_slot>> slots;

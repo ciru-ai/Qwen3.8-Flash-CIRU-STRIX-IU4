@@ -12089,11 +12089,17 @@ void ggml_compute_forward_lightning_indexer(
     const ggml_tensor * k = dst->src[1];
     const ggml_tensor * w = dst->src[2]; // weights
     const ggml_tensor * m = dst->src[3]; // mask
+    const ggml_tensor * limits = dst->src[4];
+    const int32_t full_blocks = ggml_get_op_params_i32(dst, 0);
+    const int32_t first = ggml_get_op_params_i32(dst, 1);
 
     GGML_ASSERT(dst->type  == GGML_TYPE_F32);
     GGML_ASSERT(   q->type == GGML_TYPE_F32);
     GGML_ASSERT(   w->type == GGML_TYPE_F32);
     GGML_ASSERT(   m->type == GGML_TYPE_F16);
+    GGML_ASSERT(!limits || (limits->type == GGML_TYPE_I32 && ggml_is_contiguous(limits) && q->ne[3] == 1 &&
+                full_blocks >= k->ne[2] && first >= 0 &&
+                (int64_t) full_blocks + first + q->ne[2] <= limits->ne[0]));
 
     GGML_TENSOR_LOCALS(int64_t, neq,  q, ne)
     GGML_TENSOR_LOCALS(size_t,  nbq,  q, nb)
@@ -12157,7 +12163,12 @@ void ggml_compute_forward_lightning_indexer(
                     score += MAX(qk, 0.0f) * w_row[h];
                 }
                 // apply mask
-                dst_row[ik] = score + GGML_CPU_FP16_TO_FP32(m_row[ik]);
+                if (limits) {
+                    const int32_t * compact = (const int32_t *) limits->data;
+                    dst_row[ik] = score + (compact[full_blocks + first + t] > compact[ik] ? 0.0f : -INFINITY);
+                } else {
+                    dst_row[ik] = score + GGML_CPU_FP16_TO_FP32(m_row[ik]);
+                }
             }
         }
     }

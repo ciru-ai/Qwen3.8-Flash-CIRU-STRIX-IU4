@@ -40,6 +40,36 @@ void llama_model_qwen35moe::load_arch_tensors(llama_model_loader & ml) {
     const int trunk_flags = mtp_only ? TENSOR_NOT_REQUIRED : 0;
     int mtp_flags = !ml.load_mtp ? TENSOR_SKIP : 0;
 
+    auto load_c1_aux = [&](llama_layer & layer, int il, int flags, int64_t n_ff_exp) {
+        auto load_one = [&](ggml_tensor * weight, ggml_tensor *& rows, ggml_tensor *& table,
+                            llm_tensor tensor_name, int64_t output_rows, ggml_type expected_type) {
+            const auto rows_name = tn(tensor_name, "c1_rows", il);
+            const auto table_name = tn(tensor_name, "c1_table", il);
+            const bool has_rows = ml.get_weight(rows_name.str().c_str()) != nullptr;
+            const bool has_table = ml.get_weight(table_name.str().c_str()) != nullptr;
+            if (!has_rows && !has_table && (!weight || weight->type != expected_type)) {
+                return;
+            }
+            if (!has_rows || !has_table || !weight || weight->type != expected_type) {
+                throw std::runtime_error("C1 aux/weight mismatch for " + rows_name.str() +
+                    ": rows=" + std::to_string(has_rows) + " table=" + std::to_string(has_table) +
+                    " weight_type=" + std::to_string(weight ? int(weight->type) : -1) +
+                    " expected_type=" + std::to_string(int(expected_type)));
+            }
+            rows = create_tensor(rows_name, {output_rows, n_expert}, flags);
+            table = create_tensor(table_name, {2, 256, n_expert}, flags);
+            if (!(flags & TENSOR_SKIP) && (!rows || !table || rows->type != GGML_TYPE_F16 || table->type != GGML_TYPE_F16)) {
+                throw std::runtime_error("C1 routed weight requires FP16 row-scale and table tensors");
+            }
+        };
+        load_one(layer.ffn_gate_exps, layer.ffn_gate_exps_c1_rows, layer.ffn_gate_exps_c1_table,
+                 LLM_TENSOR_FFN_GATE_EXPS, n_ff_exp, GGML_TYPE_C1_G16_K2560);
+        load_one(layer.ffn_up_exps, layer.ffn_up_exps_c1_rows, layer.ffn_up_exps_c1_table,
+                 LLM_TENSOR_FFN_UP_EXPS, n_ff_exp, GGML_TYPE_C1_G16_K2560);
+        load_one(layer.ffn_down_exps, layer.ffn_down_exps_c1_rows, layer.ffn_down_exps_c1_table,
+                 LLM_TENSOR_FFN_DOWN_EXPS, n_embd, GGML_TYPE_C1_G16_K640);
+    };
+
     tok_embd = create_tensor(tn(LLM_TENSOR_TOKEN_EMBD, "weight"), { n_embd, n_vocab }, 0);
 
     // output
@@ -95,6 +125,7 @@ void llama_model_qwen35moe::load_arch_tensors(llama_model_loader & ml) {
         layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  "weight", il), { n_embd, n_expert }, flags);
         layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il), { n_ff_exp, n_embd, n_expert }, flags);
         create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, flags);
+        load_c1_aux(layer, il, flags, n_ff_exp);
 
         // Shared experts
         layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, "weight", il), { n_embd }, flags);
@@ -122,6 +153,7 @@ void llama_model_qwen35moe::load_arch_tensors(llama_model_loader & ml) {
         layer.ffn_gate_inp  = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP,  "weight", il), { n_embd, n_expert }, mtp_flags);
         layer.ffn_down_exps = create_tensor(tn(LLM_TENSOR_FFN_DOWN_EXPS, "weight", il), { n_ff_exp, n_embd, n_expert }, mtp_flags);
         create_tensor_gate_up_exps(layer, il, n_embd, n_ff_exp, n_expert, mtp_flags);
+        load_c1_aux(layer, il, mtp_flags, n_ff_exp);
 
         // Shared experts
         layer.ffn_gate_inp_shexp = create_tensor(tn(LLM_TENSOR_FFN_GATE_INP_SHEXP, "weight", il), { n_embd }, mtp_flags);
@@ -509,7 +541,14 @@ ggml_tensor * llama_model_qwen35moe::graph::build_layer_ffn(ggml_tensor * cur, c
             nullptr, model.layers[il].ffn_gate_up_exps,
             model.layers[il].ffn_up_exps_s,
             model.layers[il].ffn_gate_exps_s,
-            model.layers[il].ffn_down_exps_s);
+            model.layers[il].ffn_down_exps_s,
+            nullptr,
+            model.layers[il].ffn_gate_exps_c1_rows,
+            model.layers[il].ffn_gate_exps_c1_table,
+            model.layers[il].ffn_up_exps_c1_rows,
+            model.layers[il].ffn_up_exps_c1_table,
+            model.layers[il].ffn_down_exps_c1_rows,
+            model.layers[il].ffn_down_exps_c1_table);
     cb(moe_out, "ffn_moe_out", il);
 
     // Add shared experts if present - following Qwen3Next reference implementation
@@ -689,7 +728,14 @@ llama_model_qwen35moe::graph_mtp::graph_mtp(const llama_model & model, const llm
             nullptr, layer.ffn_gate_up_exps,
             layer.ffn_up_exps_s,
             layer.ffn_gate_exps_s,
-            layer.ffn_down_exps_s);
+            layer.ffn_down_exps_s,
+            nullptr,
+            layer.ffn_gate_exps_c1_rows,
+            layer.ffn_gate_exps_c1_table,
+            layer.ffn_up_exps_c1_rows,
+            layer.ffn_up_exps_c1_table,
+            layer.ffn_down_exps_c1_rows,
+            layer.ffn_down_exps_c1_table);
     cb(moe_out, "mtp_ffn_moe_out", il);
 
     if (layer.ffn_up_shexp != nullptr) {

@@ -1,5 +1,7 @@
 #include "ple-conv.cuh"
 #include "unary.cuh"
+#include <atomic>
+#include <cstdio>
 #include <cstdlib>
 static bool ple_conv_enabled() { static const int v = getenv("LLAMA_PLE_CONV") ? atoi(getenv("LLAMA_PLE_CONV")) : 0; return v != 0; }
 #if defined(__HIP_PLATFORM_AMD__)
@@ -19,15 +21,19 @@ static __global__ void ple_concat_tail(const float * __restrict__ state, const f
     out[(size_t) c * row_stride + j] = (j < H) ? state[c * H + j] : x[(size_t) (j - H) * C + c];
 }
 
-template <int K, int DIL, int TT>
+template <int K, int DIL, int TT, bool BF16>
 static __global__ void __launch_bounds__(256) ple_conv_kernel(const float * __restrict__ state, const float * __restrict__ x,
-        const half * __restrict__ w, float * __restrict__ y, const int C, const int T) {
+        const uint16_t * __restrict__ w, float * __restrict__ y, const int C, const int T) {
     constexpr int H = (K - 1) * DIL, WIN = H + 1;
     const int c = blockIdx.x * 256 + threadIdx.x, t0 = blockIdx.y * TT;
     if (c >= C) return;
     float wr[K];
 #pragma unroll
-    for (int k = 0; k < K; ++k) wr[k] = __half2float(w[c * K + k]);
+    for (int k = 0; k < K; ++k) {
+        const uint16_t bits = w[c * K + k];
+        if constexpr (BF16) wr[k] = __uint_as_float((uint32_t) bits << 16);
+        else wr[k] = (float) __builtin_bit_cast(_Float16, bits);
+    }
     float win[WIN];
     auto ld = [&](int jp) -> float { return (jp < H) ? state[c * H + jp] : ((jp - H) < T ? x[(size_t) (jp - H) * C + c] : 0.0f); };
 #pragma unroll
@@ -85,7 +91,7 @@ static bool ple_conv_check(const ggml_cgraph * cgraph, int i, ggml_cuda_ple_conv
             if (!src || src->op != GGML_OP_CONT) return false;
             const ggml_tensor * wv = src->src[0]; if (!wv || wv->op != GGML_OP_VIEW || !wv->view_src) return false;
             const ggml_tensor * W = wv->view_src;
-            if (W->type != GGML_TYPE_F16 || W->ne[0] != 4 || W->ne[1] != C || !ggml_is_contiguous(W)) return false;
+            if ((W->type != GGML_TYPE_F16 && W->type != GGML_TYPE_BF16) || W->ne[0] != 4 || W->ne[1] != C || !ggml_is_contiguous(W)) return false;
             if (wv->view_offs != (size_t) k * sizeof(ggml_fp16_t) || wv->nb[1] != W->nb[1]) return false;
             if (wroot && wroot != W) return false; wroot = W;
             if (k == 0) chain = t; else { /* add comes next */ }
@@ -127,7 +133,19 @@ void ggml_cuda_ple_conv_write_tail(ggml_backend_cuda_context & ctx, const ggml_c
 void ggml_cuda_ple_conv_direct(ggml_backend_cuda_context & ctx, const ggml_cuda_ple_conv_match & m) {
     constexpr int TT = 128;
     dim3 grid((unsigned) (m.C / 256), (unsigned) ((m.T + TT - 1) / TT));
-    ple_conv_kernel<4, 3, TT><<<grid, 256, 0, ctx.stream()>>>((const float *) m.state->data, (const float *) m.x->data,
-        (const half *) m.w->data, (float *) m.out->data, (int) m.C, (int) m.T);
+    if (m.w->type == GGML_TYPE_BF16) {
+        ple_conv_kernel<4, 3, TT, true><<<grid, 256, 0, ctx.stream()>>>((const float *) m.state->data, (const float *) m.x->data,
+            (const uint16_t *) m.w->data, (float *) m.out->data, (int) m.C, (int) m.T);
+    } else {
+        ple_conv_kernel<4, 3, TT, false><<<grid, 256, 0, ctx.stream()>>>((const float *) m.state->data, (const float *) m.x->data,
+            (const uint16_t *) m.w->data, (float *) m.out->data, (int) m.C, (int) m.T);
+    }
+    if (getenv("CIRU_PLE_CONV_LOG")) {
+        static std::atomic<int> logged{0};
+        if (logged.fetch_add(1, std::memory_order_relaxed) < 12) {
+            fprintf(stderr, "CIRU_PLE_CONV C=%lld T=%lld W=%s\n", (long long) m.C, (long long) m.T,
+                    ggml_type_name(m.w->type));
+        }
+    }
     CUDA_CHECK(cudaGetLastError());
 }

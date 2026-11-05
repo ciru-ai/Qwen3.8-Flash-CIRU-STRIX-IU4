@@ -82,6 +82,37 @@ static __global__ void moe_weighted_reduction_bf16_v4(const uint16_t * __restric
     *(float4 *)(dst + token * n_embd + col4) = sum;
 }
 
+static __global__ void moe_weighted_reduction_bf16_v4_merge(const uint16_t * __restrict__ experts,
+                                                      const float * __restrict__ expert_scale,
+                                                      const float * __restrict__ weights,
+                                                      float * __restrict__ dst,
+                                                      const float * __restrict__ merge,
+                                                      const int64_t n_embd,
+                                                      const int     n_expert_used) {
+    const int64_t token = blockIdx.x;
+    const int64_t col4  = ((int64_t) blockIdx.y * blockDim.x + threadIdx.x) * 4;
+    if (col4 >= n_embd) return;
+    const uint64_t first_row = (uint64_t) token * n_expert_used;
+    const float first_scale = expert_scale != nullptr ? expert_scale[first_row] : 1.0f;
+    const float w0 = weights[first_row];
+    const ushort4 h0 = *(const ushort4 *)(experts + first_row * n_embd + col4);
+    float4 sum; sum.x = (moe_bf2f(h0.x) * first_scale) * w0; sum.y = (moe_bf2f(h0.y) * first_scale) * w0;
+    sum.z = (moe_bf2f(h0.z) * first_scale) * w0; sum.w = (moe_bf2f(h0.w) * first_scale) * w0;
+    for (int expert = 1; expert < n_expert_used; ++expert) {
+        const uint64_t row = first_row + expert;
+        const float scale = expert_scale != nullptr ? expert_scale[row] : 1.0f;
+        const float w = weights[row];
+        const ushort4 h = *(const ushort4 *)(experts + row * n_embd + col4);
+        sum.x += (moe_bf2f(h.x) * scale) * w; sum.y += (moe_bf2f(h.y) * scale) * w;
+        sum.z += (moe_bf2f(h.z) * scale) * w; sum.w += (moe_bf2f(h.w) * scale) * w;
+    }
+    const float4 m = *(const float4 *)(merge + token * n_embd + col4);
+    // The unfused ADD rounds after the routed reduction.
+    sum.x = __fadd_rn(sum.x, m.x); sum.y = __fadd_rn(sum.y, m.y);
+    sum.z = __fadd_rn(sum.z, m.z); sum.w = __fadd_rn(sum.w, m.w);
+    *(float4 *)(dst + token * n_embd + col4) = sum;
+}
+
 __device__ __forceinline__ uint16_t moe_f2bf(const float f) { uint32_t u = __float_as_uint(f); u += 0x7fffu + ((u >> 16) & 1u); return (uint16_t)(u >> 16); }
 
 // BF16 in, BF16 out: the only consumer is the fused HC combine, which reads block_out as BF16
@@ -194,7 +225,18 @@ void ggml_cuda_op_moe_weighted_reduction(ggml_backend_cuda_context & ctx,
         static unsigned h = 0; if (h++ < 2) fprintf(stderr, "MOE_RED bf16 out (in=%s, merge=%d): n_embd=%lld tokens=%lld\n", ein ? "bf16" : "f32", (int) (mrg != nullptr), (long long) n_embd, (long long) n_tokens);
         return;
     }
-    GGML_ASSERT(merge == nullptr && "shared-expert merge is only fused on the BF16 output path");
+    if (merge) {
+        GGML_ASSERT(ggml_cuda_mmb_down16() && ggml_cuda_mmb_is_bf16_only(experts));
+        GGML_ASSERT(n_embd % 4 == 0 && ggml_is_contiguous(merge) && ggml_are_same_shape(merge, dst));
+        GGML_ASSERT(((uintptr_t) experts->data % 16) == 0 && ((uintptr_t) dst->data % 16) == 0 && ((uintptr_t) merge->data % 16) == 0);
+        constexpr int threads = 256;
+        const dim3 blocks(n_tokens, (n_embd / 4 + threads - 1) / threads, 1);
+        moe_weighted_reduction_bf16_v4_merge<<<blocks, threads, 0, stream>>>((const uint16_t *) experts->data,
+            expert_scale ? (const float *) expert_scale->data : nullptr, (const float *) weights->data,
+            (float *) dst->data, mrg, n_embd, (int) n_expert_used);
+        CUDA_CHECK(cudaGetLastError());
+        return;
+    }
     if (ggml_cuda_mmb_down16() && ggml_cuda_mmb_is_bf16_only(experts)) {
         GGML_ASSERT(n_embd % 4 == 0 && ((uintptr_t) experts->data % 16) == 0 && ((uintptr_t) dst->data % 16) == 0);
         constexpr int threads = 256;

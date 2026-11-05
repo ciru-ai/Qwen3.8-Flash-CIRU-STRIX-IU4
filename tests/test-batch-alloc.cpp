@@ -650,6 +650,48 @@ static void test_mrope(testing & t) {
     });
 }
 
+static void test_single_sequence_set(testing & t) {
+    llama_vocab vocab;
+    for (bool coupled : {false, true}) {
+        batch_builder bb;
+        if (coupled) {
+            for (int i=0; i<3; ++i) { bb.add(i, {0,1}, true); }
+        }
+        const int offset = coupled ? 3 : 0;
+        const int lengths[] = {11,6,9};
+        for (int s=0; s<3; ++s) {
+            for (int i=0; i<lengths[s]; ++i) {
+                bb.add(i+(s<2 ? offset : 0), {s}, true);
+            }
+        }
+        llama_batch_allocr ba(1);
+        t.assert_true(ba.init(bb.make(),vocab,nullptr,bb.n_embd,4,true));
+        std::vector<int> seen(bb.pos.size(),0);
+        std::map<int,std::vector<std::vector<int>>> pieces;
+        while (true) {
+            const auto u=ba.split_equal(8,false,4,1);
+            if (!u.n_tokens) { break; }
+            t.assert_equal(1u,u.n_seqs);
+            std::vector<int> positions;
+            for (uint32_t i=0;i<u.n_tokens;++i) {
+                t.assert_equal(u.seq_id[0][0],u.seq_id[i][0]);
+                const int original=u.data->batch_idxs[i];
+                t.assert_equal(0,seen[original]++);
+                t.assert_equal(bb.pos[original],u.pos[i]);
+                positions.push_back(u.pos[i]);
+            }
+            if (u.n_seq_id[0]==1) { pieces[u.seq_id[0][0]].push_back(positions); }
+        }
+        for (int n:seen) { t.assert_equal(1,n); }
+        t.assert_equal((uint32_t)bb.pos.size(),ba.get_n_used());
+        for (int s=0;s<3;++s) {
+            const auto & tail=pieces[s].back();
+            t.assert_true(tail.size()>=4);
+            t.assert_equal(lengths[s]-1+(s<2 ? offset : 0),tail.back());
+        }
+    }
+}
+
 int main(int argc, char ** argv) {
     testing t;
 
@@ -669,6 +711,7 @@ int main(int argc, char ** argv) {
     t.test("split",     test_split);
     t.test("keep_tail", test_keep_tail);
     t.test("mrope",     test_mrope);
+    t.test("single_sequence_set", test_single_sequence_set);
 
     return t.summary();
 }
