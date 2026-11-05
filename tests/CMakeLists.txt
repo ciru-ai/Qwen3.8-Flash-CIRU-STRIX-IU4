@@ -198,6 +198,12 @@ if (NOT WIN32 OR NOT BUILD_SHARED_LIBS)
 
     llama_build(test-llama-archs.cpp)
 
+    if (NOT WIN32 AND (TARGET ggml-cpu OR TARGET ggml::ggml-cpu))
+        llama_build_and_test(test-nextn-row-order.cpp)
+        llama_build_and_test(test-qsa-selected-order.cpp)
+        llama_build_and_test(test-qsa-indexer-projection.cpp)
+    endif()
+
     set(MODEL_DIR "${CMAKE_CURRENT_BINARY_DIR}/test-models/")
     file(MAKE_DIRECTORY "${MODEL_DIR}")
 
@@ -378,6 +384,9 @@ if (NOT LLAMA_USE_SYSTEM_GGML)
     # Needs non-public ggml{,-backend}-impl.h
     llama_build_and_test(test-alloc.cpp)
     llama_build_and_test(test-backend-sched-ring.cpp)
+    if (NOT WIN32 AND (TARGET ggml-cpu OR TARGET ggml::ggml-cpu))
+        llama_build_and_test(test-backend-uma-input.cpp)
+    endif()
 endif()
 
 llama_build(test-export-graph-ops.cpp)

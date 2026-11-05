@@ -876,6 +876,7 @@ struct ggml_backend_sched {
     } * graph_input_slots; // [graph_inputs_capacity]
 
     bool needs_rotate;
+    bool is_uma;
 
     struct ggml_context * ctx;
 
@@ -2048,6 +2049,7 @@ ggml_backend_sched_t ggml_backend_sched_new(
     }
 
     sched->n_copies = parallel ? GGML_SCHED_MAX_COPIES : n_copies_uma;
+    sched->is_uma = is_uma;
 
     // initialize hash table
     // FIXME: needs to be size*2 to account for leafs (do it in graph_split instead)
@@ -2195,6 +2197,11 @@ static void ggml_backend_sched_capture_input_slots(ggml_backend_sched_t sched) {
 }
 
 static void ggml_backend_sched_advance_copy(ggml_backend_sched_t sched) {
+    // A single UMA input buffer is still read asynchronously by the GPU.
+    // Wait before the caller can write inputs for a newly allocated graph.
+    if (sched->is_uma && sched->n_copies == 1) {
+        ggml_backend_sched_synchronize(sched);
+    }
     sched->cur_copy  = sched->next_copy;
     sched->next_copy = (sched->next_copy + 1) % sched->n_copies;
 
@@ -2257,6 +2264,12 @@ static void ggml_backend_sched_rotate_inputs(ggml_backend_sched_t sched) {
 
 void ggml_backend_sched_prepare_inputs(ggml_backend_sched_t sched) {
     GGML_ASSERT(sched);
+
+    // Reused graphs need the same ownership hand-off as newly allocated ones.
+    if (sched->is_uma && sched->n_copies == 1) {
+        ggml_backend_sched_synchronize(sched);
+        return;
+    }
 
     if (sched->n_copies <= 1 || !sched->needs_rotate) {
         return;

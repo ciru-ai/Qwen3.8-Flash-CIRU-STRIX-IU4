@@ -110,7 +110,7 @@ static bool test_multi_seq_split_replay(const common_params & params, llama_mode
         cparams.n_ctx      = 256;
         cparams.n_batch    = 256;
         cparams.n_ubatch   = n_ubatch;
-        cparams.kv_unified = false;
+        cparams.kv_unified = getenv("CIRU_QSA_UNIFIED_SERIAL") != nullptr;
         return init_ctx(model, cparams, fill);
     };
 

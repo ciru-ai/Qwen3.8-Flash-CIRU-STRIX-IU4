@@ -78,6 +78,14 @@ ggml_add_backend_library(ggml-hip
                          ${GGML_SOURCES_ROCM}
                         )
 
+if (CMAKE_HIP_ARCHITECTURES STREQUAL "gfx1151")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/../ggml-cuda/q5_short.cu"
+                                PROPERTIES COMPILE_OPTIONS "-mwavefrontsize64;-O2;-g;-fno-fast-math"
+                                           COMPILE_DEFINITIONS "CIRU_Q5_SHORT_GFX1151=1")
+    set_source_files_properties("${CMAKE_CURRENT_SOURCE_DIR}/../ggml-cuda/q5_wave64.cu"
+                                PROPERTIES COMPILE_OPTIONS "-mwavefrontsize64")
+endif()
+
 # TODO: do not use CUDA definitions for HIP
 if (NOT GGML_BACKEND_DL)
     target_compile_definitions(ggml PUBLIC GGML_USE_CUDA)

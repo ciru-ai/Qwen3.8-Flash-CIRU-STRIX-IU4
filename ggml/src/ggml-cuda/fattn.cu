@@ -5,6 +5,7 @@
 #include "fattn-vec.cuh"
 #include "fattn.cuh"
 #include "qsa.cuh"
+#include "qsa-decode.cuh"
 
 #if !defined(GGML_USE_HIP) && !defined(GGML_USE_MUSA)
 __launch_bounds__(256, 1)
@@ -810,6 +811,16 @@ static void ggml_cuda_flash_attn_ext_index_fallback(ggml_backend_cuda_context & 
 
 void ggml_cuda_flash_attn_ext(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     ggml_cuda_set_device(ctx.device);
+#if defined(GGML_USE_HIP)
+    // Experimental per-query selected-key path for MTP and <=512-token appends.
+    // The existing QSA3 path remains the long-ubatch default.
+    const char * qsa_per_query = getenv("LLAMA_QSA_PER_QUERY");
+    if (qsa_per_query && atoi(qsa_per_query) != 0 &&
+        ggml_cuda_flash_attn_ext_qsa_decode_supported(ctx, dst)) {
+        ggml_cuda_flash_attn_ext_qsa_decode(ctx, dst);
+        return;
+    }
+#endif
     if (ggml_cuda_flash_attn_ext_qsa_supported(ctx, dst)) {
         ggml_cuda_flash_attn_ext_qsa(ctx, dst);
         return;

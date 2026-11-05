@@ -1060,7 +1060,9 @@ struct llm_graph_context {
               ggml_tensor * w,   // ggml_tensor * as
               ggml_tensor * cur, // ggml_tensor * b
               ggml_tensor * ids,
-              ggml_tensor * w_s = nullptr) const;
+              ggml_tensor * w_s = nullptr,
+              ggml_tensor * c1_rows = nullptr,
+              ggml_tensor * c1_table = nullptr) const;
 
     ggml_tensor * build_norm(
              ggml_tensor * cur,
@@ -1129,7 +1131,13 @@ struct llm_graph_context {
              ggml_tensor * up_exps_s = nullptr,
              ggml_tensor * gate_exps_s = nullptr,
              ggml_tensor * down_exps_s = nullptr,
-             ggml_tensor * selected_experts_in = nullptr) const;
+             ggml_tensor * selected_experts_in = nullptr,
+             ggml_tensor * gate_c1_rows = nullptr,
+             ggml_tensor * gate_c1_table = nullptr,
+             ggml_tensor * up_c1_rows = nullptr,
+             ggml_tensor * up_c1_table = nullptr,
+             ggml_tensor * down_c1_rows = nullptr,
+             ggml_tensor * down_c1_table = nullptr) const;
 
     ggml_tensor * build_moe_ffn(
              ggml_tensor * cur,
@@ -1155,7 +1163,13 @@ struct llm_graph_context {
              ggml_tensor * up_exps_s = nullptr,
              ggml_tensor * gate_exps_s = nullptr,
              ggml_tensor * down_exps_s = nullptr,
-             ggml_tensor * selected_experts_in = nullptr) const;
+             ggml_tensor * selected_experts_in = nullptr,
+             ggml_tensor * gate_c1_rows = nullptr,
+             ggml_tensor * gate_c1_table = nullptr,
+             ggml_tensor * up_c1_rows = nullptr,
+             ggml_tensor * up_c1_table = nullptr,
+             ggml_tensor * down_c1_rows = nullptr,
+             ggml_tensor * down_c1_table = nullptr) const;
 
     //
     // inputs

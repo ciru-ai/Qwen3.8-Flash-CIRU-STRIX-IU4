@@ -765,6 +765,18 @@ static const struct ggml_type_traits type_traits[GGML_TYPE_COUNT] = {
         .to_float                 = (ggml_to_float_t) dequantize_row_nvfp4,
         .from_float_ref           = (ggml_from_float_t)quantize_row_nvfp4_ref,
     },
+    [GGML_TYPE_C1_G16_K2560] = {
+        .type_name                = "c1_g16_k2560",
+        .blck_size                = 2560,
+        .type_size                = 1440,
+        .is_quantized             = true,
+    },
+    [GGML_TYPE_C1_G16_K640] = {
+        .type_name                = "c1_g16_k640",
+        .blck_size                = 640,
+        .type_size                = 360,
+        .is_quantized             = true,
+    },
     [GGML_TYPE_Q2_K] = {
         .type_name                = "q2_K",
         .blck_size                = QK_K,
@@ -6451,6 +6463,26 @@ struct ggml_tensor * ggml_lightning_indexer(
     result->src[2] = weights;
     result->src[3] = mask;
 
+    return result;
+}
+
+struct ggml_tensor * ggml_lightning_indexer_compact(
+        struct ggml_context * ctx,
+        struct ggml_tensor  * q,
+        struct ggml_tensor  * k,
+        struct ggml_tensor  * weights,
+        struct ggml_tensor  * mask,
+        struct ggml_tensor  * limits,
+        int32_t               full_blocks,
+        int32_t               first) {
+    GGML_ASSERT(limits->type == GGML_TYPE_I32 && ggml_is_contiguous(limits));
+    GGML_ASSERT(q->ne[3] == 1 && full_blocks >= k->ne[2] && first >= 0);
+    GGML_ASSERT((int64_t) full_blocks + first + q->ne[2] <= limits->ne[0]);
+
+    struct ggml_tensor * result = ggml_lightning_indexer(ctx, q, k, weights, mask);
+    result->src[4] = limits;
+    ggml_set_op_params_i32(result, 0, full_blocks);
+    ggml_set_op_params_i32(result, 1, first);
     return result;
 }
 

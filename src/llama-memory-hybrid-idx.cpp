@@ -32,6 +32,17 @@ static bool hybrid_idx_no_recr(const llama_memory_recurrent * r) {
     return true;
 }
 
+// Experimental correctness fallback for a shared physical KV stream. Keep
+// sequence-local QSA block/tail metadata while retaining pooled KV allocation.
+// The default fixed-partition path is unchanged.
+static bool qsa_unified_serial() {
+    static const bool enabled = [] {
+        const char * value = getenv("CIRU_QSA_UNIFIED_SERIAL");
+        return value && atoi(value) != 0;
+    }();
+    return enabled;
+}
+
 llama_memory_hybrid_idx::llama_memory_hybrid_idx(
         const llama_model & model,
                             /* attn */
@@ -121,8 +132,9 @@ llama_memory_context_ptr llama_memory_hybrid_idx::init_batch(llama_batch_allocr 
 
         while (true) {
             llama_ubatch ubatch;
+            const bool unified_serial = get_mem_attn()->get_n_stream() == 1 && qsa_unified_serial();
 
-            if (embd_all) {
+            if (embd_all && !unified_serial) {
                 // if all tokens are output, split by sequence
                 ubatch = balloc.split_seq(n_ubatch);
             } else {
@@ -134,7 +146,8 @@ llama_memory_context_ptr llama_memory_hybrid_idx::init_batch(llama_batch_allocr 
                 //   so that the rollback snapshots remain valid
                 const uint32_t n_rs_seq = get_mem_recr()->n_rs_seq;
 
-                ubatch = balloc.split_equal(n_ubatch, !unified, n_rs_seq > 0 ? n_rs_seq + 1 : 0);
+                ubatch = balloc.split_equal(n_ubatch, !unified, n_rs_seq > 0 ? n_rs_seq + 1 : 0,
+                        unified_serial ? 1 : 0);
             }
 
             if (ubatch.n_tokens == 0) {
@@ -421,6 +434,14 @@ void llama_memory_hybrid_idx::set_input_qsa_impl(
         // ubatch index s*n_tps belongs to this stream; ask which cells array it uses
         const llama_seq_id seq_of_stream = ubatch->seq_id[s*n_tps][0];
         const auto & cells = get_mem_idx()->get_cells(seq_of_stream);
+        const bool isolate_seq = n_ns == 1 && qsa_unified_serial();
+        if (isolate_seq) {
+            // split_equal's sequence-set limit guarantees one primary sequence.
+            // Shared-prefix cells still belong to it and must be included.
+            for (int64_t i=0; i<n_tokens; ++i) {
+                GGML_ASSERT(ubatch->seq_id[i][0] == seq_of_stream);
+            }
+        }
 
         int32_t * cur_cell_blk  = dst_cell_blk ? dst_cell_blk + s*n_kv : nullptr;
         int32_t * cur_blk_cells = dst_blk_cells + s*(r*n_blocks);
@@ -439,7 +460,7 @@ void llama_memory_hybrid_idx::set_input_qsa_impl(
             }
         }
 
-        const bool one_seq = n_seq_present <= 1;
+        const bool one_seq = isolate_seq || n_seq_present <= 1;
 
         bool dup = false;
 
@@ -461,7 +482,7 @@ void llama_memory_hybrid_idx::set_input_qsa_impl(
             dup = false;
 
             for (int64_t j = 0; j < n_kv; ++j) {
-                if (cells.is_empty(j)) {
+                if (cells.is_empty(j) || (isolate_seq && !cells.seq_has(j, seq_of_stream))) {
                     continue;
                 }
 
@@ -513,7 +534,7 @@ void llama_memory_hybrid_idx::set_input_qsa_impl(
             order.reserve(n_kv);
 
             for (int64_t j = 0; j < n_kv; ++j) {
-                if (!cells.is_empty(j)) {
+                if (!cells.is_empty(j) && (!isolate_seq || cells.seq_has(j, seq_of_stream))) {
                     order.push_back((int32_t) j);
                 }
             }
@@ -839,6 +860,24 @@ bool llama_memory_hybrid_idx_context::qsa_position_prefix(const llama_ubatch & u
     return qsa_single_sequence_prefix(mem->get_mem_idx()->get_cells(seq),get_idx()->get_n_kv(),seq);
 }
 
+int64_t llama_memory_hybrid_idx_context::qsa_sequence_cells(const llama_ubatch & ubatch) const {
+    // Full-cache graph reservation has no committed slot metadata. Preserve its
+    // worst-case sparse graph rather than sizing workspace from an empty cache.
+    if (!mem || qsa_slots.empty() || !get_idx() || get_n_stream() != 1 ||
+            !qsa_unified_serial() || !ubatch.n_tokens || !ubatch.seq_id || !ubatch.n_seq_id ||
+            ubatch.n_seq_id[0] < 1 || !ubatch.seq_id[0]) { return -1; }
+    const llama_seq_id seq = ubatch.seq_id[0][0];
+    for (uint32_t i = 0; i < ubatch.n_tokens; ++i) {
+        if (ubatch.n_seq_id[i] < 1 || !ubatch.seq_id[i] || ubatch.seq_id[i][0] != seq) { return -1; }
+    }
+    const auto & cells = mem->get_mem_idx()->get_cells(seq);
+    int64_t count = 0;
+    for (uint32_t j = 0; j < get_idx()->get_n_kv(); ++j) {
+        if (!cells.is_empty(j) && cells.seq_has(j, seq)) { ++count; }
+    }
+    return count;
+}
+
 bool llama_memory_hybrid_idx_context::qsa_scalar_visibility(const llama_ubatch & ubatch) const {
     if (qsa_prefix_matches(ubatch)) { return true; }
     // see qwen4exp_qsa_embd_ok: a batch with tokens AND embeddings is the MTP draft head, not a vision batch
@@ -922,9 +961,21 @@ bool llama_memory_hybrid_idx::qsa_prefix_matches(const llama_ubatch & u) const {
 }
 
 bool llama_memory_hybrid_idx::qsa_fast(int il, const llama_ubatch & u) const {
-    return qsa_prefix_matches(u) && u.n_tokens <= 8 && qsa_keys.at(il) &&
+    static const int max_tokens = [] {
+        const char * value = getenv("CIRU_QSA_INDEXER_MAX");
+        return value ? std::max(0, std::min(512, atoi(value))) : 8;
+    }();
+    const bool fast = qsa_prefix_matches(u) && int(u.n_tokens) <= max_tokens && qsa_keys.at(il) &&
         qsa_ready.at(il) >= int64_t(qsa_prefix.previous_size/4) &&
         qsa_prefix.cells.size()/4 >= (u.n_tokens+3)/4+1;
+    static unsigned trace_count = 0;
+    if (getenv("CIRU_QSA_INDEXER_TRACE") && u.n_tokens > 8 && u.n_tokens <= 512 && trace_count++ < 96) {
+        fprintf(stderr, "CIRU_INDEXER_PATH layer=%d tokens=%u fast=%d limit=%d prepared=%zu total=%zu\n",
+                il, u.n_tokens, int(fast), max_tokens,
+                fast ? size_t((u.n_tokens+3)/4+1) : qsa_prefix.cells.size()/4,
+                qsa_prefix.cells.size()/4);
+    }
+    return fast;
 }
 
 ggml_tensor * llama_memory_hybrid_idx::qsa_cache(ggml_context * ctx, int il, int64_t blocks) const {

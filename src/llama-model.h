@@ -339,6 +339,14 @@ struct llama_layer {
     struct ggml_tensor * ffn_down_exps     = nullptr;
     struct ggml_tensor * ffn_up_exps       = nullptr;
     struct ggml_tensor * ffn_gate_up_exps  = nullptr;
+    // C1's per-expert FP16 row multipliers and 256x2 FP16 affine tables.
+    // These are separate model tensors; C1 code/index rows alone are invalid.
+    struct ggml_tensor * ffn_gate_exps_c1_rows  = nullptr;
+    struct ggml_tensor * ffn_gate_exps_c1_table = nullptr;
+    struct ggml_tensor * ffn_up_exps_c1_rows    = nullptr;
+    struct ggml_tensor * ffn_up_exps_c1_table   = nullptr;
+    struct ggml_tensor * ffn_down_exps_c1_rows  = nullptr;
+    struct ggml_tensor * ffn_down_exps_c1_table = nullptr;
     struct ggml_tensor * ffn_gate_inp_b    = nullptr;
     struct ggml_tensor * ffn_gate_exps_b   = nullptr;
     struct ggml_tensor * ffn_down_exps_b   = nullptr;

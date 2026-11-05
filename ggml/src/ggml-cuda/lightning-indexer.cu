@@ -590,13 +590,13 @@ static bool ggml_cuda_lightning_indexer_generic_supported(int device, const ggml
 
 struct indexer_layout {
     size_t q1, q2, q3, k2, k3, w1, w3, m1, m3, d1, d3;
-    int nq, nk, nm;
+    int nq, nk, nm, full_blocks, first;
 };
 
 template <typename K>
 __global__ __launch_bounds__(128) void qsa_indexer_wmma16_keyreg(
         const char * q, const char * k, const char * w, const char * mask,
-        char * dst, indexer_layout s) {
+        const int32_t * limits, char * dst, indexer_layout s) {
 #if defined(AMD_WMMA_AVAILABLE) && defined(RDNA3)
     using namespace ggml_cuda_mma;
     using AB=tile<16,8,half2,DATA_LAYOUT_I_MAJOR_MIRRORED>;
@@ -655,9 +655,15 @@ __global__ __launch_bounds__(128) void qsa_indexer_wmma16_keyreg(
             float value=0.0f;
 #pragma unroll
             for(int head=0;head<4;++head) value+=fmaxf(acc[head].x[l],0.0f)*wr[head];
-            const half * mr=(const half *)(mask+size_t(stream%s.nm)*s.m3+size_t(token)*s.m1);
             float * out=(float *)(dst+size_t(stream)*s.d3+size_t(token)*s.d1);
-            out[key]=value+float(mr[key]);
+            if (limits) {
+                const int32_t start = limits[key];
+                const int32_t tail = limits[s.full_blocks + s.first + token];
+                out[key] = value + (tail > start ? 0.0f : -INFINITY);
+            } else {
+                const half * mr=(const half *)(mask+size_t(stream%s.nm)*s.m3+size_t(token)*s.m1);
+                out[key]=value+float(mr[key]);
+            }
         }
     }
 #else
@@ -675,6 +681,12 @@ static bool supports_indexer4(int device, const ggml_tensor * dst) {
             q->ne[3] != k->ne[3] || w->ne[0] != 4 || w->ne[1] != q->ne[2] ||
             w->ne[2] != 1 || w->ne[3] != q->ne[3] || m->ne[0] != k->ne[2] ||
             m->ne[1] != q->ne[2] || m->ne[2] != 1 || m->ne[3] < 1 || q->ne[3] % m->ne[3] != 0) { return false; }
+    const ggml_tensor * limits = dst->src[4];
+    if (limits && (limits->type != GGML_TYPE_I32 || !ggml_is_contiguous(limits) ||
+            q->ne[3] != 1 || dst->op_params[0] < k->ne[2] || dst->op_params[1] < 0 ||
+            (int64_t) dst->op_params[0] + dst->op_params[1] + q->ne[2] > limits->ne[0])) {
+        return false;
+    }
     for (const auto * t : {q, k, w, m, dst}) {
         const size_t ts=ggml_type_size(t->type);
         if (t->nb[0] != ts) { return false; }
@@ -685,21 +697,26 @@ static bool supports_indexer4(int device, const ggml_tensor * dst) {
 
 void ggml_cuda_lightning_indexer(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     if (!supports_indexer4(ctx.device, dst)) {
+        GGML_ASSERT(dst->src[4] == nullptr && "compact scorer requires RDNA key-register route");
         ggml_cuda_lightning_indexer_generic(ctx, dst);
         return;
     }
     const auto * q=dst->src[0], * k=dst->src[1], * w=dst->src[2], * m=dst->src[3];
     indexer_layout s{q->nb[1],q->nb[2],q->nb[3],k->nb[2],k->nb[3],w->nb[1],w->nb[3],
-        m->nb[1],m->nb[3],dst->nb[1],dst->nb[3],int(q->ne[2]),int(k->ne[2]),int(m->ne[3])};
+        m->nb[1],m->nb[3],dst->nb[1],dst->nb[3],int(q->ne[2]),int(k->ne[2]),int(m->ne[3]),
+        dst->op_params[0],dst->op_params[1]};
     const dim3 grid((s.nk+63)/64,(s.nq+15)/16,q->ne[3]), block(32,4);
     ggml_cuda_kernel_launch_params launch(grid,block,0,ctx.stream());
     if (k->type==GGML_TYPE_F32) {
-        ggml_cuda_kernel_launch(qsa_indexer_wmma16_keyreg<float>,launch,(const char*)q->data,(const char*)k->data,(const char*)w->data,(const char*)m->data,(char*)dst->data,s);
+        ggml_cuda_kernel_launch(qsa_indexer_wmma16_keyreg<float>,launch,(const char*)q->data,(const char*)k->data,(const char*)w->data,(const char*)m->data,
+            dst->src[4] ? (const int32_t*)dst->src[4]->data : nullptr,(char*)dst->data,s);
     } else {
-        ggml_cuda_kernel_launch(qsa_indexer_wmma16_keyreg<half>,launch,(const char*)q->data,(const char*)k->data,(const char*)w->data,(const char*)m->data,(char*)dst->data,s);
+        ggml_cuda_kernel_launch(qsa_indexer_wmma16_keyreg<half>,launch,(const char*)q->data,(const char*)k->data,(const char*)w->data,(const char*)m->data,
+            dst->src[4] ? (const int32_t*)dst->src[4]->data : nullptr,(char*)dst->data,s);
     }
     CUDA_CHECK(cudaGetLastError());
 }
 bool ggml_cuda_lightning_indexer_supported(int device, const ggml_tensor * dst) {
-    return supports_indexer4(device, dst) || ggml_cuda_lightning_indexer_generic_supported(device, dst);
+    return supports_indexer4(device, dst) ||
+        (dst->src[4] == nullptr && ggml_cuda_lightning_indexer_generic_supported(device, dst));
 }

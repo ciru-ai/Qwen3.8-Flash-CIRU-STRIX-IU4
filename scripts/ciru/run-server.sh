@@ -14,24 +14,47 @@ case "${MODEL_VARIANT:-IU4}" in
     IU4)
         model_name=Qwen3.8-Flash-CIRU-STRIX-IU4
         projector_name=mmproj-Qwen3.8-Flash-F16.mmproj
-        slot_name=v4.4.1
+        slot_name=v4.4.0
         mtp_depth_default=3
         ;;
     Orca)
         model_name=Qwen3.8-Flash-CIRU-STRIX-Orca
         projector_name=mmproj-Qwen3.8-Flash-Orca-F16.mmproj
-        slot_name=orca-v4.4.1
+        slot_name=orca-v4.4.0
         mtp_depth_default=4
         ;;
     *) echo "MODEL_VARIANT must be IU4 or Orca." >&2; exit 2 ;;
 esac
-model="${model_dir}/${model_name}.gguf"
+model_release="${MODEL_RELEASE:-4.4.1}"
+case "${model_release}" in
+    4.4.1)
+        model_file="${model_name}.gguf"
+        batch_default=8192
+        ubatch_default=8192
+        ;;
+    5.0)
+        model_file="${model_name}-v5.0.gguf"
+        if [[ "${MODEL_VARIANT:-IU4}" == Orca ]]; then
+            slot_name=orca-v5.0
+        else
+            slot_name=v5.0
+        fi
+        batch_default=16384
+        ubatch_default=8192
+        ;;
+    *) echo "MODEL_RELEASE must be 4.4.1 or 5.0." >&2; exit 2 ;;
+esac
+model="${model_dir}/${MODEL_FILE:-${model_file}}"
 draft="${model_dir}/mtp/${model_name}-MTP-Q8_0.gguf"
 ple_dir="${model_dir}/ple"
 slot_dir="${SLOT_DIR:-${package_root}/slot-state/${slot_name}}"
 
-# Launcher-only opt-in; remaining arguments are passed to llama-server.
-enable_vision="${ENABLE_VISION:-0}"
+# v5 image input is enabled by default; remaining arguments pass to llama-server.
+vision_default=0
+if [[ "${model_release}" == 5.0 ]]; then
+    vision_default=1
+fi
+enable_vision="${ENABLE_VISION:-${vision_default}}"
 enable_boost="${KAIRIC_BOOST:-0}"
 server_args=()
 for arg in "$@"; do
@@ -64,9 +87,11 @@ fi
 # Retained speculative defaults.
 export LLAMA_MTP_QSA_MIN_T="${LLAMA_MTP_QSA_MIN_T:-1}"
 
-# The release qualifies MTP with exactly one slot; preserve the public guard.
-# Include trailing CLI overrides so --parallel/-np cannot bypass this check.
-parallel_slots="${PARALLEL_SLOTS:-1}"
+# Kairic Boost remains a single-slot policy. Include trailing CLI overrides.
+# Keep one slot by default; explicitly requested concurrency uses the pool policy.
+parallel_default=1
+parallel_slots="${PARALLEL_SLOTS:-$parallel_default}"
+context_size="${CONTEXT_SIZE:-262144}"
 extra_args=("$@")
 for ((i = 0; i < ${#extra_args[@]}; i++)); do
     case "${extra_args[i]}" in
@@ -74,13 +99,20 @@ for ((i = 0; i < ${#extra_args[@]}; i++)); do
             parallel_slots="${extra_args[i+1]:-}"
             ((i += 1))
             ;;
+        --kv-unified|-kvu) CONTEXT_POOL=1 ;;
+        --no-kv-unified) CONTEXT_POOL=0 ;;
+        --ctx-size|-c)
+            context_size="${extra_args[i+1]:-}"
+            ((i += 1))
+            ;;
+        --ctx-size=*) context_size="${extra_args[i]#*=}" ;;
         --parallel=*) parallel_slots="${extra_args[i]#*=}" ;;
         -np=*) parallel_slots="${extra_args[i]#*=}" ;;
     esac
 done
-if [[ "${enable_mtp}" != "0" && "${parallel_slots}" != "1" ]]; then
-    echo "The CIRU v4.4.1 MTP profile requires exactly one slot (--parallel 1)." >&2
-    echo "For parallel target-only serving, set ENABLE_MTP=0 and PARALLEL_SLOTS=2." >&2
+if [[ "${enable_boost}" == "1" && "${parallel_slots}" != "1" ]]; then
+    echo "Kairic Boost requires exactly one slot (--parallel 1)." >&2
+    echo "Set KAIRIC_BOOST=0 for parallel MTP serving." >&2
     echo "See docs/RUNNING.md: Parallel requests and unified KV cache." >&2
     exit 2
 fi
@@ -112,7 +144,7 @@ runtime_fail() {
     echo "CIRU runtime check: $*" >&2
     echo "Selected server: ${server_bin}" >&2
     echo "Updating the model folder or launcher does not update the inference runtime." >&2
-    echo "Build/install the complete CIRU v4.4.1 package, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
+    echo "Build/install the complete CIRU v4.4.0 package, then set RUNTIME_DIR and BUILD_DIR to that installation." >&2
     echo "Keep its executable and shared libraries together; no model-weight download is needed." >&2
     exit 2
 }
@@ -120,22 +152,22 @@ for runtime_tool in ldd grep sha256sum; do
     command -v "${runtime_tool}" >/dev/null || runtime_fail "Missing runtime-check tool: ${runtime_tool}"
 done
 [[ -z "${GGML_BACKEND_PATH:-}" ]] || runtime_fail "Clear GGML_BACKEND_PATH; an extra backend can bypass this runtime check."
-runtime_dependencies="$(ldd "${server_bin}" 2>&1)" || runtime_fail "Cannot resolve shared libraries for this server. Check the SDK and loader dependencies."
+server_command=("${server_bin}")
+if [[ -n "${CIRU_SERVER_LOADER:-}" ]]; then
+    [[ -x "${CIRU_SERVER_LOADER}" ]] || runtime_fail "CIRU_SERVER_LOADER is not executable."
+    server_library_path="${CIRU_SERVER_LIBRARY_PATH:-${LD_LIBRARY_PATH}}"
+    runtime_dependencies="$("${CIRU_SERVER_LOADER}" --library-path "${server_library_path}" --list "${server_bin}" 2>&1)" || runtime_fail "Cannot resolve shared libraries with CIRU_SERVER_LOADER."
+    server_command=("${CIRU_SERVER_LOADER}" --library-path "${server_library_path}" "${server_bin}")
+else
+    runtime_dependencies="$(ldd "${server_bin}" 2>&1)" || runtime_fail "Cannot resolve shared libraries for this server. Check the SDK and loader dependencies."
+fi
 hip_library=""
-common_library=""
 while IFS= read -r runtime_line; do
     if [[ "${runtime_line}" == *"libggml-hip.so"*" => "* ]]; then
         hip_library="${runtime_line#* => }"
         hip_library="${hip_library% (*}"
     fi
-    if [[ "${runtime_line}" == *"libllama-common.so"*" => "* ]]; then
-        common_library="${runtime_line#* => }"
-        common_library="${common_library% (*}"
-    fi
 done <<< "${runtime_dependencies}"
-[[ -n "${common_library}" && -f "${common_library}" ]] || runtime_fail "The selected server does not resolve its common library."
-grep -aFq "Qwen4Exp MTP image position" "${common_library}" || runtime_fail "The common library lacks the v4.4.1 vision/MTP fix: ${common_library}"
-echo "CIRU runtime check: vision/MTP correction detected; common $(realpath "${common_library}")" >&2
 [[ -n "${hip_library}" && -f "${hip_library}" ]] || runtime_fail "The selected server does not resolve a HIP library. Use the matching CIRU shared-library build."
 hip_library="$(realpath "${hip_library}")"
 for correction_marker in flash_attn_index_mask_clear flash_attn_index_mask_set flash_attn_index_mask_empty; do
@@ -151,7 +183,19 @@ mkdir -p "${slot_dir}"
 set -a
 # shellcheck source=/dev/null
 source "${repo_root}/profiles/strix-halo-production.env"
+if [[ "${model_release}" == 5.0 ]]; then
+    # Keep the existing v4.4.1 profile and model selection reproducible.
+    source "${repo_root}/profiles/strix-halo-v5.env"
+    if [[ "${MODEL_VARIANT:-IU4}" == Orca ]]; then
+        CIRU_Q5_SHORT_F32_T5="${CIRU_Q5_SHORT_F32_T5:-1}"
+    fi
+fi
 set +a
+
+# Resolve the memory policy before building arguments; explicit final CLI flags
+# remain caller overrides. Pooling requires the complete corrected runtime.
+source "${repo_root}/scripts/ciru/memory-policy.sh"
+ciru_memory_policy "$parallel_slots" "$context_size"
 
 args=(
     --model "${model}"
@@ -167,12 +211,12 @@ args=(
     --fit off
     -lm none
     -lzm on-direct
-    --no-kv-unified
+    "${ciru_kv_args[@]}"
     --no-context-shift
-    -c "${CONTEXT_SIZE:-262144}"
-    -b "${BATCH_SIZE:-8192}"
-    -ub "${UBATCH_SIZE:-8192}"
-    --parallel "${PARALLEL_SLOTS:-1}"
+    -c "$context_size"
+    -b "${BATCH_SIZE:-${batch_default}}"
+    -ub "${UBATCH_SIZE:-${ciru_ubatch_default}}"
+    --parallel "$parallel_slots"
     -t "${THREADS:-8}"
     -tb "${BATCH_THREADS:-8}"
     -ctk f16
@@ -181,8 +225,8 @@ args=(
     --cont-batching
     --cache-prompt
     --cache-ram "${PROMPT_CACHE_MIB:-1024}"
-    --cache-idle-slots
-    --ctx-checkpoints "${CTX_CHECKPOINTS:-32}"
+    "${ciru_idle_args[@]}"
+    --ctx-checkpoints "$ciru_checkpoints"
     --checkpoint-min-step "${CHECKPOINT_MIN_STEP:-8192}"
     --temp "${TEMPERATURE:-1.0}"
     --top-p "${TOP_P:-0.95}"
@@ -253,4 +297,4 @@ fi
 unset GGML_HIP_GRAPH_EXEC_UPDATE CIRU_MTP_GPU_CONFIDENCE CIRU_MTP_GPU_ADAPTIVE CIRU_MTP_GPU_CONF_MIN CIRU_MOE_EXPERT_REUSE CIRU_MTP_TRACE CIRU_MTP_CONF_TRACE LD_PRELOAD
 # Backend discovery must not scan an unrelated working directory.
 cd -- "${repo_root}"
-exec "${server_bin}" "${args[@]}" "$@"
+exec "${server_command[@]}" "${args[@]}" "$@"

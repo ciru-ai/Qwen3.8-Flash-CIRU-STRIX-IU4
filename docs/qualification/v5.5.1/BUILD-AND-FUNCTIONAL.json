@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "runtime_version": "5.5.1",
+  "date": "2026-11-05",
+  "status": "built_text_functional_candidate_unpublished",
+  "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
+  "source_manifest_sha256": "6d1b999552cbcc4d12f86e5b4c8c8a60429190a5fa664aea0f78460a18a87293",
+  "native_build": {
+    "passed": true,
+    "targets": [
+      "llama-server",
+      "llama-cli",
+      "llama-bench"
+    ],
+    "parallel_jobs": 2,
+    "target": "gfx1151",
+    "compiler_matches_measured_c1": true,
+    "binary_sha256": {
+      "libggml-base.so.0.23.0": "c2767e4fc92c565a3216e4a68d169491fdc3fd4cd76d69094c7c75e749dd8faf",
+      "libggml-cpu.so.0.23.0": "663fbef81abe344ff09205fa4e9165dd4e58654c9cf44c623e6ed2717487d534",
+      "libggml-hip.so.0.23.0": "2c193537da92baff56eeaa6f08fe0c073e0f786a7a7d7a93b4c4aab99ede2e30",
+      "libggml.so.0.23.0": "457fc46bf47d9c844659dca6143ab6d2d5f0d9b4a8546ea65821e8c6ee62e918",
+      "libllama.so.0.4.0": "b580ba00f377d8f994b4f93d40baf67f8a962360228f78e2389471931d21cdde",
+      "libllama-common.so.0.4.0": "e6623913f9f2542bcbe7daf68a3e4b01a5b15a287cda1edc56c5cb58c81afca1",
+      "libmtmd.so.0.4.0": "fde0654524ddf60043a84aa65662df337dd7fd093ddd85396f9a15b0fe879b66",
+      "libllama-server-impl.so": "6e6789ad71b65fc2d42104751cd520a81eca8130e0cc99cd07285f1f3868a6aa",
+      "libllama-bench-impl.so": "13ae3a6c65736044be9e573f9b33fda46cde8a560148448d7a1c6501834b3756",
+      "llama-bench": "4611ca217989fbe600d0ca232f083accc3e41456d72bc2be3622aaa5e8bae391",
+      "llama-server": "0605cb3008db92238609f13e6854c599d638b3404ae4e286bf1ca8e69185854f",
+      "libllama-cli-impl.so": "36b2d39f175a2c2683eb0162f260f89728d2aa9e2213342837071e92cd8a2d59",
+      "llama-cli": "0a31d0c29a782ffc106bff13ebe5c0255fdf2e679db545cedeeb4cbc1a5c75ab"
+    },
+    "warnings_retained": 12
+  },
+  "device_code": {
+    "c1_object_exact": true,
+    "full_library_strict_byte_identity": false,
+    "exact_device_images": 98,
+    "changed_device_images": 52,
+    "changed_32bit_words": 1854,
+    "unchanged_opcodes_and_rodata_reference_matches": true,
+    "offset_one_string_load_references": 6,
+    "qualification": "52 device text images differ only in checked PC-relative rodata address literals caused by source-path changes; do not label all 150 byte-identical."
+  },
+  "functional_scope": "One single-request and one four-concurrent-request text panel with retained deployment settings, not a performance or broad quality comparison.",
+  "settings": {
+    "total_context": 262144,
+    "mtp_depth": 3,
+    "batch": 16384,
+    "microbatch": 2048,
+    "checkpoints_per_slot": 2,
+    "target_kv": "f16",
+    "draft_kv": "f16",
+    "thinking": false,
+    "image_projector_loaded": false,
+    "profile_small_batch_default": "1"
+  },
+  "cases": [
+    {
+      "slots": 1,
+      "context_per_slot": [
+        262144
+      ],
+      "profile_flag": "1",
+      "loaded_hip_sha256": "2c193537da92baff56eeaa6f08fe0c073e0f786a7a7d7a93b4c4aab99ede2e30",
+      "requests": [
+        {
+          "http_status": 200,
+          "finish_reason": "stop",
+          "nonempty": true
+        }
+      ]
+    },
+    {
+      "slots": 4,
+      "context_per_slot": [
+        65536,
+        65536,
+        65536,
+        65536
+      ],
+      "profile_flag": "1",
+      "loaded_hip_sha256": "2c193537da92baff56eeaa6f08fe0c073e0f786a7a7d7a93b4c4aab99ede2e30",
+      "requests": [
+        {
+          "http_status": 200,
+          "finish_reason": "stop",
+          "nonempty": true
+        },
+        {
+          "http_status": 200,
+          "finish_reason": "stop",
+          "nonempty": true
+        },
+        {
+          "http_status": 200,
+          "finish_reason": "stop",
+          "nonempty": true
+        },
+        {
+          "http_status": 200,
+          "finish_reason": "stop",
+          "nonempty": true
+        }
+      ]
+    }
+  ],
+  "invalid_setup_attempts_before_inference": 2,
+  "cleanup": {
+    "functional_requests_passed": true,
+    "raw_controller_exit_status": 1,
+    "nonzero_cleanup_reason": "Resetting a stopped and already-unloaded temporary application unit returned nonzero; subsequent start and independent state readback succeeded.",
+    "independent_environment_restoration_verified": true,
+    "temporary_unit_configuration_restored": true,
+    "application_source_hashes_preserved": true,
+    "working_application_ready": true,
+    "all_four_slots_idle": true
+  },
+  "limits": [
+    "Text smoke only; vision and published default single-slot microbatch/checkpoint policy were not requalified.",
+    "No matched speed comparison, broad task-quality equivalence or stochastic-acceptance equivalence.",
+    "Existing runtime dependencies were reused; this is not a fresh-platform standalone installation test.",
+    "No permanent deployment, merge, tag or public model release is established by these checks."
+  ]
+}
