@@ -2,8 +2,6 @@ name: Build Actions Cache
 
 on:
   workflow_dispatch: # allows manual triggering
-  schedule:
-    - cron: '0 * * * *'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref && github.ref || github.run_id }}

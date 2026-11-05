@@ -273,5 +273,11 @@
     ".github/workflows/close-issue.yml",
     ".github/workflows/winget.yml"
   ],
-  "automation_reason": "Preserve the public Git base removal of scheduled Actions jobs; these are not compiled inputs."
+  "automation_reason": "Preserve all scheduled Actions removals from the public Git base; these six workflow differences are not compiled inputs.",
+  "restored_public_automation": [
+    ".github/workflows/build-cache.yml",
+    ".github/workflows/build-cross.yml",
+    ".github/workflows/build-msys.yml",
+    ".github/workflows/docker.yml"
+  ]
 }
