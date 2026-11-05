@@ -1,3 +1,5 @@
+> **Unpublished v5.5.1 source candidate:** this checkout adds guarded C1 small-batch dispatch to the v5.5 baseline described below. See [candidate scope, checks and pending package work](docs/qualification/v5.5.1/RELEASE-NOTES.md). Existing download links below identify the preserved v5.5 release, not a new v5.5.1 artifact.
+
 # Optional multi-slot serving and image-memory update
 
 Runtime **v5.5.0** retains the v5 model and runtime features and keeps **one slot as the default**. Use two slots when accepting a second request matters more than the best single-request speed. The target GGUF, matching MTP draft, projector and PLE files are unchanged.

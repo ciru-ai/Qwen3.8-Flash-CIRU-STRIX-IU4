@@ -1,3 +1,5 @@
+> **Unpublished v5.5.1 source candidate:** this checkout adds guarded C1 small-batch dispatch to the v5.5 baseline described below. See [candidate scope, checks and pending package work](docs/qualification/v5.5.1/RELEASE-NOTES.md). Existing download links below identify the preserved v5.5 release, not a new v5.5.1 artifact.
+
 # Install and run Flash IU4 v5.5.0 on Strix Halo
 
 This is a **custom CIRU runtime** for the supplied model. A stock llama.cpp

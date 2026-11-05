@@ -202,6 +202,30 @@ static __global__ void c1_mat_id_reference(
             + token * output_token_stride + route * output_route_stride + row * sizeof(float)) = sum;
 }
 
+#if defined(__HIP_PLATFORM_AMD__)
+// Opt-in reuse of the existing R4 implementation for small joint verification
+// batches. All grouped and vector layout guards stay intact; no math changes.
+static bool c1_small_batch_vector_eligible(const ggml_tensor * dst) {
+    static const bool enabled = [] {
+        const char * value = std::getenv("LLAMA_C1_VECTOR_R4_SMALL_BATCH");
+        return value && value[0] == '1';
+    }();
+    if (!enabled || dst->ne[2] <= 8 || dst->ne[2] > 16 ||
+            !(c1_use_vector_r4() || c1_use_vector_r4_lut())) return false;
+    const ggml_tensor * w = dst->src[0], * x = dst->src[1], * ids = dst->src[2];
+    const ggml_tensor * rows = dst->src[3], * tables = dst->src[4];
+    const int64_t k = w->ne[0], n = w->ne[1], routes = dst->ne[1];
+    return w->ne[2] == 512 && routes > 0 &&
+        (x->ne[1] == 1 || x->ne[1] == routes) &&
+        ((k == 2560 && n == 640) || (k == 640 && n == 2560)) &&
+        ggml_is_contiguous(w) && ggml_is_contiguous(x) &&
+        ids->nb[0] == sizeof(int32_t) && ids->nb[1] % sizeof(int32_t) == 0 &&
+        ggml_is_contiguous(dst) && ggml_is_contiguous(rows) && ggml_is_contiguous(tables) &&
+        !(reinterpret_cast<uintptr_t>(w->data) & 1u) && !(w->nb[1] & 1u) && !(w->nb[2] & 1u);
+}
+
+#endif
+
 void ggml_cuda_mul_mat_id_c1(ggml_backend_cuda_context & ctx, ggml_tensor * dst) {
     const ggml_tensor * w = dst->src[0];
     const ggml_tensor * x = dst->src[1];
@@ -234,7 +258,8 @@ void ggml_cuda_mul_mat_id_c1(ggml_backend_cuda_context & ctx, ggml_tensor * dst)
     }
 
 #if defined(__HIP_PLATFORM_AMD__)
-    if (c1_grouped::run(ctx, dst, c1_use_same_value_iu8(), c1_use_centered_activation())) {
+    const bool small_batch_vector = c1_small_batch_vector_eligible(dst);
+    if (!small_batch_vector && c1_grouped::run(ctx, dst, c1_use_same_value_iu8(), c1_use_centered_activation())) {
         static int grouped_hits = 0;
         if (std::getenv("LLAMA_C1_TRACE") && grouped_hits++ < 12) {
             std::fprintf(stderr, "C1 grouped %s centered=%d K=%lld N=%lld experts=%lld routes=%lld tokens=%lld x_channels=%lld\n",
@@ -247,7 +272,7 @@ void ggml_cuda_mul_mat_id_c1(ggml_backend_cuda_context & ctx, ggml_tensor * dst)
 #endif
 
 #if defined(__HIP_PLATFORM_AMD__)
-    if (dst->ne[2] <= 8 && ggml_is_contiguous(x) && ids->nb[0] == sizeof(int32_t) &&
+    if ((dst->ne[2] <= 8 || small_batch_vector) && ggml_is_contiguous(x) && ids->nb[0] == sizeof(int32_t) &&
             ids->nb[1] % sizeof(int32_t) == 0 && ggml_is_contiguous(dst) &&
             ggml_is_contiguous(rows) && ggml_is_contiguous(tables)) {
         static int vector_hits = 0;

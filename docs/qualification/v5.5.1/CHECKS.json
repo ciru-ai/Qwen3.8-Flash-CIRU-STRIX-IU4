@@ -1,0 +1,36 @@
+{
+  "schema": 1,
+  "runtime_version": "5.5.1",
+  "status": "prepared_source_candidate",
+  "date": "2026-11-05",
+  "source_delta": "C1 small-batch host dispatch plus default-with-opt-out production flag; no kernel instruction body changes",
+  "dispatch_regression": {
+    "command": "python -m pytest tests/test-c1-small-batch-dispatch.py -q",
+    "baseline": {
+      "passed": 34,
+      "failed": 7
+    },
+    "candidate": {
+      "passed": 41,
+      "failed": 0
+    },
+    "scope": "CPU execution of extracted actual host predicates, with tensor metadata fixtures; no GPU arithmetic"
+  },
+  "syntax": {
+    "command": "bash -n profiles/strix-halo-production.env profiles/strix-halo-v5.env scripts/ciru/run-server.sh scripts/ciru/build-linux-amd.sh scripts/ciru/setup-linux-amd.sh",
+    "passed": true
+  },
+  "amd_configuration": {
+    "command": "ROCM_ROOT=<existing-matching-sdk> bash scripts/ciru/build-linux-amd.sh --check",
+    "passed": true,
+    "gpu_target": "gfx1151",
+    "gpu_workload_started": false,
+    "full_candidate_build": false
+  },
+  "pending": [
+    "Full candidate HIP build and loaded-library identity",
+    "Clean-package serving and remaining release-boundary qualification",
+    "Versioned release artifacts and publication"
+  ],
+  "production_services_changed": false
+}

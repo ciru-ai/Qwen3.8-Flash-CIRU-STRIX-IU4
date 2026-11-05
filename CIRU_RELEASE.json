@@ -1,5 +1,5 @@
 {
-  "version": "5.5.0",
+  "version": "5.5.1",
   "variant": "IU4",
   "target_filename": "Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf",
   "target_sha256": "745bf5b48ef5bd4ded36b3136cde3d35145b2ec5a3aabf03da0e5a792bc5a27d",
@@ -17,12 +17,11 @@
   "vision_default": true,
   "vision_projector": "vision/mmproj-Qwen3.8-Flash-F16.mmproj",
   "vision_projector_sha256": "db643482521c722ff1074afd5018c060ef6ce9b828421c7cfc27b2f235c2569b",
-  "correction": "Concurrent MTP and sequence-safe QSA; synchronized single-copy UMA inputs; conservative optional KV pool.",
   "model_weights_changed": false,
   "model_weights_version": "5.0",
-  "date": "2026-10-06",
-  "previous_runtime_version": "5.0.1",
-  "version_note": "v5 runtime upgrade retaining unchanged v5.0 model weights, one-slot default, optional two-slot shared-context MTP and the verified post-image memory-pressure correction.",
+  "date": "2026-11-05",
+  "previous_runtime_version": "5.5.0",
+  "version_note": "Unpublished runtime candidate based on the exact v5.5 source package; unchanged v5.0 model weights and existing serving defaults.",
   "microbatch_tokens": 8192,
   "optional_parallel_slots": 2,
   "optional_microbatch_tokens": 2048,
@@ -30,15 +29,23 @@
   "build_os": "Arch Linux",
   "qualification_os": "NixOS",
   "compiler": "GNU 16.2.1",
-  "release_validation": "benchmarks/release-20261006/validation.json",
+  "release_validation": "docs/qualification/v5.5.1/CHECKS.json",
   "concurrency": "CONCURRENCY.md",
   "optional_gdn_multi_tile_default": false,
   "strata_optimization_included": false,
-  "version_label_correction": {
+  "baseline_correction": "Concurrent MTP and sequence-safe QSA; synchronized single-copy UMA inputs; conservative optional KV pool.",
+  "baseline_version_label_correction": {
     "previous_label": "4.5.0",
     "corrected_label": "5.5.0",
     "compiled_code_changed": false,
     "model_weights_changed": false,
     "benchmarks_repeated": false
-  }
+  },
+  "baseline_release_validation": "benchmarks/release-20261006/validation.json",
+  "status": "prepared_source_candidate",
+  "correction": "Guarded existing R4 dispatch for eligible 9-16-row C1 batches, enabled by the shared production profile with explicit opt-out.",
+  "release_notes": "docs/qualification/v5.5.1/RELEASE-NOTES.md",
+  "small_batch_vector_profile_default": true,
+  "small_batch_vector_opt_out": "LLAMA_C1_VECTOR_R4_SMALL_BATCH=0",
+  "new_binary_package_qualified": false
 }
