@@ -1,6 +1,6 @@
 # CIRU Flash runtime v5.5.1 candidate
 
-Status: prepared source candidate, not a published release. This tree is the verified v5.5.0 source package plus the small-batch C1 dispatch change and its production-profile switch. Model weights remain v5.0. Source builds use the existing `scripts/ciru/build-linux-amd.sh` and `scripts/ciru/run-server.sh` workflow. New source archives, binary packages and model-card publication are separate pending release work; no new downloadable artifact is claimed here.
+Status: built candidate with scoped text functional checks, not a published release. This tree is the verified v5.5.0 source package plus the small-batch C1 dispatch change and its production-profile switch. Model weights remain v5.0. Source builds use the existing `scripts/ciru/build-linux-amd.sh` and `scripts/ciru/run-server.sh` workflow. Private source and native transfer archives have been built. Public source/binary publication and model-card updates remain pending; no new public downloadable artifact is claimed here.
 
 ## Change
 
@@ -24,6 +24,10 @@ This source candidate excludes application changes and foreground-prefill schedu
 
 Run `python -m pytest tests/test-c1-small-batch-dispatch.py -q` with pytest and a C++17 compiler. Set `CXX` to choose the compiler. The tests compile the actual production host predicates against tensor-metadata fixtures and exercise both projection directions, admission boundaries, invalid layouts, R4 selection, profile default and opt-out. They do not execute GPU kernels or validate their arithmetic.
 
-The unchanged baseline fails seven cases and passes 34; the candidate passes all 41. `CHECKS.json` records these CPU checks and the existing AMD build configuration preflight. A full candidate HIP build, clean-package serving validation and remaining release-boundary quality/performance qualification are pending. No service or installed profile has been replaced by staging this source.
+The unchanged baseline fails seven cases and passes 34; the candidate passes all 41. `CHECKS.json` records these CPU checks and the build preflight. The full native HIP build completed from commit `51dd9ffac09c78794e45f9a321c50c60cda3c21e`. [Build and functional evidence](BUILD-AND-FUNCTIONAL.json) records one single-slot panel and one four-concurrent-request panel: all five responses returned HTTP 200, natural stop and nonempty content, with the candidate HIP loaded and profile default enabled. Contexts were 262144 and four times 65536.
+
+These text checks retained deployment microbatch 2048 and two checkpoints per slot, with no image projector. They do not requalify published single-slot defaults (microbatch8192 and32 checkpoints), vision, broad task quality or speed. Two setup attempts ended before inference. A later cleanup command against an already-unloaded temporary unit returned nonzero; independent readback confirmed the original working environment and source hashes restored. No permanent runtime deployment or public release was made.
+
+The compiled source commit and original transfer archives remain immutable. Subsequent changes in this tree only document qualification and preserve the same compiled-input manifest digest.
 
 `SOURCE_IDENTITY.json` now includes both production profiles and the dispatch regression test in addition to the previous compiled/build inputs. `checksums/v5.5.1-source.sha256` covers those files and current release documents. The unversioned historical `checksums/SHA256SUMS` is retained as prior model evidence; it is not the candidate source inventory.

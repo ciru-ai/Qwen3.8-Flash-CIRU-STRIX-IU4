@@ -2074,6 +2074,7 @@
     "model_weights_changed": false,
     "benchmarks_repeated": false
   },
-  "status": "prepared_source_candidate",
-  "manifest_scope": "Previous compiled and build inputs plus production profiles and C1 host-dispatch regression test; metadata and docs have a separate source checksum file."
+  "status": "built_text_functional_candidate_unpublished",
+  "manifest_scope": "Previous compiled and build inputs plus production profiles and C1 host-dispatch regression test; metadata and docs have a separate source checksum file.",
+  "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e"
 }

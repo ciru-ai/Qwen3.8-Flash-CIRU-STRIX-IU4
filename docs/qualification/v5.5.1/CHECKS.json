@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "runtime_version": "5.5.1",
-  "status": "prepared_source_candidate",
+  "status": "built_text_functional_candidate_unpublished",
   "date": "2026-11-05",
   "source_delta": "C1 small-batch host dispatch plus default-with-opt-out production flag; no kernel instruction body changes",
   "dispatch_regression": {
@@ -28,9 +28,20 @@
     "full_candidate_build": false
   },
   "pending": [
-    "Full candidate HIP build and loaded-library identity",
-    "Clean-package serving and remaining release-boundary qualification",
-    "Versioned release artifacts and publication"
+    "Independent release review and publication decision",
+    "Any broader quality, matched performance, published-default or vision qualification would need separate scoped evidence"
   ],
-  "production_services_changed": false
+  "native_build": {
+    "passed": true,
+    "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
+    "record": "docs/qualification/v5.5.1/BUILD-AND-FUNCTIONAL.json"
+  },
+  "text_functional": {
+    "passed": true,
+    "panels": 2,
+    "requests": 5,
+    "scope": "Retained deployment settings: MTP3, microbatch2048, two checkpoints, no image projector; single slot262144 and four slots65536 each."
+  },
+  "permanent_production_deployment": false,
+  "serving_environment_restored": true
 }

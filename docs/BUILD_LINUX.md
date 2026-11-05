@@ -3,8 +3,8 @@
 See [INSTALL.md](../INSTALL.md) for the complete Ubuntu/Debian setup.
 The v5.5 baseline was built on Arch Linux with GNU 16.2.1 and qualified on
 NixOS with TheRock 10.0.0 and the pinned custom HIP/ROCr runtime. This v5.5.1
-source candidate has passed configuration preflight; a full candidate build
-and serving qualification are still pending. A new distribution build is not
+candidate completed a full native build and scoped single-/four-slot text checks
+with retained deployment settings. See [the qualification record](qualification/v5.5.1/BUILD-AND-FUNCTIONAL.json) for tested settings and limits. A new distribution build is not
 a reproduction of the measured executable or a guarantee of identical performance.
 
 ## Manual build with an existing complete ROCm 10.0.0 SDK
