@@ -1,7 +1,7 @@
 {
   "format": 2,
   "variant": "IU4",
-  "runtime_version": "5.5.1",
+  "runtime_version": "5.5.6",
   "previous_runtime_version": "5.5.0",
   "previous_public_source_archive_sha256": "9298aac461332ce6a94e83f36b49ac5f7e7ed005d5e1190a0c00cde4b485d367",
   "previous_source_sha256": "eaf2d03d92ba8f96ee123b5e749783abebbefd208620921faaddb15b481f09d4",
@@ -2074,9 +2074,10 @@
     "model_weights_changed": false,
     "benchmarks_repeated": false
   },
-  "status": "built_automatic_dispatch_candidate_unpublished",
+  "status": "runtime_patch_release",
   "manifest_scope": "Previous compiled and build inputs plus production profiles and C1 host-dispatch regression test; metadata and docs have a separate source checksum file.",
   "automatic_dispatch_note": "Per-fix environment switch removed; production profile restored to baseline bytes. Existing backend/layout eligibility remains.",
   "prior_candidate_compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
-  "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json"
+  "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json",
+  "release_source_checksums": "checksums/v5.5.6-source.sha256"
 }

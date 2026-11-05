@@ -1,6 +1,4 @@
-> **Unpublished v5.5.1 built candidate:** this checkout adds guarded C1 small-batch dispatch to the v5.5 baseline described below. See [candidate scope, functional checks and publication limits](docs/qualification/v5.5.1/RELEASE-NOTES.md). Existing download links below identify the preserved v5.5 release, not a new v5.5.1 artifact.
-
-# Install and run Flash IU4 v5.5.0 on Strix Halo
+# Install and run Flash IU4 v5.5.6 on Strix Halo
 
 This is a **custom CIRU runtime** for the supplied model. A stock llama.cpp
 build cannot read its compact expert representation or its external embedding
@@ -14,7 +12,7 @@ CIRU installation or a GitHub release tag.
 - A working AMD GPU driver with access to `/dev/kfd` and the render device in `/dev/dri/`. Use a current Strix Halo-capable kernel/firmware. The build script installs user-space software; it does not replace the driver.
 - A local NVMe SSD for model files and the paged embedding table. Network storage performance is not covered by these measurements.
 - Roughly **121 GiB for the target, draft and embedding files**, plus about **40 GiB of headroom for the source, SDK and build directories**. Keep extra space if retaining downloaded parts, a Hugging Face cache, or the previous model version.
-- Ubuntu 24.04 LTS or a recent Debian release with a compatible kernel is the source-build path below. The historical benchmark runtime ran on **NixOS with ROCm/TheRock 10.0.0 and the pinned custom HIP/ROCr runtime**. The current release qualification used a GNU 16.2.1 build made on Arch Linux and run on Ciru's NixOS system with that same SDK and custom GPU runtime. Ubuntu/Debian commands have been checked against the source and package interfaces; the complete build and inference benchmark have **not** been repeated there.
+- Ubuntu 24.04 LTS or a recent Debian release with a compatible kernel is the source-build path below. The historical benchmark runtime ran on **NixOS with ROCm/TheRock 10.0.0 and the pinned custom HIP/ROCr runtime**. The v5.5.0 serving qualification used a GNU 16.2.1 build made on Arch Linux and run on Ciru's NixOS system with that same SDK and custom GPU runtime. The v5.5.6 correction passed 47 CPU dispatch checks and a native incremental build with all 150 compiled HIP device-text images matching the prior qualified build; it does not extend those earlier serving or vision checks. Ubuntu/Debian commands have been checked against the source and package interfaces; the complete build and inference benchmark have **not** been repeated there.
 
 Do not run another large GPU model while loading this one. The default reserves
 262,144 tokens of context, one request slot, F16 target/draft KV caches, a
@@ -33,7 +31,7 @@ ple/ple.payload.bin
 ple/ple.manifest.json
 ple/ple.scale.bf16
 vision/mmproj-Qwen3.8-Flash-F16.mmproj
-source-tree-flash-v5.5.0.tar.gz
+source-tree-flash-v5.5.6.tar.gz
 ```
 
 The three `ple/` files contain the model's SSD-paged n-gram/hash embedding table,
@@ -47,11 +45,33 @@ From the downloaded model directory:
 
 ```bash
 export MODEL_DIR="$PWD"
-mkdir -p runtime-v5.5.0
-tar -xzf source-tree-flash-v5.5.0.tar.gz -C runtime-v5.5.0
-export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.0"
+mkdir -p runtime-v5.5.6
+tar -xzf source-tree-flash-v5.5.6.tar.gz -C runtime-v5.5.6
+export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.6"
 cd "$RUNTIME_DIR"
 ```
+
+## Alternative: current GitHub source
+
+The canonical source repository is
+[ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4).
+Its `main` branch includes the automatic C1 correction. For the exact source
+of this release, use the public `v5.5.6` tag in a new directory instead of
+extracting the archive above:
+
+```bash
+export MODEL_DIR="/absolute/path/to/flash-model"
+git clone --branch v5.5.6 --single-branch \
+  https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git \
+  "$MODEL_DIR/runtime-v5.5.6"
+export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.6"
+cd "$RUNTIME_DIR"
+```
+
+Continue with the same build steps below. The model files stay in `MODEL_DIR`.
+To follow subsequent source changes, use a separate checkout of `main`;
+rebuild after updating it and record the exact commit used. Old source
+archives and old release tags retain their original code.
 
 ## 2. Build on Ubuntu/Debian
 
@@ -73,7 +93,7 @@ Keep `.venv-rocm/`, `runtime/` and `build-gfx1151-sdk/` in place. Do not combine
 the executable or shared libraries with another runtime build.
 
 For an existing complete matching SDK, use the manual steps in
-`runtime-v5.5.0/docs/BUILD_LINUX.md`. AMD documents the package installation at
+`runtime-v5.5.6/docs/BUILD_LINUX.md`. AMD documents the package installation at
 [ROCm 10 installation](https://rocmdocs.amd.com/en/latest/install/rocm.html);
 the custom runtime source is [pwilkin/rocm-systems](https://github.com/pwilkin/rocm-systems/tree/7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1).
 
@@ -87,6 +107,10 @@ MODEL_VARIANT=IU4 MODEL_RELEASE=5.0 ENABLE_UI=0 ENABLE_VISION=1 \
   MODEL_DIR="$MODEL_DIR" bash "$RUNTIME_DIR/scripts/ciru/run-server.sh"
 ```
 
+After setting `ROCM_ROOT`, the equivalent model-directory shortcut is
+`bash "$MODEL_DIR/run-server-v5.5.6.sh"`. It uses the same rebuilt source
+launcher and accepts the same environment overrides.
+
 The default is API-only at `http://127.0.0.1:8080`, with image input enabled,
 the matching projector loaded, and MTP depth **3**,
 16,384-token batch, 8,192-token microbatch and 262,144-token context. The startup output prints
@@ -95,7 +119,7 @@ can differ from the benchmark binary because the compiler and distribution
 differ. Loading and first-request warmup may take several minutes.
 
 To launch again from a new terminal, set `MODEL_DIR` to the downloaded model
-directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.0"`, and repeat the ROCM_ROOT and
+directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.6"`, and repeat the ROCM_ROOT and
 launch lines. These are filesystem paths on your computer, not repository IDs.
 
 Use `CONTEXT_SIZE=65536` for a smaller maximum context. `ENABLE_MTP=0` disables
@@ -150,11 +174,12 @@ install a Node.js/npm version compatible with `tools/ui/package.json`, then run
 Launch with `ENABLE_UI=1 UI_DIR="$RUNTIME_DIR/tools/ui/dist"` after the resulting
 directory contains `index.html`. UI assets are independent of inference kernels.
 
-The default v5.5.0 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
+The default v5.5.6 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
 and keeps MTP depth 3. `--vision` explicitly enables the same behavior.
 Set `MMPROJ=/absolute/path/to/projector.mmproj` to override the location,
 or `ENABLE_VISION=0` for text-only operation. The runtime must be rebuilt
-from the v5.5.0 source archive to apply the image/MTP attention correction.
+from the current v5.5.6 source archive to retain the image/MTP attention
+correction and install automatic C1 dispatch.
 The target GGUF, MTP draft and projector do not need to be converted again.
 
 Send an image as an OpenAI-compatible `image_url` content part. This
@@ -187,11 +212,15 @@ images; loading the projector cannot change a client-side modality setting.
 
 ## Update from an earlier runtime
 
+v5.5.6 selects the improved C1 dispatch automatically for eligible 9–16-row
+AMD batches. No new optimization switch or model conversion is required.
+
 Reuse the verified v5.0 target, matching draft, PLE files and projector. Download
-the new `source-tree-flash-v5.5.0.tar.gz`, extract it
+the new `source-tree-flash-v5.5.6.tar.gz`, extract it
 into a new runtime directory, and perform the complete build above. This update
-changes the scheduler, attention kernels and speculative paths; the older
-single-library vision patch below does not install it. Keep the previous runtime
+includes the previous scheduler, attention and speculative-path corrections
+plus automatic C1 dispatch; the older single-library vision patch below
+does not install the current package. Keep the previous runtime
 available until the new installation has loaded successfully. Stop your server
 before switching the installation used by its launcher.
 

@@ -1,4 +1,4 @@
-> **Unpublished v5.5.1 built candidate:** this checkout adds guarded C1 small-batch dispatch to the v5.5 baseline described below. See [candidate scope, functional checks and publication limits](docs/qualification/v5.5.1/RELEASE-NOTES.md). Existing download links below identify the preserved v5.5 release, not a new v5.5.1 artifact.
+> Runtime5.5.6 automatically selects the improved C1 route for eligible small joint batches. The serving settings and historical measurements below are unchanged. See [5.5.6 patch notes](docs/qualification/v5.5.6/RELEASE-NOTES.md).
 
 # Optional multi-slot serving and image-memory update
 

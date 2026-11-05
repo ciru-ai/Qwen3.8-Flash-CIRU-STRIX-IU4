@@ -22,10 +22,7 @@ tags:
   - vision
 ---
 
-> **Unpublished v5.5.1 built candidate:** this checkout adds guarded C1 small-batch dispatch to the v5.5 baseline described below. See [candidate scope, functional checks and publication limits](docs/qualification/v5.5.1/RELEASE-NOTES.md). Existing download links below identify the preserved v5.5 release, not a new v5.5.1 artifact.
-
-
-# Qwen3.8 Flash CIRU Strix IU4 — v5.5.0 runtime update
+# Qwen3.8 Flash CIRU Strix IU4 — v5.5.6 runtime update
 
 Compact weights and a native CIRU runtime for AMD Strix Halo. **The original
 v4.4.1 GGUF remains in this repository** at its existing filename. v5.0 is
@@ -41,6 +38,20 @@ matching draft; do not interchange their model or draft files.
 > embedding table.
 > Build the included matching [CIRU runtime](INSTALL.md)
 > and keep all three `ple/` files on fast local storage.
+
+## Runtime patch v5.5.6
+
+v5.5.6 automatically selects the existing R4 expert kernels for eligible
+AMD C1 batches of 9–16 rows. No new option is needed. Model weights,
+MTP settings and the default one-slot serving configuration are unchanged.
+Rebuild the runtime to install the correction; updating only the launcher
+does not apply it.
+
+The correction passed 47 CPU dispatch checks and a native incremental
+build; all 150 compiled HIP device-text images matched the prior qualified
+build. The earlier serving and vision checks below retain their original
+v5.5.0 scope. This patch does not establish a new whole-model speed ratio
+or broad quality result. [Source and optimization workflow](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.6/OPTIMIZATION.md).
 
 ## One slot by default; optional multi-slot serving
 
@@ -224,11 +235,11 @@ client-error audits are in [the report](BENCHMARKS.md#thinking-off-task-checks).
 
 The other required embedding files are `ple.manifest.json` and
 `ple.scale.bf16`; the v5.0 model and installation files are listed in
-[`checksums-v5.5.0.sha256`](checksums-v5.5.0.sha256). The v4.4.1 file is retained
+[`checksums-v5.5.6.sha256`](checksums-v5.5.6.sha256). The v4.4.1 file is retained
 unchanged for existing users and can be downloaded alone with its matching
 runtime.
 
-## Download and run v5.5.0
+## Download and run v5.5.6
 
 Download the versioned GGUF, matching MTP draft, the three embedding-table
 files, the matching vision projector, and the complete source package. Existing users can reuse the same
@@ -238,24 +249,24 @@ verified MTP and `ple/` files.
 python3 -m venv .venv-hf
 .venv-hf/bin/pip install --upgrade huggingface_hub
 .venv-hf/bin/hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --revision v5.5.0 \
+  --revision v5.5.6 \
   Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf \
   mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf \
   ple/ple.payload.bin ple/ple.manifest.json ple/ple.scale.bf16 \
   vision/mmproj-Qwen3.8-Flash-F16.mmproj \
-  source-tree-flash-v5.5.0.tar.gz run-server-v5.5.0.sh INSTALL.md CONCURRENCY.md checksums-v5.5.0.sha256 \
+  source-tree-flash-v5.5.6.tar.gz run-server-v5.5.6.sh INSTALL.md CONCURRENCY.md checksums-v5.5.6.sha256 \
   --local-dir ./flash-model
 cd flash-model
-sha256sum -c checksums-v5.5.0.sha256
+sha256sum -c checksums-v5.5.6.sha256
 ```
 
 On Ubuntu/Debian, install `python3-venv` first if needed. Continue with
 **[INSTALL.md](INSTALL.md)** for the complete source build and launch steps.
-The included source archive supplies the v5.0 inference code; the guide builds
+The included source archive supplies the v5.5.6 runtime for the unchanged v5.0 weights; the guide builds
 its pinned AMD SDK and custom HIP/ROCr dependencies from public sources.
 It also covers health checks, chat, function calling, thinking settings,
-image input, and common setup errors. No earlier CIRU installation or
-unpublished GitHub tag is required.
+image input, and common setup errors. No earlier CIRU installation is required. The guide also covers building
+from the matching public GitHub source tag.
 
 Use 128 GiB unified memory and fast local NVMe for the measured configuration.
 The model files take about 120 GiB, with additional space needed for the SDK
@@ -264,7 +275,7 @@ and build. The default local server uses one slot, 16,384-token batches and 8,19
 Performance was measured on NixOS; the Ubuntu/Debian guide is a source-build
 route, not a claim of equal measured performance on every distribution.
 
-The download includes the matching vision projector, and the v5.5.0
+The download includes the matching vision projector, and the v5.5.6
 launcher enables it by default. Text benchmark results do not measure image
 performance. See [vision/README.md](vision/README.md) for the image test scope.
 

@@ -1,5 +1,5 @@
 {
-  "version": "5.5.1",
+  "version": "5.5.6",
   "variant": "IU4",
   "target_filename": "Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf",
   "target_sha256": "745bf5b48ef5bd4ded36b3136cde3d35145b2ec5a3aabf03da0e5a792bc5a27d",
@@ -21,7 +21,7 @@
   "model_weights_version": "5.0",
   "date": "2026-11-05",
   "previous_runtime_version": "5.5.0",
-  "version_note": "Unpublished built runtime candidate based on the exact v5.5 source package; unchanged v5.0 weights and serving defaults. Retained-deployment single-slot/four-slot text smoke passed; broader release qualification is not claimed.",
+  "version_note": "Runtime5.5.6 adds automatic C1 small-batch R4 selection. Unchanged v5.0 weights and existing serving defaults; qualification scope is recorded in the linked patch notes.",
   "microbatch_tokens": 8192,
   "optional_parallel_slots": 2,
   "optional_microbatch_tokens": 2048,
@@ -42,9 +42,9 @@
     "benchmarks_repeated": false
   },
   "baseline_release_validation": "benchmarks/release-20261006/validation.json",
-  "status": "built_automatic_dispatch_candidate_unpublished",
+  "status": "runtime_patch_release",
   "correction": "Automatic existing R4 dispatch for eligible 9-16-row C1 batches.",
-  "release_notes": "docs/qualification/v5.5.1/RELEASE-NOTES.md",
+  "release_notes": "docs/qualification/v5.5.6/RELEASE-NOTES.md",
   "small_batch_vector_dispatch": "automatic_for_eligible_existing_r4_batches",
   "prior_candidate_text_functional_qualification_passed": true,
   "current_revision_gpu_text_checks_repeated": false,
