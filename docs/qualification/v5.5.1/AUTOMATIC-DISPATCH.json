@@ -1,0 +1,42 @@
+{
+  "schema": 1,
+  "runtime_version": "5.5.1",
+  "change": "Remove the per-fix environment switch and profile setting. Use existing R4 for eligible9-16-row batches automatically.",
+  "c1_source_sha256": "9d112c17493aaee1aeaf04e17dc88a7dbf2348f97664948b7d2f53112a5a029a",
+  "regression": {
+    "prior_switch_candidate": {
+      "failed": 14,
+      "passed": 33
+    },
+    "automatic_candidate": {
+      "failed": 0,
+      "passed": 47
+    },
+    "coverage": "Actual host predicates, both projection directions,8/9/12/16/17 boundaries, layouts, existingbackendselection, legacyenvironmentunset/0/1."
+  },
+  "native_build": {
+    "passed": true,
+    "kind": "Incremental native C1 rebuild and server/CLI/bench relink with originalSDK/flags",
+    "compiled_base_commit": "65bc5d004c61ffcc28762c8b89bd45a6d3a59ca5",
+    "binary_sha256": {
+      "libggml-base.so.0.23.0": "a19015e10b20bbc635788b84a75d90646a788f0f7942d8a869330fe222c7e408",
+      "libggml-cpu.so.0.23.0": "663fbef81abe344ff09205fa4e9165dd4e58654c9cf44c623e6ed2717487d534",
+      "libggml-hip.so.0.23.0": "e7e12e28d5ab646329c544e054c4a92aa21c2987aeb4c67a85a1bdc0e84f549b",
+      "libggml.so.0.23.0": "457fc46bf47d9c844659dca6143ab6d2d5f0d9b4a8546ea65821e8c6ee62e918",
+      "libllama.so.0.4.0": "b580ba00f377d8f994b4f93d40baf67f8a962360228f78e2389471931d21cdde",
+      "libmtmd.so.0.4.0": "fde0654524ddf60043a84aa65662df337dd7fd093ddd85396f9a15b0fe879b66",
+      "libllama-common.so.0.4.0": "e6623913f9f2542bcbe7daf68a3e4b01a5b15a287cda1edc56c5cb58c81afca1",
+      "libllama-bench-impl.so": "13ae3a6c65736044be9e573f9b33fda46cde8a560148448d7a1c6501834b3756",
+      "libllama-server-impl.so": "6e6789ad71b65fc2d42104751cd520a81eca8130e0cc99cd07285f1f3868a6aa",
+      "llama-bench": "4611ca217989fbe600d0ca232f083accc3e41456d72bc2be3622aaa5e8bae391",
+      "libllama-cli-impl.so": "36b2d39f175a2c2683eb0162f260f89728d2aa9e2213342837071e92cd8a2d59",
+      "llama-cli": "0a31d0c29a782ffc106bff13ebe5c0255fdf2e679db545cedeeb4cbc1a5c75ab",
+      "llama-server": "0605cb3008db92238609f13e6854c599d638b3404ae4e286bf1ca8e69185854f"
+    },
+    "device_images": 150,
+    "all_device_text_exact_against_previous_qualified_build": true
+  },
+  "gpu_or_model_rerun": false,
+  "historical_text_checks": "BUILD-AND-FUNCTIONAL.json preserves prior switch-enabled package checks.",
+  "limits": "Current revision has CPU dispatch and native build validation. Prior component/numerical/text-serving evidence retains its original identity and scope. No new serving timing or broad quality claim."
+}

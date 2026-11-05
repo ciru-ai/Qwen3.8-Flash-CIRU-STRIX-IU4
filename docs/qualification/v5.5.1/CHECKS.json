@@ -1,20 +1,24 @@
 {
   "schema": 1,
   "runtime_version": "5.5.1",
-  "status": "built_text_functional_candidate_unpublished",
+  "status": "built_automatic_dispatch_candidate_unpublished",
   "date": "2026-11-05",
-  "source_delta": "C1 small-batch host dispatch plus default-with-opt-out production flag; no kernel instruction body changes",
+  "source_delta": "Automatic eligible C1 small-batch R4 dispatch; no new runtime/profile option or kernel instruction-body change.",
   "dispatch_regression": {
     "command": "python -m pytest tests/test-c1-small-batch-dispatch.py -q",
-    "baseline": {
+    "candidate": {
+      "passed": 47,
+      "failed": 0
+    },
+    "scope": "CPU execution of extracted actual host predicates, with tensor metadata fixtures; no GPU arithmetic",
+    "historical_package_baseline": {
       "passed": 34,
       "failed": 7
     },
-    "candidate": {
-      "passed": 41,
-      "failed": 0
-    },
-    "scope": "CPU execution of extracted actual host predicates, with tensor metadata fixtures; no GPU arithmetic"
+    "prior_switch_candidate": {
+      "passed": 33,
+      "failed": 14
+    }
   },
   "syntax": {
     "command": "bash -n profiles/strix-halo-production.env profiles/strix-halo-v5.env scripts/ciru/run-server.sh scripts/ciru/build-linux-amd.sh scripts/ciru/setup-linux-amd.sh",
@@ -33,14 +37,16 @@
   ],
   "native_build": {
     "passed": true,
-    "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
-    "record": "docs/qualification/v5.5.1/BUILD-AND-FUNCTIONAL.json"
+    "scope": "Native C1 incremental rebuild and relink; all150device text images exact versus previously text-qualified build.",
+    "record": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json"
   },
   "text_functional": {
     "passed": true,
     "panels": 2,
     "requests": 5,
-    "scope": "Retained deployment settings: MTP3, microbatch2048, two checkpoints, no image projector; single slot262144 and four slots65536 each."
+    "scope": "Retained deployment settings: MTP3, microbatch2048, two checkpoints, no image projector; single slot262144 and four slots65536 each.",
+    "historical_switch_enabled_build": true,
+    "current_automatic_revision_repeated": false
   },
   "permanent_production_deployment": false,
   "serving_environment_restored": true

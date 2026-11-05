@@ -1,6 +1,6 @@
 # Optimizing Flash runtime dispatch
 
-The small-batch C1 change lets eligible AMD batches of 9-16 rows use the existing R4 expert kernels. These joint batches previously selected padded grouped matrix kernels. One predicate controls both grouped bypass and vector admission, preserving the original geometry, layout, stride and alignment checks. The kernel arithmetic and model weights are unchanged. A production-profile switch enables the route; explicit 0 restores the previous selection. The normal default remains one slot.
+The small-batch C1 change lets eligible AMD batches of 9-16 rows use the existing R4 expert kernels. These joint batches previously selected padded grouped matrix kernels. One predicate controls both grouped bypass and vector admission, preserving the original geometry, layout, stride and alignment checks. The kernel arithmetic and model weights are unchanged. The dispatcher selects this route automatically when the existing R4 backend and tensor requirements apply. The normal default remains one slot.
 
 A retained 16-row complete expert-operation comparison measured 4.701845 -> 1.536682ms, or 3.06x. This includes packing, projections, activation, weighting and reduction. It is a component result, not a 3x model-speed claim. One concurrent-serving observation also improved, but generated outputs and request trajectories differed, so it does not establish an equal-output or repeatable causal ratio.
 

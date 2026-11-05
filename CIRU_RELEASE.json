@@ -42,12 +42,14 @@
     "benchmarks_repeated": false
   },
   "baseline_release_validation": "benchmarks/release-20261006/validation.json",
-  "status": "built_text_functional_candidate_unpublished",
-  "correction": "Guarded existing R4 dispatch for eligible 9-16-row C1 batches, enabled by the shared production profile with explicit opt-out.",
+  "status": "built_automatic_dispatch_candidate_unpublished",
+  "correction": "Automatic existing R4 dispatch for eligible 9-16-row C1 batches.",
   "release_notes": "docs/qualification/v5.5.1/RELEASE-NOTES.md",
-  "small_batch_vector_profile_default": true,
-  "small_batch_vector_opt_out": "LLAMA_C1_VECTOR_R4_SMALL_BATCH=0",
-  "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
-  "native_build_record": "docs/qualification/v5.5.1/BUILD-AND-FUNCTIONAL.json",
-  "text_functional_qualification_passed": true
+  "small_batch_vector_dispatch": "automatic_for_eligible_existing_r4_batches",
+  "prior_candidate_text_functional_qualification_passed": true,
+  "current_revision_gpu_text_checks_repeated": false,
+  "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json",
+  "new_binary_package_qualified": false,
+  "prior_candidate_compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
+  "prior_candidate_native_build_record": "docs/qualification/v5.5.1/BUILD-AND-FUNCTIONAL.json"
 }

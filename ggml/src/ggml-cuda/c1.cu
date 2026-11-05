@@ -203,14 +203,9 @@ static __global__ void c1_mat_id_reference(
 }
 
 #if defined(__HIP_PLATFORM_AMD__)
-// Opt-in reuse of the existing R4 implementation for small joint verification
-// batches. All grouped and vector layout guards stay intact; no math changes.
+// Reuse R4 for small joint batches while preserving layout guards.
 static bool c1_small_batch_vector_eligible(const ggml_tensor * dst) {
-    static const bool enabled = [] {
-        const char * value = std::getenv("LLAMA_C1_VECTOR_R4_SMALL_BATCH");
-        return value && value[0] == '1';
-    }();
-    if (!enabled || dst->ne[2] <= 8 || dst->ne[2] > 16 ||
+    if (dst->ne[2] <= 8 || dst->ne[2] > 16 ||
             !(c1_use_vector_r4() || c1_use_vector_r4_lut())) return false;
     const ggml_tensor * w = dst->src[0], * x = dst->src[1], * ids = dst->src[2];
     const ggml_tensor * rows = dst->src[3], * tables = dst->src[4];

@@ -14,7 +14,7 @@
   ],
   "files_checked": 2050,
   "digest_algorithm": "SHA256 of UTF-8 sha256 + two spaces + relative path + newline, sorted by path",
-  "source_sha256": "6d1b999552cbcc4d12f86e5b4c8c8a60429190a5fa664aea0f78460a18a87293",
+  "source_sha256": "294e74be62dd249d28f93ccc257adf02972786239526e7e8bd1e7d4f2dce4382",
   "files": {
     ".devops/tools.sh": "6b004b48de47f152cc46e58d9f922cee0cdcead7cc90547ee549e570d622fabd",
     "CMakeLists.txt": "2904ff5f58eecf40ccfee5e18f2c9f01d23d5fc149efd005e260ba278d1193f6",
@@ -344,7 +344,7 @@
     "ggml/src/ggml-cuda/binbcast.cuh": "d26b240e58140e52b6f1cbd94e15792b4281d6f88faaa6f91413e22aa6b74854",
     "ggml/src/ggml-cuda/c1-grouped.cuh": "0afed0a06b37b41c344f78fefb7eebe7e9354bc3d1aa848f5797bf03fbc8e600",
     "ggml/src/ggml-cuda/c1-vector-r4.cuh": "363f90c3e97283e456db1d2e3fcf3508d8c29d62978d56c126b36073fcbc49e9",
-    "ggml/src/ggml-cuda/c1.cu": "fa59e9848f5c120e6a7deb9d2e2729669536fffaba990d3068eb71a21e35842f",
+    "ggml/src/ggml-cuda/c1.cu": "9d112c17493aaee1aeaf04e17dc88a7dbf2348f97664948b7d2f53112a5a029a",
     "ggml/src/ggml-cuda/c1.cuh": "2aa2e339a09a1ffc2e24ddb4aeadc7f4c734b0a717ca72f91827c3509c948ba8",
     "ggml/src/ggml-cuda/clamp.cu": "ad20b2b271c125a306509d81b062ac6f79be3f430ef6f75099946078bc8d6a0a",
     "ggml/src/ggml-cuda/clamp.cuh": "53713bdce3d2cd614719a00e3e282c7ec2555cad1d35baa65e930cb5bda54b27",
@@ -1546,7 +1546,7 @@
     "pocs/vdot/CMakeLists.txt": "7aea4bb7bc71605f62c044ef5320cdbb3242a97fb057292b3cb1ef8a45d46c6b",
     "pocs/vdot/q8dot.cpp": "c083b404eee1fe3de77cacc9878096d5ddf98ade366919021796efc642ec9fbd",
     "pocs/vdot/vdot.cpp": "54084b445bb4e353efc0c3f5356960664501da23f9dedd296ac054331d1bf809",
-    "profiles/strix-halo-production.env": "a4b759f9e8b3dbe7ba0daee3e00592edf660defdc7d129e3d6cee0d657f70770",
+    "profiles/strix-halo-production.env": "e26d5f718f0ed295033dace8fc56215ee9eeca49610a1bdcd288386710831050",
     "profiles/strix-halo-v5.env": "b9394304a7df7c1af6116fbb2954fb14548f7c6deb91fbe41b14c041bdee5125",
     "scripts/apple/validate-apps.sh": "8ced6e8720271f7b2354184b64e9d216e58ae8c1ee7b7f5667242da79479e548",
     "scripts/apple/validate-ios.sh": "0c5e04187df5d812d1fa56f45337ac4e1485ad5b9351d5284d1f1e8fd9e5437b",
@@ -1836,7 +1836,7 @@
     "tests/test-barrier.cpp": "44a60801134d178c8e2c6789c471909ed83c0b8c71055b259478b4d396220cee",
     "tests/test-batch-alloc.cpp": "e41342f1be80a783aa9e19140e3755397f120d4a6c01226ed721fa2f46fa673b",
     "tests/test-c.c": "c973865e5e86263a71a1210003e80cffa6269572de31cfa647cc3d01b4bea99e",
-    "tests/test-c1-small-batch-dispatch.py": "bc1e30fbe1008ab0ee4345dfa51b8779b453f2905bd7f106c03ebc748c60646a",
+    "tests/test-c1-small-batch-dispatch.py": "7bbc72c46be17626f24572bf776229e31e1eea8d5f4fc90b6af52a99ae827530",
     "tests/test-chat-analysis.cpp": "d895ae1736845640b8dab486c68189726821abfbbfc0ca96f98cd419633ad1a1",
     "tests/test-chat-auto-parser.cpp": "d69af3154f3ed738e47a74280bcd63d2e90cd60b05dff7f5f1f7a5b26c59478c",
     "tests/test-chat-peg-parser.cpp": "c0583c716c65fa7c06fc9b282fc8d24aecde29fa55271536e8c23dfbbc0429e0",
@@ -2074,7 +2074,9 @@
     "model_weights_changed": false,
     "benchmarks_repeated": false
   },
-  "status": "built_text_functional_candidate_unpublished",
+  "status": "built_automatic_dispatch_candidate_unpublished",
   "manifest_scope": "Previous compiled and build inputs plus production profiles and C1 host-dispatch regression test; metadata and docs have a separate source checksum file.",
-  "compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e"
+  "automatic_dispatch_note": "Per-fix environment switch removed; production profile restored to baseline bytes. Existing backend/layout eligibility remains.",
+  "prior_candidate_compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
+  "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json"
 }

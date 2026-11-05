@@ -76,24 +76,26 @@ bool c1_use_centered_activation(){return true;}
     subprocess.run(shlex.split(os.environ.get('CXX', 'c++'))+['-std=c++17','-Wall','-Wextra','-Wno-unused-function','-Wno-unused-variable','-Wno-unused-parameter','-Wno-misleading-indentation',str(p/'test.cpp'),'-o',str(p/'test')],check=True)
     return p/'test'
 
-def route(executable,t,bad=0,enabled='1',r4='1',lut='0',reverse=False):
-    env=dict(os.environ,LLAMA_C1_VECTOR_R4_SMALL_BATCH=enabled,LLAMA_C1_VECTOR_R4=r4,LLAMA_C1_VECTOR_R4_LUT=lut)
+def route(executable,t,bad=0,legacy_switch=None,r4='1',lut='0',reverse=False):
+    env=dict(os.environ,LLAMA_C1_VECTOR_R4=r4,LLAMA_C1_VECTOR_R4_LUT=lut)
+    env.pop('LLAMA_C1_VECTOR_R4_SMALL_BATCH',None)
+    if legacy_switch is not None:
+        env['LLAMA_C1_VECTOR_R4_SMALL_BATCH']=legacy_switch
     return int(subprocess.check_output([str(executable),str(t),str(bad),str(int(reverse))],env=env,text=True))
 
 @pytest.mark.parametrize('tokens',[9,12,16])
-def test_opt_in_joint_verification_uses_existing_vector(executable,tokens):
-    assert route(executable,tokens)==2
-
-@pytest.mark.parametrize('tokens,want',[(1,2),(4,2),(8,2),(9,1),(16,1),(17,1),(512,1)])
-def test_default_route_unchanged(executable,tokens,want):
-    assert route(executable,tokens,enabled='0')==want
+@pytest.mark.parametrize('legacy_switch',[None,'0','1'])
+@pytest.mark.parametrize('reverse',[False,True])
+def test_joint_verification_automatically_uses_existing_vector(executable,tokens,legacy_switch,reverse):
+    assert route(executable,tokens,legacy_switch=legacy_switch,reverse=reverse)==2
 
 @pytest.mark.parametrize('tokens,want',[(1,2),(4,2),(8,2),(17,1),(512,1)])
-def test_opt_in_is_bounded_without_changing_original_small_path(executable,tokens,want):
-    assert route(executable,tokens)==want
+@pytest.mark.parametrize('reverse',[False,True])
+def test_original_small_and_large_boundaries_are_unchanged(executable,tokens,want,reverse):
+    assert route(executable,tokens,reverse=reverse)==want
 
 @pytest.mark.parametrize('bad',range(1,15))
-def test_new_small_path_preserves_grouped_eligibility_guards(executable,bad):
+def test_small_path_preserves_geometry_and_layout_guards(executable,bad):
     assert route(executable,16,bad=bad)==0
 
 def test_requires_existing_r4_variant(executable):
@@ -102,24 +104,17 @@ def test_requires_existing_r4_variant(executable):
 def test_preserves_existing_lut_variant_when_selected(executable):
     assert route(executable,16,r4='0',lut='1')==2
 
-@pytest.mark.parametrize('tokens,enabled,want',[(8,'0',2),(8,'1',2),(9,'0',1),(9,'1',2),(16,'0',1),(16,'1',2),(17,'0',1),(17,'1',1)])
-def test_down_projection_same_boundary(executable,tokens,enabled,want):
-    assert route(executable,tokens,enabled=enabled,reverse=True)==want
-
 
 def profile_environment(**overrides):
     env = {k: v for k, v in os.environ.items() if not k.startswith(("LLAMA_", "GGML_", "CIRU_"))}
     env.update(overrides)
-    script = 'set -a; source "$1/profiles/strix-halo-production.env"; source "$1/profiles/strix-halo-v5.env"; env -0'
+    script = 'set -ae; source "$1/profiles/strix-halo-production.env"; source "$1/profiles/strix-halo-v5.env"; env -0'
     raw = subprocess.check_output(['bash', '-c', script, 'profile-test', str(R)], env=env)
     return dict(item.decode().split('=', 1) for item in raw.split(b'\0') if item)
 
 
-def test_production_profile_selects_small_batch_vector(executable):
-    env = profile_environment()
+@pytest.mark.parametrize('legacy_switch',[None,'0','1'])
+def test_shared_profile_automatically_selects_small_batch_vector(executable,legacy_switch):
+    overrides={} if legacy_switch is None else {'LLAMA_C1_VECTOR_R4_SMALL_BATCH':legacy_switch}
+    env = profile_environment(**overrides)
     assert int(subprocess.check_output([str(executable), '16', '0', '0'], env=env)) == 2
-
-
-def test_production_profile_opt_out_restores_grouped_path(executable):
-    env = profile_environment(LLAMA_C1_VECTOR_R4_SMALL_BATCH='0')
-    assert int(subprocess.check_output([str(executable), '16', '0', '0'], env=env)) == 1
