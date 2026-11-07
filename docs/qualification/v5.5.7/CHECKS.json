@@ -1,0 +1,205 @@
+{
+  "schema": 1,
+  "date": "2026-11-07",
+  "status": "bounded_reset_regression_qualification",
+  "base_source_commit": "a4664a9d0c46d7f53460aebe9947a981d7bacd39",
+  "source_changes": [
+    {
+      "file": "src/llama-graph.cpp",
+      "change": "Replace ggml_scale_inplace(state_zero, 0) with ggml_fill_inplace(state_zero, 0) in build_rs. Row selection, state copies, zero-sized no-reset behavior and surrounding graph construction are retained."
+    },
+    {
+      "file": "ggml/src/ggml-openvino/ggml-decoder.cpp",
+      "change": "Recognize in-place FILL in alias tracking, reset operation classification and recurrent reset metadata; derive reset slot index from byte offset divided by row byte stride."
+    },
+    {
+      "file": "ggml/src/ggml-openvino/openvino/op/fill.cpp",
+      "change": "Translate recurrent cache FILL with literal-value selection over the reset slot range, preserve read-after-reset aliases, and support input dtype and dynamic shape for generic FILL."
+    },
+    {
+      "file": "tests/test-recurrent-state-rollback.cpp",
+      "change": "Extend the existing rollback regression with 0xff NaN poisoning of discovered recurrent-state buffers. Preserve existing finite all-cache fills. Explicitly mark the NaN case inapplicable when the model declares no recurrent storage; fail if recurrent storage is declared but its buffers cannot be found."
+    }
+  ],
+  "tested_source_sha256": {
+    "src/llama-graph.cpp": "924098dc83a090f4bc26e97abd8997d3a5b7e56d6635514cd18bb197b9e60d66",
+    "ggml/src/ggml-openvino/ggml-decoder.cpp": "d8412fc3ce84b5dfcb468fac2497de7fe90d966ba5f567d54f535680dbd2a841",
+    "ggml/src/ggml-openvino/openvino/op/fill.cpp": "af025897e6e722e5b8dc2fc94ec15a9703cac00eb406c650e9ab01e55d2e1ace",
+    "tests/test-recurrent-state-rollback.cpp": "e7d5aef51a13ec532a1708c3017fd68112c1daccf0aa835dbca9b5794d5034ec"
+  },
+  "model_weights_changed_by_patch": false,
+  "defect": {
+    "confirmed": "Multiplication by zero preserves NaN and can turn infinities into NaN. A recurrent state row cleared this way can remain nonfinite and propagate invalid values through state copies. Literal FILL removes the dependency on previous state values.",
+    "initial_nonfinite_producer": "UNKNOWN",
+    "incident_root_cause_fully_established": false
+  },
+  "cpu": {
+    "backend": "CPU only; HIP, CUDA, Vulkan and OpenVINO disabled in this suite build.",
+    "tracked_regression": {
+      "fixture": "Existing recurrent-state rollback test with generated Qwen3.5 model and recurrent-state NaN poisoning.",
+      "baseline_scale_exit": 1,
+      "candidate_fill_exit": 0,
+      "result": "RED baseline / GREEN candidate"
+    },
+    "extracted_graph_edges": {
+      "baseline_exit": 1,
+      "candidate_exit": 0,
+      "cases": [
+        "finite reset",
+        "NaN and positive/negative infinity reset with state copies",
+        "zero-sized no-reset view",
+        "adjacent row sentinels"
+      ]
+    },
+    "registered_suite": {
+      "registered": 64,
+      "run": 64,
+      "excluded": 0,
+      "missing_model_self_skips": 0,
+      "substantive_passes": 61,
+      "failed_test_cases": 1,
+      "cases_with_masked_inner_failure": 1,
+      "cases_with_partial_external_metadata_skip": 1,
+      "ctest_exit": 8,
+      "all_green": false,
+      "source_test_and_binary_hashes_stable_during_run": true
+    },
+    "exceptions": [
+      {
+        "test": "test-backend-sampler",
+        "status": "FAIL",
+        "observation": "With official stories15M Q4_0, the +10 logit-bias assertion samples token 5231 instead of expected token 2787.",
+        "matched_baseline_and_candidate": true,
+        "baseline_exit": -6,
+        "candidate_exit": -6
+      },
+      {
+        "test": "test-tokenizers-ggml-vocabs",
+        "status": "MASKED_INNER_FAILURE",
+        "observation": "The registered shell script returns success despite an unsupported PLaMo3 tokenizer fixture. Direct baseline and candidate checks both fail with unknown tokenizer plamo3.",
+        "matched_baseline_and_candidate": true,
+        "baseline_direct_exit": 1,
+        "candidate_direct_exit": 1
+      },
+      {
+        "test": "test-quant-type-selection",
+        "status": "PARTIAL_METADATA_SKIP",
+        "observation": "All 10 available model metadata fixtures pass 33 quantization-type sections each. The hardcoded Nemotron repository returns HTTP 401 and is skipped.",
+        "matched_baseline_and_candidate": true,
+        "available_model_fixtures_passed": 10,
+        "sections_per_available_model": 33,
+        "unavailable_model_fixtures": 1
+      }
+    ],
+    "recurrent_coverage": {
+      "rollback_tests_passed": [
+        "Qwen3.5",
+        "Nemotron-H",
+        "DeepSeek V4",
+        "Kimi K3"
+      ],
+      "deepseek_v4_nan_case": "Explicitly inapplicable because the generated fixture declares no recurrent RS storage; existing finite rollback cases pass.",
+      "state_save_load_test": "PASS",
+      "additional_checks": [
+        "next-token row ordering",
+        "QSA selected-row ordering",
+        "QSA indexer projection",
+        "scheduler ring",
+        "UMA input"
+      ]
+    },
+    "comparison_conclusion": "No additional CPU regression observed in matched baseline/candidate checks. This is not a claim that all registered tests are green."
+  },
+  "hip": {
+    "device": "AMD Radeon 8060S, gfx1151",
+    "backend_library_sha256": "e7e12e28d5ab646329c544e054c4a92aa21c2987aeb4c67a85a1bdc0e84f549b",
+    "fixture": "Actual extracted recurrent reset graph with GET_ROWS and CPY, reset row 1, extra copy and adjacent sentinels; finite, NaN/infinity and zero-sized no-reset cases.",
+    "iterations_per_fixture": 3,
+    "baseline_scale": {
+      "passed": 6,
+      "failed": 3,
+      "exit": 1
+    },
+    "candidate_fill": {
+      "passed": 9,
+      "failed": 0,
+      "exit": 0
+    },
+    "limits": [
+      "Bounded component test, not full-model quality or performance qualification.",
+      "Repeated stable graphs were exercised; graph capture/replay engagement is not independently asserted by this fixture."
+    ]
+  },
+  "openvino": {
+    "sdk": "OpenVINO 2026.4.1",
+    "device": "CPU plugin",
+    "implementation": "Actual GGML OpenVINO backend and production translator/frontend conversion, with read-after-reset alias checks.",
+    "baseline_reset_fixture_exit": 1,
+    "candidate_reset_fixture_exit": 0,
+    "checks": {
+      "reset_values_and_metadata": 24,
+      "finite_legacy_scale_compatibility": 12,
+      "generic_fill_f32_f16_zero_nonzero_static_dynamic": 8,
+      "total_passed": 44
+    },
+    "reset_scope": [
+      "reset row 0",
+      "reset row 1",
+      "zero-length no-reset",
+      "finite and nonfinite inputs",
+      "static and dynamic shape",
+      "whole-cache and viewed-row graph forms"
+    ],
+    "limits": [
+      "No Intel GPU or NPU qualification.",
+      "No broad OpenVINO full-model quality or performance qualification.",
+      "Legacy SCALE remains multiplication; NaN recovery is qualified for callers emitting literal FILL."
+    ]
+  },
+  "live_serving_observation": {
+    "model_variant": "Qwen3.8 Flash CIRU IU4",
+    "settings": {
+      "slots": 4,
+      "shared_kv_pool_tokens": 262144,
+      "reported_per_slot_context_limit": 262144,
+      "vision_enabled": true,
+      "mtp_depth": 3,
+      "microbatch_tokens": 2048
+    },
+    "health": "ok",
+    "raw_probability_check": {
+      "finite": true,
+      "predicted_tokens": 1
+    },
+    "text_smoke": {
+      "completed_without_error": true,
+      "slash_only_output": false
+    },
+    "image_smoke": {
+      "completed_without_error": true,
+      "slash_only_output": false
+    },
+    "concurrent_text_panel": {
+      "requests": 4,
+      "correct_expected_answers": 4,
+      "peak_active_requests": 4
+    },
+    "bounded_long_context_continuation": {
+      "observed_at_utc": "2026-11-07T15:57:11.174750+00:00",
+      "successful_observed_turns": 68,
+      "max_observed_total_tokens": 223137,
+      "recorded_errors_in_observed_post_reload_sample": 0
+    },
+    "limits": [
+      "Observed recovery and bounded continued operation, not proof that the initial nonfinite producer has been eliminated.",
+      "No broad task-quality, vision-accuracy, long-duration reliability or performance improvement claim.",
+      "Ongoing application continuation is not complete end-to-end task acceptance."
+    ]
+  },
+  "overall_limits": [
+    "The first nonfinite producer in the original incident remains unidentified.",
+    "Fixing nonfinite recurrent-state reset is not a complete causal explanation of the incident.",
+    "Qualification is limited to the recorded CPU, gfx1151 HIP, OpenVINO CPU and bounded live-serving observations.",
+    "No claim of universal backend compatibility, full-suite green status, broad quality equivalence or measured speedup."
+  ]
+}

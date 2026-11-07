@@ -5,11 +5,13 @@
 
 #include "../src/llama-io.h"
 #include "../src/llama-memory.h"
+#include "../src/llama-model.h"
 
 #include <algorithm>
 #include <clocale>
 #include <cmath>
 #include <cstdio>
+#include <cstring>
 #include <limits>
 #include <set>
 #include <vector>
@@ -34,6 +36,7 @@ static bool decode_one(llama_context * ctx, llama_token tok, llama_pos pos) {
 
 struct cache_buffer_collector : llama_io_write_i {
     std::set<ggml_backend_buffer_t> buffers;
+    std::set<ggml_backend_buffer_t> recurrent_buffers;
     size_t size = 0;
 
     void write(const void *, size_t n) override {
@@ -42,6 +45,11 @@ struct cache_buffer_collector : llama_io_write_i {
 
     void write_tensor(ggml_tensor * tensor, size_t, size_t n) override {
         buffers.insert(tensor->buffer);
+        if (std::strncmp(tensor->name, "cache_r_l", 9) == 0 ||
+            std::strncmp(tensor->name, "cache_s_l", 9) == 0 ||
+            std::strncmp(tensor->name, "cache_ple_r_l", 13) == 0) {
+            recurrent_buffers.insert(tensor->buffer);
+        }
         size += n;
     }
 
@@ -71,7 +79,14 @@ static llama_context * init_ctx(llama_model * model, llama_context_params cparam
         llama_free(ctx);
         return nullptr;
     }
-    for (auto * buffer : collector.buffers) {
+    // NaN poisoning targets recurrent reset, not unused attention cache padding.
+    const auto & buffers = fill == 0xff ? collector.recurrent_buffers : collector.buffers;
+    if (fill == 0xff && buffers.empty()) {
+        fprintf(stderr, "%s : no recurrent RS buffers found for non-finite reset test\n", __func__);
+        llama_free(ctx);
+        return nullptr;
+    }
+    for (auto * buffer : buffers) {
         ggml_backend_buffer_clear(buffer, fill);
     }
     return ctx;
@@ -456,7 +471,12 @@ int main(int argc, char ** argv) {
         return 0;
     }
 
-    for (uint8_t fill : { 0, 0x3e }) {
+    for (uint8_t fill : { 0, 0x3e, 0xff }) {
+        if (fill == 0xff && model->hparams.n_embd_r() == 0 && model->hparams.n_embd_s() == 0 &&
+            model->hparams.ple_conv_state() == 0) {
+            fprintf(stderr, "%s : no recurrent RS storage; non-finite reset case not applicable\n", __func__);
+            continue;
+        }
         fprintf(stderr, "%s : testing with cache fill 0x%02x\n", __func__, fill);
         if (test_rollback(params, model, fill) != 0) {
             return 1;

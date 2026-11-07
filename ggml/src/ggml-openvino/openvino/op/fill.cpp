@@ -2,8 +2,18 @@
 #include "../op_table.h"
 #include "../utils.h"
 
+#include <openvino/op/add.hpp>
 #include <openvino/op/broadcast.hpp>
 #include <openvino/op/constant.hpp>
+#include <openvino/op/gather.hpp>
+#include <openvino/op/greater_eq.hpp>
+#include <openvino/op/less.hpp>
+#include <openvino/op/logical_or.hpp>
+#include <openvino/op/range.hpp>
+#include <openvino/op/select.hpp>
+#include <openvino/op/shape_of.hpp>
+#include <openvino/op/squeeze.hpp>
+#include <openvino/op/unsqueeze.hpp>
 
 namespace ov {
 namespace frontend {
@@ -18,12 +28,30 @@ OutputVector translate_fill(const NodeContext & context) {
     float c;
     memcpy(&c, context.get_output_op_params(), sizeof(float));
 
-    auto shape = context.get_input_shape(0).to_shape();
+    auto input = context.get_input(0);
+    auto val = ov::op::v0::Constant::create(input.get_element_type(), {}, {c});
+    auto shape = std::make_shared<ov::op::v3::ShapeOf>(input, ov::element::i64);
 
-    auto val = ov::op::v0::Constant::create(ov::element::f32, {}, {c});
-    auto target_shape = ov::op::v0::Constant::create(ov::element::i64, {shape.size()},
-        std::vector<int64_t>(shape.begin(), shape.end()));
-    auto res = std::make_shared<ov::op::v3::Broadcast>(val, target_shape);
+    if (context.get_op_case() == 1 && context.has_input("cache_rs_reset_len")) {
+        auto idx = context.get_input("cache_rs_reset_idx");
+        auto len = context.get_input("cache_rs_reset_len");
+        auto zero = ov::op::v0::Constant::create(ov::element::i64, ov::Shape{}, {0});
+        auto one = ov::op::v0::Constant::create(ov::element::i64, ov::Shape{}, {1});
+        auto slot_dim = ov::op::v0::Constant::create(ov::element::i64, ov::Shape{1}, {2});
+        auto n_slots = std::make_shared<ov::op::v0::Squeeze>(
+            std::make_shared<ov::op::v8::Gather>(shape, slot_dim, zero));
+        auto slots = std::make_shared<ov::op::v4::Range>(zero, n_slots, one, ov::element::i64);
+        auto end = std::make_shared<ov::op::v1::Add>(idx, len);
+        auto keep = std::make_shared<ov::op::v1::LogicalOr>(
+            std::make_shared<ov::op::v1::Less>(slots, idx),
+            std::make_shared<ov::op::v1::GreaterEqual>(slots, end));
+        auto mask = std::make_shared<ov::op::v0::Unsqueeze>(
+            keep, ov::op::v0::Constant::create(ov::element::i64, ov::Shape{1}, {1}));
+        auto res = std::make_shared<ov::op::v1::Select>(mask, input, val);
+        return rename_outputs_with_suffix({res}, context.get_name());
+    }
+
+    auto res = std::make_shared<ov::op::v3::Broadcast>(val, shape);
 
     return rename_outputs_with_suffix({res}, context.get_name());
 }

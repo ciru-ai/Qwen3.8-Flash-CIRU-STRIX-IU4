@@ -102,7 +102,8 @@ GgmlOvDecoder::GgmlOvDecoder(ggml_cgraph * cgraph, std::map<std::string, std::sh
 
 namespace {
 bool is_inplace_op(const ggml_tensor * node) {
-    return node->op == GGML_OP_SET_ROWS || node->op == GGML_OP_CPY || (node->op == GGML_OP_SCALE && node->view_src);
+    return node->op == GGML_OP_SET_ROWS || node->op == GGML_OP_CPY ||
+           ((node->op == GGML_OP_SCALE || node->op == GGML_OP_FILL) && node->view_src);
 }
 
 bool is_same_shape(const ggml_tensor * a, const ggml_tensor * b) {
@@ -490,7 +491,8 @@ int GgmlOvDecoder::compute_op_case(const ggml_tensor * node) const {
         }
         break;
     }
-    case GGML_OP_SCALE: {
+    case GGML_OP_SCALE:
+    case GGML_OP_FILL: {
         if (node->view_src && node->buffer->usage == GGML_BACKEND_BUFFER_USAGE_ANY) {
             op_case = 1;
         }
@@ -719,9 +721,10 @@ std::pair<ModelParams, ComputeParams> GgmlOvDecoder::compute_llm_params(ggml_cgr
         if (node->op == GGML_OP_GATED_DELTA_NET) {
             model_params.state_size = node->src[0]->ne[0];
         }
-        if (node->op == GGML_OP_SCALE && node->view_src != nullptr && is_kvcache(node->view_src, nullptr)) {
+        if ((node->op == GGML_OP_SCALE || node->op == GGML_OP_FILL) && node->view_src != nullptr &&
+            is_kvcache(node->view_src, nullptr)) {
             compute_params.cache_rs_reset_len = ggml_nelements(node) / node->view_src->ne[0];
-            compute_params.cache_rs_reset_idx = node->src[0]->view_offs / node->view_src->ne[0];
+            compute_params.cache_rs_reset_idx = node->src[0]->view_offs / node->view_src->nb[1];
         }
         // Capture the destination slot block of every recurrent state cache writeback, plus the
         // conv_input window the conv state writeback copies. The active sequences occupy a

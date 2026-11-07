@@ -1,20 +1,20 @@
 {
   "format": 2,
   "variant": "IU4",
-  "runtime_version": "5.5.6",
-  "previous_runtime_version": "5.5.0",
-  "previous_public_source_archive_sha256": "9298aac461332ce6a94e83f36b49ac5f7e7ed005d5e1190a0c00cde4b485d367",
-  "previous_source_sha256": "eaf2d03d92ba8f96ee123b5e749783abebbefd208620921faaddb15b481f09d4",
+  "runtime_version": "5.5.7",
+  "previous_runtime_version": "5.5.6",
+  "previous_public_source_archive_sha256": "710cbcd869e31d4407502491282b721729cafefdf422657a301f00032bda90f7",
+  "previous_source_sha256": "294e74be62dd249d28f93ccc257adf02972786239526e7e8bd1e7d4f2dce4382",
   "compiled_source_and_build_inputs_unchanged": false,
   "changed_or_added_manifest_files": [
-    "ggml/src/ggml-cuda/c1.cu",
-    "profiles/strix-halo-production.env",
-    "profiles/strix-halo-v5.env",
-    "tests/test-c1-small-batch-dispatch.py"
+    "ggml/src/ggml-openvino/ggml-decoder.cpp",
+    "ggml/src/ggml-openvino/openvino/op/fill.cpp",
+    "src/llama-graph.cpp",
+    "tests/test-recurrent-state-rollback.cpp"
   ],
   "files_checked": 2050,
   "digest_algorithm": "SHA256 of UTF-8 sha256 + two spaces + relative path + newline, sorted by path",
-  "source_sha256": "294e74be62dd249d28f93ccc257adf02972786239526e7e8bd1e7d4f2dce4382",
+  "source_sha256": "75d672fc607dcd18e381b7bcbab7a6e228afffca1f9c34f6bfcf497aa50cdea0",
   "files": {
     ".devops/tools.sh": "6b004b48de47f152cc46e58d9f922cee0cdcead7cc90547ee549e570d622fabd",
     "CMakeLists.txt": "2904ff5f58eecf40ccfee5e18f2c9f01d23d5fc149efd005e260ba278d1193f6",
@@ -1033,7 +1033,7 @@
     "ggml/src/ggml-opencl/kernels/upscale.cl": "d00461bd87317b072782d1727a2fa6d0d4ba2a5c7bc59dbc14f62a5b10dd21c8",
     "ggml/src/ggml-opencl/libdl.h": "af1f5aa8d4b3f38cfc450991aaed0eff430f0bdb2106b0a9644bfed559ee3bd3",
     "ggml/src/ggml-openvino/CMakeLists.txt": "ef742b322c4b8b88400c76651887a69050e9e4a90e09495449e87215d6d555a9",
-    "ggml/src/ggml-openvino/ggml-decoder.cpp": "ba111856bfa5b258585195a1e7b244503315c12c6cc817279d22886f9529c4f1",
+    "ggml/src/ggml-openvino/ggml-decoder.cpp": "d8412fc3ce84b5dfcb468fac2497de7fe90d966ba5f567d54f535680dbd2a841",
     "ggml/src/ggml-openvino/ggml-decoder.h": "8398d74d6325adefb025af617d8a76cb0aa9bfa9fff7f32db119e0873e4c9984",
     "ggml/src/ggml-openvino/ggml-openvino-extra.cpp": "63016f796b2d87484b0420c4fdbcaefdcf9cb067be8f71c4865c37e5e2fd32dc",
     "ggml/src/ggml-openvino/ggml-openvino-extra.h": "9091335c7fec16b7598cfffa23642e0048b5641f490b45e3012d2d44bf4d891a",
@@ -1058,7 +1058,7 @@
     "ggml/src/ggml-openvino/openvino/op/cumsum.cpp": "8c299d8d38c182651870ca93db76f14da2a13a2a3c647b7a54c39e927554410e",
     "ggml/src/ggml-openvino/openvino/op/diag.cpp": "565f95abb59c17d32e6a996866cf2a4289b140377a1c2db8b996d92d8893ae47",
     "ggml/src/ggml-openvino/openvino/op/div.cpp": "b58ede924b7621384767d7de09b6962e90e5271847d0f4efc6d5a8a18cb3bc51",
-    "ggml/src/ggml-openvino/openvino/op/fill.cpp": "ddbddcc78cad397fe3299b0b85184cbb8f61c6fa9a64ebc68df258180a66100e",
+    "ggml/src/ggml-openvino/openvino/op/fill.cpp": "af025897e6e722e5b8dc2fc94ec15a9703cac00eb406c650e9ab01e55d2e1ace",
     "ggml/src/ggml-openvino/openvino/op/flash_attn_ext.cpp": "a9701a28c3c558e653b544c7f9d4d9ca348b5651b408f7d248a1b6968060156c",
     "ggml/src/ggml-openvino/openvino/op/gated_delta_net.cpp": "b5f58941e7a02082ea3ce124c0d69dc09d81da59df6e963f33ae92eb8ce60762",
     "ggml/src/ggml-openvino/openvino/op/gated_delta_net.hpp": "fde7af332559a3c0d27ae5bf80cb17ea2284f917ab4859f33e578dafb02e8f5e",
@@ -1603,7 +1603,7 @@
     "src/llama-ext.h": "522eed344e1765506f30da25002d92d354572951153ba67504f05d5cccdea7f6",
     "src/llama-grammar.cpp": "8a8450e410f318d90b353c7a67e7a788a921a06e687ca3e02eff49380d83c5c7",
     "src/llama-grammar.h": "db730e5aff77f96274aba4a43670f036400d89c7ed44b6e98d3ced41c7b9d193",
-    "src/llama-graph.cpp": "031feb0b2e5d8671b501c31c7c0a14a9f04d94b3a9dc2d526d024b19c0652ede",
+    "src/llama-graph.cpp": "924098dc83a090f4bc26e97abd8997d3a5b7e56d6635514cd18bb197b9e60d66",
     "src/llama-graph.h": "1795d014be23aed14b7d3fec295ba8dab8edbd1631fcb1e79ccda065ec4a245d",
     "src/llama-hparams.cpp": "ef6fbef7d12a23441b42cfac8e3a3a3045c7d3123402351ba98e69702e193301",
     "src/llama-hparams.h": "66e2adbf3bac1c716352f6f6ae83f51a2d6fbecb88fe4ba094e2ff208917bfb9",
@@ -1873,7 +1873,7 @@
     "tests/test-quantize-perf.cpp": "09de1812b11836bd899a63dfa6b06927a2d0a012edc1e702a33fb51c95d63563",
     "tests/test-quantize-stats.cpp": "1866b300a8966c3797740a5b4543236d92d1c7b8f2ca67829f453ffcd5b9707b",
     "tests/test-reasoning-budget.cpp": "1499e08757ff9e6f52ddd84134a1454346e92cd78a3dc5a9141f8ba775f57979",
-    "tests/test-recurrent-state-rollback.cpp": "d4d6627e10ad8223a59677d8893992e7e1d0bb4fe60eadea5a4afe5ec822abce",
+    "tests/test-recurrent-state-rollback.cpp": "e7d5aef51a13ec532a1708c3017fd68112c1daccf0aa835dbca9b5794d5034ec",
     "tests/test-rope.cpp": "cca4b2a3acbce6c410ec808f1cf263b191aea2c7a3b5df6d14b17c6be13871df",
     "tests/test-rpc-multi-server.cpp": "0529e4b2517fd5b5ac344fa8da32f09de9da78a643580e3f71d289f75f3c7d46",
     "tests/test-rpc-multi-server.sh": "368d030bed28a6c4fc3235539d849eb0f35a0a57f3d64e003071404d6c12f12a",
@@ -2079,5 +2079,6 @@
   "automatic_dispatch_note": "Per-fix environment switch removed; production profile restored to baseline bytes. Existing backend/layout eligibility remains.",
   "prior_candidate_compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
   "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json",
-  "release_source_checksums": "checksums/v5.5.6-source.sha256"
+  "release_source_checksums": "checksums/v5.5.7-source.sha256",
+  "recurrent_reset_note": "Literal zero FILL replaces SCALE-by-zero in build_rs; OpenVINO reset bookkeeping and translation retain slot isolation. Regression poisons declared recurrent buffers only."
 }
