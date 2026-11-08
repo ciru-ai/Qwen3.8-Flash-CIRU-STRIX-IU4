@@ -1,4 +1,4 @@
-# Install and run Flash IU4 v5.5.7 on Strix Halo
+# Install and run Flash IU4 v5.5.8 on Strix Halo
 
 This is a **custom CIRU runtime** for the supplied model. A stock llama.cpp
 build cannot read its compact expert representation or its external embedding
@@ -13,6 +13,11 @@ CIRU installation or a GitHub release tag.
 - A local NVMe SSD for model files and the paged embedding table. Network storage performance is not covered by these measurements.
 - Roughly **121 GiB for the target, draft and embedding files**, plus about **40 GiB of headroom for the source, SDK and build directories**. Keep extra space if retaining downloaded parts, a Hugging Face cache, or the previous model version.
 - Ubuntu 24.04 LTS or a recent Debian release with a compatible kernel is the source-build path below. The historical benchmark runtime ran on **NixOS with ROCm/TheRock 10.0.0 and the pinned custom HIP/ROCr runtime**. The v5.5.0 serving qualification used a GNU 16.2.1 build made on Arch Linux and run on Ciru's NixOS system with that same SDK and custom GPU runtime. The v5.5.7 recurrent-state reset correction passed baseline/candidate CPU and HIP checks, an expanded CPU suite with no additional observed regressions, and OpenVINO CPU translation checks. The suite retains three baseline-matched exceptions; see [patch validation](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.7/docs/qualification/v5.5.7/RELEASE-NOTES.md). A corrected HIP library was also checked in four-slot text/thinking/vision serving on NixOS. These checks do not repeat the historical performance or broad quality benchmarks. Ubuntu/Debian commands have been checked against the source and package interfaces; the complete build and inference benchmark have **not** been repeated there.
+
+The v5.5.8 graph-pool correction was checked with CPU pool-lifetime regressions,
+native HIP graph-handle lifecycle checks and public GGML F16/F32 graph arithmetic
+on gfx1151. These checks do not repeat model-quality or performance benchmarks.
+See [v5.5.8 validation](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.8/docs/qualification/v5.5.8/RELEASE-NOTES.md).
 
 Do not run another large GPU model while loading this one. The default reserves
 262,144 tokens of context, one request slot, F16 target/draft KV caches, a
@@ -31,7 +36,7 @@ ple/ple.payload.bin
 ple/ple.manifest.json
 ple/ple.scale.bf16
 vision/mmproj-Qwen3.8-Flash-F16.mmproj
-source-tree-flash-v5.5.7.tar.gz
+source-tree-flash-v5.5.8.tar.gz
 ```
 
 The three `ple/` files contain the model's SSD-paged n-gram/hash embedding table,
@@ -45,9 +50,9 @@ From the downloaded model directory:
 
 ```bash
 export MODEL_DIR="$PWD"
-mkdir -p runtime-v5.5.7
-tar -xzf source-tree-flash-v5.5.7.tar.gz -C runtime-v5.5.7
-export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.7"
+mkdir -p runtime-v5.5.8
+tar -xzf source-tree-flash-v5.5.8.tar.gz -C runtime-v5.5.8
+export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"
 cd "$RUNTIME_DIR"
 ```
 
@@ -55,16 +60,16 @@ cd "$RUNTIME_DIR"
 
 The canonical source repository is
 [ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4).
-Its `main` branch includes the recurrent-state reset and prior automatic C1 corrections. For the exact source
-of this release, use the public `v5.5.7` tag in a new directory instead of
+Its `main` branch includes the graph-pool lifetime, recurrent-state reset and prior automatic C1 corrections. For the exact source
+of this release, use the public `v5.5.8` tag in a new directory instead of
 extracting the archive above:
 
 ```bash
 export MODEL_DIR="/absolute/path/to/flash-model"
-git clone --branch v5.5.7 --single-branch \
+git clone --branch v5.5.8 --single-branch \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git \
-  "$MODEL_DIR/runtime-v5.5.7"
-export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.7"
+  "$MODEL_DIR/runtime-v5.5.8"
+export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"
 cd "$RUNTIME_DIR"
 ```
 
@@ -93,7 +98,7 @@ Keep `.venv-rocm/`, `runtime/` and `build-gfx1151-sdk/` in place. Do not combine
 the executable or shared libraries with another runtime build.
 
 For an existing complete matching SDK, use the manual steps in
-`runtime-v5.5.7/docs/BUILD_LINUX.md`. AMD documents the package installation at
+`runtime-v5.5.8/docs/BUILD_LINUX.md`. AMD documents the package installation at
 [ROCm 10 installation](https://rocmdocs.amd.com/en/latest/install/rocm.html);
 the custom runtime source is [pwilkin/rocm-systems](https://github.com/pwilkin/rocm-systems/tree/7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1).
 
@@ -108,7 +113,7 @@ MODEL_VARIANT=IU4 MODEL_RELEASE=5.0 ENABLE_UI=0 ENABLE_VISION=1 \
 ```
 
 After setting `ROCM_ROOT`, the equivalent model-directory shortcut is
-`bash "$MODEL_DIR/run-server-v5.5.7.sh"`. It uses the same rebuilt source
+`bash "$MODEL_DIR/run-server-v5.5.8.sh"`. It uses the same rebuilt source
 launcher and accepts the same environment overrides.
 
 The default is API-only at `http://127.0.0.1:8080`, with image input enabled,
@@ -119,7 +124,7 @@ can differ from the benchmark binary because the compiler and distribution
 differ. Loading and first-request warmup may take several minutes.
 
 To launch again from a new terminal, set `MODEL_DIR` to the downloaded model
-directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.7"`, and repeat the ROCM_ROOT and
+directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"`, and repeat the ROCM_ROOT and
 launch lines. These are filesystem paths on your computer, not repository IDs.
 
 Use `CONTEXT_SIZE=65536` for a smaller maximum context. `ENABLE_MTP=0` disables
@@ -174,11 +179,11 @@ install a Node.js/npm version compatible with `tools/ui/package.json`, then run
 Launch with `ENABLE_UI=1 UI_DIR="$RUNTIME_DIR/tools/ui/dist"` after the resulting
 directory contains `index.html`. UI assets are independent of inference kernels.
 
-The default v5.5.7 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
+The default v5.5.8 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
 and keeps MTP depth 3. `--vision` explicitly enables the same behavior.
 Set `MMPROJ=/absolute/path/to/projector.mmproj` to override the location,
 or `ENABLE_VISION=0` for text-only operation. The runtime must be rebuilt
-from the current v5.5.7 source archive to retain the image/MTP attention
+from the current v5.5.8 source archive to retain the image/MTP attention
 correction and install automatic C1 dispatch.
 The target GGUF, MTP draft and projector do not need to be converted again.
 
@@ -212,15 +217,18 @@ images; loading the projector cannot change a client-side modality setting.
 
 ## Update from an earlier runtime
 
-v5.5.7 replaces multiply-by-zero recurrent-state resets with literal zero
-fills, preventing NaN/Inf values from surviving reuse. It also updates
-OpenVINO reset handling. No new option or model conversion is required.
+v5.5.8 invalidates the owning HIP/CUDA graph cache after the legacy
+temporary-buffer pool physically frees memory. It retains the literal-zero
+recurrent-state reset and OpenVINO compatibility fixes introduced in v5.5.7.
+No new option or model conversion is required.
 
 Reuse the verified v5.0 target, matching draft, PLE files and projector. Download
-the new `source-tree-flash-v5.5.7.tar.gz`, extract it
-into a new runtime directory, and perform the complete build above. This update
+the new `source-tree-flash-v5.5.8.tar.gz`, extract it
+into a new runtime directory, and perform the complete build above. The HIP
+backend and all objects that include `ggml-cuda/common.cuh` must be rebuilt
+together because the private pool-factory interface changed. This update
 includes the previous scheduler, attention and speculative-path corrections
-plus automatic C1 dispatch and the recurrent-state reset correction; the older single-library vision patch below
+plus automatic C1 dispatch, recurrent-state reset and graph-pool lifetime corrections; the older single-library vision patch below
 does not install the current package. Keep the previous runtime
 available until the new installation has loaded successfully. Stop your server
 before switching the installation used by its launcher.

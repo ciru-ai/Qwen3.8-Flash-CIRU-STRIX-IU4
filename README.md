@@ -22,7 +22,7 @@ tags:
   - vision
 ---
 
-# Qwen3.8 Flash CIRU Strix IU4 — v5.5.7 runtime update
+# Qwen3.8 Flash CIRU Strix IU4 — v5.5.8 runtime update
 
 Compact weights and a native CIRU runtime for AMD Strix Halo. **The original
 v4.4.1 GGUF remains in this repository** at its existing filename. v5.0 is
@@ -38,6 +38,18 @@ matching draft; do not interchange their model or draft files.
 > embedding table.
 > Build the included matching [CIRU runtime](INSTALL.md)
 > and keep all three `ple/` files on fast local storage.
+
+## Runtime patch v5.5.8
+
+v5.5.8 clears the owning HIP/CUDA graph cache after the legacy temporary-buffer
+pool physically frees memory. This prevents cached graphs from retaining
+references to those freed buffers. It carries the upstream correction from
+[llama.cpp PR #26771](https://github.com/ggml-org/llama.cpp/pull/26771)
+and retains the v5.5.7 recurrent-state and OpenVINO reset fixes.
+**Rebuild the runtime to apply the fix; model weights are unchanged.**
+This fixes a graph-buffer lifetime defect; it does not establish the cause of
+every reported repetition incident or claim a performance gain.
+[Patch notes and validation](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.8/docs/qualification/v5.5.8/RELEASE-NOTES.md).
 
 ## Runtime patch v5.5.7
 
@@ -244,11 +256,11 @@ client-error audits are in [the report](BENCHMARKS.md#thinking-off-task-checks).
 
 The other required embedding files are `ple.manifest.json` and
 `ple.scale.bf16`; the v5.0 model and installation files are listed in
-[`checksums-v5.5.7.sha256`](checksums-v5.5.7.sha256). The v4.4.1 file is retained
+[`checksums-v5.5.8.sha256`](checksums-v5.5.8.sha256). The v4.4.1 file is retained
 unchanged for existing users and can be downloaded alone with its matching
 runtime.
 
-## Download and run v5.5.7
+## Download and run v5.5.8
 
 Download the versioned GGUF, matching MTP draft, the three embedding-table
 files, the matching vision projector, and the complete source package. Existing users can reuse the same
@@ -258,20 +270,20 @@ verified MTP and `ple/` files.
 python3 -m venv .venv-hf
 .venv-hf/bin/pip install --upgrade huggingface_hub
 .venv-hf/bin/hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --revision v5.5.7 \
+  --revision v5.5.8 \
   Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf \
   mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf \
   ple/ple.payload.bin ple/ple.manifest.json ple/ple.scale.bf16 \
   vision/mmproj-Qwen3.8-Flash-F16.mmproj \
-  source-tree-flash-v5.5.7.tar.gz run-server-v5.5.7.sh INSTALL.md CONCURRENCY.md checksums-v5.5.7.sha256 \
+  source-tree-flash-v5.5.8.tar.gz run-server-v5.5.8.sh INSTALL.md CONCURRENCY.md checksums-v5.5.8.sha256 \
   --local-dir ./flash-model
 cd flash-model
-sha256sum -c checksums-v5.5.7.sha256
+sha256sum -c checksums-v5.5.8.sha256
 ```
 
 On Ubuntu/Debian, install `python3-venv` first if needed. Continue with
 **[INSTALL.md](INSTALL.md)** for the complete source build and launch steps.
-The included source archive supplies the v5.5.7 runtime for the unchanged v5.0 weights; the guide builds
+The included source archive supplies the v5.5.8 runtime for the unchanged v5.0 weights; the guide builds
 its pinned AMD SDK and custom HIP/ROCr dependencies from public sources.
 It also covers health checks, chat, function calling, thinking settings,
 image input, and common setup errors. No earlier CIRU installation is required. The guide also covers building
@@ -284,7 +296,7 @@ and build. The default local server uses one slot, 16,384-token batches and 8,19
 Performance was measured on NixOS; the Ubuntu/Debian guide is a source-build
 route, not a claim of equal measured performance on every distribution.
 
-The download includes the matching vision projector, and the v5.5.7
+The download includes the matching vision projector, and the v5.5.8
 launcher enables it by default. Text benchmark results do not measure image
 performance. See [vision/README.md](vision/README.md) for the image test scope.
 

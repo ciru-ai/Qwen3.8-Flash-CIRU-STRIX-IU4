@@ -1,4 +1,4 @@
-> Runtime5.5.6 automatically selects the improved C1 route for eligible small joint batches. The serving settings and historical measurements below are unchanged. See [5.5.6 patch notes](docs/qualification/v5.5.6/RELEASE-NOTES.md).
+> Runtime 5.5.6 automatically selects the improved C1 route for eligible small joint batches. The serving settings and historical measurements below are unchanged. See [5.5.6 patch notes](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.6/docs/qualification/v5.5.6/RELEASE-NOTES.md).
 
 # Optional multi-slot serving and image-memory update
 

@@ -1,20 +1,18 @@
 {
   "format": 2,
   "variant": "IU4",
-  "runtime_version": "5.5.7",
-  "previous_runtime_version": "5.5.6",
-  "previous_public_source_archive_sha256": "710cbcd869e31d4407502491282b721729cafefdf422657a301f00032bda90f7",
-  "previous_source_sha256": "294e74be62dd249d28f93ccc257adf02972786239526e7e8bd1e7d4f2dce4382",
+  "runtime_version": "5.5.8",
+  "previous_runtime_version": "5.5.7",
+  "previous_public_source_archive_sha256": "9c5e6d0d6dab89a3c64edc789aa3d1805579a240a26eb932cabbd67a607755aa",
+  "previous_source_sha256": "75d672fc607dcd18e381b7bcbab7a6e228afffca1f9c34f6bfcf497aa50cdea0",
   "compiled_source_and_build_inputs_unchanged": false,
   "changed_or_added_manifest_files": [
-    "ggml/src/ggml-openvino/ggml-decoder.cpp",
-    "ggml/src/ggml-openvino/openvino/op/fill.cpp",
-    "src/llama-graph.cpp",
-    "tests/test-recurrent-state-rollback.cpp"
+    "ggml/src/ggml-cuda/common.cuh",
+    "ggml/src/ggml-cuda/ggml-cuda.cu"
   ],
   "files_checked": 2050,
   "digest_algorithm": "SHA256 of UTF-8 sha256 + two spaces + relative path + newline, sorted by path",
-  "source_sha256": "75d672fc607dcd18e381b7bcbab7a6e228afffca1f9c34f6bfcf497aa50cdea0",
+  "source_sha256": "bd7c713f9cd23d16e1a4df2769376cd474450f04fe6a11a41b37bd875788fda7",
   "files": {
     ".devops/tools.sh": "6b004b48de47f152cc46e58d9f922cee0cdcead7cc90547ee549e570d622fabd",
     "CMakeLists.txt": "2904ff5f58eecf40ccfee5e18f2c9f01d23d5fc149efd005e260ba278d1193f6",
@@ -350,7 +348,7 @@
     "ggml/src/ggml-cuda/clamp.cuh": "53713bdce3d2cd614719a00e3e282c7ec2555cad1d35baa65e930cb5bda54b27",
     "ggml/src/ggml-cuda/col2im-1d.cu": "b8fc7f68813ae7591764006915b98e1e32355099be3823339cff44e05978fb1b",
     "ggml/src/ggml-cuda/col2im-1d.cuh": "686a1a9e78b2348f08b5471a2b4398383c32c4ffec3b34fd90bd2bbbde371e0f",
-    "ggml/src/ggml-cuda/common.cuh": "de910de24b186d60216791828a52ec56dd0126fdf29eed6a4e0536104fd65520",
+    "ggml/src/ggml-cuda/common.cuh": "59c9eb98d5954ae7b968a2d1e66a128ab78bd2bb5503a3f20ae1ca39cd78223a",
     "ggml/src/ggml-cuda/concat.cu": "6b5bc9e99e7c7245e1a7f91a9ec658ac9950e131658e63d0080009bc95dbbc63",
     "ggml/src/ggml-cuda/concat.cuh": "d367604a4ae4ab673580082fb397d04062bd541706d9eefb6989f9a905e61a12",
     "ggml/src/ggml-cuda/conv-transpose-1d.cu": "4512d31d80985a109c2c594009307d35afc183b2141f621b35ae1e4707690403",
@@ -402,7 +400,7 @@
     "ggml/src/ggml-cuda/gdn-conv.cuh": "29ade153cfffc62baea605f2583a1287a58d700feaf55d223df6d032a7451b23",
     "ggml/src/ggml-cuda/getrows.cu": "0349688c3648087b0044da00130bc9af84cd755fe35649f932559748693e99fa",
     "ggml/src/ggml-cuda/getrows.cuh": "6b43591b67f8eba8f8ac0584a611f972fd20c3bd36569502a101767414ac6bfa",
-    "ggml/src/ggml-cuda/ggml-cuda.cu": "483dda8039f40a7812149caba4dcf0e128e9535d4a94a9b500ebf8e819c01abd",
+    "ggml/src/ggml-cuda/ggml-cuda.cu": "1078f8d04f655066adf54ac35de418ff32d1289b1ba4706dfe894727098a6de4",
     "ggml/src/ggml-cuda/gla.cu": "472ea9747c46ad2de4279d3322efaac8783ae4c971f678da47fcdb301cda9dcb",
     "ggml/src/ggml-cuda/gla.cuh": "8d10e6be2e286883888ae4fa781c566dc376a269f984cca37928dce9d96fa95a",
     "ggml/src/ggml-cuda/hc-capture.inc": "514c4d94ef5846ebf437e1fea99d5f60503eed7f59b1a081f819f0f792c9ccbc",
@@ -2079,6 +2077,7 @@
   "automatic_dispatch_note": "Per-fix environment switch removed; production profile restored to baseline bytes. Existing backend/layout eligibility remains.",
   "prior_candidate_compiled_source_git_commit": "51dd9ffac09c78794e45f9a321c50c60cda3c21e",
   "automatic_dispatch_validation": "docs/qualification/v5.5.1/AUTOMATIC-DISPATCH.json",
-  "release_source_checksums": "checksums/v5.5.7-source.sha256",
-  "recurrent_reset_note": "Literal zero FILL replaces SCALE-by-zero in build_rs; OpenVINO reset bookkeeping and translation retain slot isolation. Regression poisons declared recurrent buffers only."
+  "release_source_checksums": "checksums/v5.5.8-source.sha256",
+  "recurrent_reset_note": "Literal zero FILL replaces SCALE-by-zero in build_rs; OpenVINO reset bookkeeping and translation retain slot isolation. Regression poisons declared recurrent buffers only.",
+  "graph_pool_note": "Legacy physical frees invalidate only the owner context graph cache. Cached reuse preserves graphs. HIP graphs remain enabled."
 }

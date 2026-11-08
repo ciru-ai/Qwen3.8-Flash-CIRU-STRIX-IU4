@@ -1,0 +1,107 @@
+From 4fd70228390839dba220928904f87b18ed9ec69f Mon Sep 17 00:00:00 2001
+From: =?UTF-8?q?Bokros=20B=C3=A1lint?= <bbalint96@gmail.com>
+Date: Sat, 10 Oct 2026 21:10:04 +0200
+Subject: [PATCH] CUDA: Clear CUDA graphs after legacy memory pool flush
+
+Assisted-by: Claude Opus 5.5
+---
+ ggml/src/ggml-cuda/common.cuh   |  4 ++--
+ ggml/src/ggml-cuda/ggml-cuda.cu | 27 +++++++++++++++++++++++----
+ 2 files changed, 25 insertions(+), 6 deletions(-)
+
+diff --git a/ggml/src/ggml-cuda/common.cuh b/ggml/src/ggml-cuda/common.cuh
+index 928607c4103b..6ffb1dad9c8e 100644
+--- a/ggml/src/ggml-cuda/common.cuh
++++ b/ggml/src/ggml-cuda/common.cuh
+@@ -1549,11 +1549,11 @@ struct ggml_backend_cuda_context {
+     // pool
+     std::unique_ptr<ggml_cuda_pool> pools[GGML_CUDA_MAX_DEVICES][GGML_CUDA_MAX_STREAMS];
+ 
+-    static std::unique_ptr<ggml_cuda_pool> new_pool_for_device(int device, int stream_no);
++    static std::unique_ptr<ggml_cuda_pool> new_pool_for_device(ggml_backend_cuda_context & ctx, int device, int stream_no);
+ 
+     ggml_cuda_pool & pool(int device) {
+         if (pools[device][curr_stream_no] == nullptr) {
+-            pools[device][curr_stream_no] = new_pool_for_device(device, curr_stream_no);
++            pools[device][curr_stream_no] = new_pool_for_device(*this, device, curr_stream_no);
+         }
+         return *pools[device][curr_stream_no];
+     }
+diff --git a/ggml/src/ggml-cuda/ggml-cuda.cu b/ggml/src/ggml-cuda/ggml-cuda.cu
+index 957908f65e63..a04f89105eec 100644
+--- a/ggml/src/ggml-cuda/ggml-cuda.cu
++++ b/ggml/src/ggml-cuda/ggml-cuda.cu
+@@ -413,6 +413,7 @@ const ggml_cuda_device_info & ggml_cuda_info() {
+ struct ggml_cuda_pool_leg : public ggml_cuda_pool {
+     static const int MAX_BUFFERS = 256;
+ 
++    ggml_backend_cuda_context & ctx;
+     int device;
+     struct ggml_cuda_buffer {
+         void * ptr = nullptr;
+@@ -422,7 +423,8 @@ struct ggml_cuda_pool_leg : public ggml_cuda_pool {
+     ggml_cuda_buffer buffer_pool[MAX_BUFFERS] = {};
+     size_t pool_size = 0;
+ 
+-    explicit ggml_cuda_pool_leg(int device) :
++    ggml_cuda_pool_leg(ggml_backend_cuda_context & ctx, int device) :
++        ctx(ctx),
+         device(device) {
+     }
+ 
+@@ -444,6 +446,20 @@ struct ggml_cuda_pool_leg : public ggml_cuda_pool {
+         }
+     }
+ 
++    // captured CUDA graphs can still use freed buffers, so they must be captured again
++    void invalidate_cuda_graphs() {
++#ifdef USE_CUDA_GRAPH
++        int n_captured = 0;
++        for (const auto & [key, graph] : ctx.cuda_graphs) {
++            n_captured += graph->instance != nullptr;
++        }
++        if (n_captured > 0) {
++            GGML_LOG_DEBUG(GGML_CUDA_NAME " pool[%d]: memory freed, %d captured CUDA graphs must be captured again\n", device, n_captured);
++        }
++        ctx.cuda_graphs.clear();
++#endif // USE_CUDA_GRAPH
++    }
++
+     void * alloc(size_t size, size_t * actual_size) override {
+ #ifdef DEBUG_CUDA_MALLOC
+         int nnz = 0;
+@@ -494,6 +510,7 @@ struct ggml_cuda_pool_leg : public ggml_cuda_pool {
+                            device, look_ahead_size/1024.0/1024.0, cached_bytes/1024.0/1024.0);
+             CUDA_CHECK(cudaDeviceSynchronize());
+             clear_pool();
++            invalidate_cuda_graphs();
+             err = ggml_cuda_device_malloc(&ptr, look_ahead_size, device);
+             if (err == cudaSuccess) {
+                 GGML_LOG_DEBUG(GGML_CUDA_NAME " pool[%d]: retry succeeded\n", device);
+@@ -522,6 +539,7 @@ struct ggml_cuda_pool_leg : public ggml_cuda_pool {
+         ggml_cuda_set_device(device);
+         CUDA_CHECK(cudaFree(ptr));
+         pool_size -= size;
++        invalidate_cuda_graphs();
+     }
+ };
+ 
+@@ -676,14 +694,15 @@ struct ggml_cuda_pool_vmm : public ggml_cuda_pool {
+ };
+ #endif // defined(GGML_USE_VMM)
+ 
+-std::unique_ptr<ggml_cuda_pool> ggml_backend_cuda_context::new_pool_for_device(int                  device,
+-                                                                               [[maybe_unused]] int stream_no) {
++std::unique_ptr<ggml_cuda_pool> ggml_backend_cuda_context::new_pool_for_device(ggml_backend_cuda_context & ctx,
++                                                                               int                         device,
++                                                                               [[maybe_unused]] int        stream_no) {
+ #if defined(GGML_USE_VMM)
+     if (ggml_cuda_info().devices[device].vmm) {
+         return std::unique_ptr<ggml_cuda_pool>(new ggml_cuda_pool_vmm(device));
+     }
+ #endif // defined(GGML_USE_VMM)
+-    return std::unique_ptr<ggml_cuda_pool>(new ggml_cuda_pool_leg(device));
++    return std::unique_ptr<ggml_cuda_pool>(new ggml_cuda_pool_leg(ctx, device));
+ }
+ 
+ // destroying a cuBLAS handle while a graph is being captured in a different thread can result in a CUDA error

@@ -1,0 +1,96 @@
+{
+  "runtime_version": "5.5.8",
+  "date": "2026-11-08",
+  "baseline_github_commit": "9f1f6ea3277a99b597dce203871ea1c99e2a10b5",
+  "upstream": {
+    "pull_request": "https://github.com/ggml-org/llama.cpp/pull/26771",
+    "commit": "4fd70228390839dba220928904f87b18ed9ec69f",
+    "author": "Bokros Balint",
+    "patch": "UPSTREAM.patch",
+    "patch_sha256": "f8903e7f2d35570adacc1cb0d5aa747f5ffd4d30ab243917370b6821b7a9a42d"
+  },
+  "source_delta": [
+    "ggml/src/ggml-cuda/common.cuh",
+    "ggml/src/ggml-cuda/ggml-cuda.cu"
+  ],
+  "source_sha256": {
+    "ggml/src/ggml-cuda/common.cuh": "59c9eb98d5954ae7b968a2d1e66a128ab78bd2bb5503a3f20ae1ca39cd78223a",
+    "ggml/src/ggml-cuda/ggml-cuda.cu": "1078f8d04f655066adf54ac35de418ff32d1289b1ba4706dfe894727098a6de4"
+  },
+  "cpu_pool_boundary": {
+    "scope": "Actual extracted legacy pool class and actual factory; fake device allocation boundary only. No GPU calls.",
+    "baseline": [
+      {
+        "name": "graphs",
+        "build_exit": 0,
+        "exit_code": 1,
+        "stdout": "cached_reuse_keeps_graphs=PASS\nallocation_failure_flush_invalidates_only_owner=FAIL owner_graphs=2 other_graphs=1\nfull_pool_physical_free_invalidates_only_owner=FAIL owner_graphs=2 other_graphs=1\n"
+      },
+      {
+        "name": "no-graphs",
+        "build_exit": 0,
+        "exit_code": 0,
+        "stdout": "cached_reuse_keeps_graphs=PASS\nallocation_failure_flush_invalidates_only_owner=PASS owner_graphs=2 other_graphs=1\nfull_pool_physical_free_invalidates_only_owner=PASS owner_graphs=2 other_graphs=1\n"
+      }
+    ],
+    "candidate": [
+      {
+        "name": "graphs",
+        "build_exit": 0,
+        "exit_code": 0,
+        "stdout": "cached_reuse_keeps_graphs=PASS\nallocation_failure_flush_invalidates_only_owner=PASS owner_graphs=0 other_graphs=1\nfull_pool_physical_free_invalidates_only_owner=PASS owner_graphs=0 other_graphs=1\n"
+      },
+      {
+        "name": "no-graphs",
+        "build_exit": 0,
+        "exit_code": 0,
+        "stdout": "cached_reuse_keeps_graphs=PASS\nallocation_failure_flush_invalidates_only_owner=PASS owner_graphs=2 other_graphs=1\nfull_pool_physical_free_invalidates_only_owner=PASS owner_graphs=2 other_graphs=1\n"
+      }
+    ],
+    "fixture_sha256": "e3579b594e3b67e501d27ad88c04d855165d7d48238ccb3e420b71756965bbb8"
+  },
+  "native_hip_lifecycle": {
+    "passed": true,
+    "graph_launches": 0,
+    "scope": "Tiny owned HIP allocations and graph handles; no graph/kernel launches.",
+    "results": [
+      "cached_reuse_retains_handles=PASS",
+      "controlled_failure_flush_destroys_owner_only=PASS",
+      "full_cache_free_destroys_owner_only=PASS",
+      "owned_requested_peak_bytes=69888 live_bytes=0 ceiling_bytes=33554432 cleanup=PASS graph_launches=0"
+    ]
+  },
+  "public_ggml_graph_arithmetic": {
+    "passed": true,
+    "gpu": "gfx1151",
+    "backend": "ROCm0",
+    "graphs_enabled": true,
+    "candidate_hip_sha256": "fbbf5c1382a567735995ee849ecfbd3644992a921ba79cd7be9bd9c629a96a42",
+    "results": [
+      "case=f16 iterations=32 ref=CPU_double finite=1 mismatches=0 max_abs_error=2.98023224e-08 tensor_bytes=26624 warmup_events=1 status=PASS",
+      "case=f32 iterations=32 ref=CPU_double finite=1 mismatches=0 max_abs_error=0 tensor_bytes=43008 warmup_events=1 status=PASS",
+      "cleanup=complete warmup_events=2 reset_events=0 result=PASS"
+    ]
+  },
+  "standard_source_build": {
+    "configure_exit": 0,
+    "build_exit": 0,
+    "hip_library_sha256": "fbbf5c1382a567735995ee849ecfbd3644992a921ba79cd7be9bd9c629a96a42",
+    "hip_library_bytes": 85772424,
+    "target": "gfx1151",
+    "hip_graphs": true,
+    "hip_no_vmm": true,
+    "hip_mmq_mfma": true,
+    "tools_match_previously_qualified_build": true,
+    "private_factory_dependents_rebuilt": true
+  },
+  "weights_changed": false,
+  "prior_reset_and_openvino_source_unchanged": true,
+  "limits": [
+    "No repeat of the v5.5.7 full CPU suite or OpenVINO suite for this patch.",
+    "No new broad model-quality or performance benchmark.",
+    "No validation on other GPU architectures.",
+    "The first producer of nonfinite state in the earlier incident remains unknown.",
+    "A stale graph reference defect is fixed; causality for every reported repetition incident is not established."
+  ]
+}
