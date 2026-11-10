@@ -3,6 +3,7 @@
 #include "llama.h"
 #include "llama-cparams.h"
 
+#include <algorithm>
 #include <bitset>
 #include <cassert>
 #include <cstring>
@@ -371,6 +372,17 @@ public:
         }
 
         return seq_pos[seq_id].begin()->first;
+    }
+
+    // cells that carry sequence seq_id at a position in [p0, p1), in ascending cell order
+    void seq_cells_in(llama_seq_id seq_id, llama_pos p0, llama_pos p1, std::vector<uint32_t> & out) const {
+        assert(seq_id >= 0);
+        assert(seq_id < LLAMA_MAX_SEQ);
+        out.clear();
+        for (auto it = seq_pos[seq_id].lower_bound({ p0, 0 }); it != seq_pos[seq_id].end() && it->first < p1; ++it) {
+            out.push_back(it->second);
+        }
+        std::sort(out.begin(), out.end());
     }
 
     // the maximum position of sequence seq_id currently present in any of the cells

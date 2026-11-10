@@ -22,7 +22,7 @@ tags:
   - vision
 ---
 
-# Qwen3.8 Flash CIRU Strix IU4 — v5.5.8 runtime update
+# Qwen3.8 Flash CIRU Strix IU4 — v6.0.0 runtime update
 
 Compact weights and a native CIRU runtime for AMD Strix Halo. **The original
 v4.4.1 GGUF remains in this repository** at its existing filename. v5.0 is
@@ -38,6 +38,61 @@ matching draft; do not interchange their model or draft files.
 > embedding table.
 > Build the included matching [CIRU runtime](INSTALL.md)
 > and keep all three `ple/` files on fast local storage.
+
+## Runtime v6.0.0
+
+v6.0.0 fixes image input in long prompts, makes multi-slot serving several
+times faster, and can keep evicted conversations on disk instead of re-reading
+them. **Rebuild the runtime to apply it; model weights, draft, PLE files and
+projector are unchanged.** One slot remains the default.
+
+**Image fix.** From v5.5.0 through v5.5.8, an image in a prompt longer than
+about 2,048 tokens was effectively invisible to the model: for example, a
+photograph sent with eight or more tool definitions produced tool calls that
+went looking for the image. v6.0.0 restores image input at these lengths.
+Thanks to jack3149813146 for the [report and reproduction](https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-Orca/discussions/5).
+Four photographs, Orca weights, one slot, temperature 0; a request passes when
+the reply names the subject without a tool call:
+
+| Tool definitions | Prompt tokens | v5.0.1 | v5.5.0 | v5.5.8 | v6.0.0 |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 0 | 1,110 | 4/4 | 4/4 | 4/4 | 12/12 |
+| 4 | 1,853 | 4/4 | 4/4 | 4/4 | 12/12 |
+| 8 | 2,509 | 4/4 | 0/4 | 0/4 | 12/12 |
+| 16 | 3,821 | 4/4 | 0/4 | 0/4 | 12/12 |
+| 32 | 6,415 | 2/4 | 0/4 | 0/4 | 6/12 |
+
+At 32 tool definitions the two misses are the same two photographs on v5.0.1
+and v6.0.0: the model picks a file tool from the list. v6.0.0 was run three
+times per photograph.
+
+**Multi-slot speed.** Pooled slots that are generating now share one pass, and
+each slot scores only its own index rows. Greedy output and log-probabilities
+matched the previous one-slot-per-pass decode on all four slots (300/300 tokens
+each at 20,000 and at 100,000 tokens per slot). Measured on a Radeon 8060S with
+the IU4 weights:
+
+| Case (four pooled slots, MTP3, thinking on) | v5.5.8 | v6.0.0 |
+| --- | ---: | ---: |
+| 4 slots generating, about 240k tokens pooled, total | 21.4 tok/s | 49.9 tok/s |
+| 4 slots generating, about 328k tokens pooled, total | 11.3–12.1 tok/s | 42.0–42.6 tok/s |
+| 2 slots generating, about 328k tokens pooled, total | 11.5 tok/s | 37.3 tok/s |
+| 1 slot generating, about 328k tokens pooled | 12.6 tok/s | 24.5 tok/s |
+
+The single-slot profile is unchanged (34.9 tok/s on v5.5.8 and 35.5 on v6.0.0
+at 20,000 tokens). A lone request in a multi-slot pool is still slower than the
+single-slot profile.
+
+**Prompt cache on disk (optional).** Set `PROMPT_CACHE_DISK_MIB=65536` to keep
+saved conversation states that do not fit in RAM as files. Returning to an
+evicted 65,000–92,000-token conversation then re-read 55 tokens and took about
+3 s instead of re-reading the whole prompt.
+
+**Also:** long prompt reads no longer stall slots that are generating, and
+draft rollback no longer scans the whole pool. No broad model-quality benchmark
+was rerun for this release.
+[Patch notes, settings and validation](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v6.0.0/docs/qualification/v6.0.0/RELEASE-NOTES.md) ·
+[multi-slot guide](CONCURRENCY.md)
 
 ## Runtime patch v5.5.8
 
@@ -75,6 +130,8 @@ v5.5.0 scope. This patch does not establish a new whole-model speed ratio
 or broad quality result. [Source and optimization workflow](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.6/OPTIMIZATION.md).
 
 ## One slot by default; optional multi-slot serving
+
+> **v6.0.0:** the multi-slot measurements in this section are the historical v5.5.0 record. Current multi-slot speed and settings are under [Runtime v6.0.0](#runtime-v600) and in [CONCURRENCY.md](CONCURRENCY.md).
 
 Runtime **v5.5.0** retains the v5 model and runtime features, adding the
 corrected concurrent MTP/attention paths and post-image memory-pressure fix.
@@ -256,11 +313,11 @@ client-error audits are in [the report](BENCHMARKS.md#thinking-off-task-checks).
 
 The other required embedding files are `ple.manifest.json` and
 `ple.scale.bf16`; the v5.0 model and installation files are listed in
-[`checksums-v5.5.8.sha256`](checksums-v5.5.8.sha256). The v4.4.1 file is retained
+[`checksums-v6.0.0.sha256`](checksums-v6.0.0.sha256). The v4.4.1 file is retained
 unchanged for existing users and can be downloaded alone with its matching
 runtime.
 
-## Download and run v5.5.8
+## Download and run v6.0.0
 
 Download the versioned GGUF, matching MTP draft, the three embedding-table
 files, the matching vision projector, and the complete source package. Existing users can reuse the same
@@ -270,20 +327,20 @@ verified MTP and `ple/` files.
 python3 -m venv .venv-hf
 .venv-hf/bin/pip install --upgrade huggingface_hub
 .venv-hf/bin/hf download jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4 \
-  --revision v5.5.8 \
+  --revision v6.0.0 \
   Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf \
   mtp/Qwen3.8-Flash-CIRU-STRIX-IU4-MTP-Q8_0.gguf \
   ple/ple.payload.bin ple/ple.manifest.json ple/ple.scale.bf16 \
   vision/mmproj-Qwen3.8-Flash-F16.mmproj \
-  source-tree-flash-v5.5.8.tar.gz run-server-v5.5.8.sh INSTALL.md CONCURRENCY.md checksums-v5.5.8.sha256 \
+  source-tree-flash-v6.0.0.tar.gz run-server-v6.0.0.sh INSTALL.md CONCURRENCY.md checksums-v6.0.0.sha256 \
   --local-dir ./flash-model
 cd flash-model
-sha256sum -c checksums-v5.5.8.sha256
+sha256sum -c checksums-v6.0.0.sha256
 ```
 
 On Ubuntu/Debian, install `python3-venv` first if needed. Continue with
 **[INSTALL.md](INSTALL.md)** for the complete source build and launch steps.
-The included source archive supplies the v5.5.8 runtime for the unchanged v5.0 weights; the guide builds
+The included source archive supplies the v6.0.0 runtime for the unchanged v5.0 weights; the guide builds
 its pinned AMD SDK and custom HIP/ROCr dependencies from public sources.
 It also covers health checks, chat, function calling, thinking settings,
 image input, and common setup errors. No earlier CIRU installation is required. The guide also covers building
@@ -296,7 +353,7 @@ and build. The default local server uses one slot, 16,384-token batches and 8,19
 Performance was measured on NixOS; the Ubuntu/Debian guide is a source-build
 route, not a claim of equal measured performance on every distribution.
 
-The download includes the matching vision projector, and the v5.5.8
+The download includes the matching vision projector, and the v6.0.0
 launcher enables it by default. Text benchmark results do not measure image
 performance. See [vision/README.md](vision/README.md) for the image test scope.
 

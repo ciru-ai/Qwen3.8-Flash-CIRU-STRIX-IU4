@@ -34,6 +34,7 @@ llama_memory_recurrent::llama_memory_recurrent(
 
     this->n_rs_seq = n_rs_seq;
     rs_idx.assign(n_seq_max, 0);
+    rs_avail.assign(n_seq_max, UINT32_MAX);
 
     cells.clear();
     cells.resize(mem_size);
@@ -156,6 +157,7 @@ void llama_memory_recurrent::clear(bool data) {
     }
 
     std::fill(rs_idx.begin(), rs_idx.end(), 0);
+    std::fill(rs_avail.begin(), rs_avail.end(), UINT32_MAX);
 }
 
 bool llama_memory_recurrent::seq_rm(llama_seq_id seq_id, llama_pos p0, llama_pos p1) {
@@ -195,7 +197,7 @@ bool llama_memory_recurrent::seq_rm(llama_seq_id seq_id, llama_pos p0, llama_pos
                 const llama_pos rollback = cell.pos - (p0 - 1);
                 // pending rollback is single-use
                 const bool pending = rs_idx[seq_id] != 0;
-                if (!pending && rollback >= 1 && rollback <= (llama_pos) n_rs_seq) {
+                if (!pending && rollback >= 1 && rollback <= (llama_pos) n_rs_seq && (uint32_t) rollback <= rs_avail[seq_id]) {
                     set_rs_idx(seq_id, (uint32_t) rollback);
                     cell.pos = p0 - 1;
                     return true;
@@ -668,6 +670,12 @@ bool llama_memory_recurrent::find_slot(const llama_ubatch & ubatch) {
             const llama_seq_id seq_id = ubatch.seq_id[i][j];
             cell.seq_id.insert(seq_id);
             cells[seq_id].tail = cell_id;
+            if ((size_t) seq_id < rs_avail.size() && rs_avail[seq_id] != UINT32_MAX) {
+                // this pass rewrites the snapshots of its last min(tokens, n_rs_seq + 1) positions
+                const uint32_t written = std::min<uint32_t>(n_seq_tokens, n_rs_seq + 1);
+                rs_avail[seq_id] = std::max(rs_avail[seq_id], written - 1);
+                if (rs_avail[seq_id] >= n_rs_seq) { rs_avail[seq_id] = UINT32_MAX; }
+            }
         }
     }
 
@@ -872,6 +880,11 @@ void llama_memory_recurrent::state_read(llama_io_read_i & io, llama_seq_id seq_i
 
     if (n_rs_seq != 0) {
         set_rs_idx(seq_id, 0);
+        if (seq_id < 0) {
+            std::fill(rs_avail.begin(), rs_avail.end(), 0);
+        } else if ((size_t) seq_id < rs_avail.size()) {
+            rs_avail[seq_id] = 0;
+        }
     }
 }
 

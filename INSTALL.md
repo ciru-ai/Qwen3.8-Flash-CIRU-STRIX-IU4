@@ -1,4 +1,4 @@
-# Install and run Flash IU4 v5.5.8 on Strix Halo
+# Install and run Flash IU4 v6.0.0 on Strix Halo
 
 This is a **custom CIRU runtime** for the supplied model. A stock llama.cpp
 build cannot read its compact expert representation or its external embedding
@@ -36,7 +36,7 @@ ple/ple.payload.bin
 ple/ple.manifest.json
 ple/ple.scale.bf16
 vision/mmproj-Qwen3.8-Flash-F16.mmproj
-source-tree-flash-v5.5.8.tar.gz
+source-tree-flash-v6.0.0.tar.gz
 ```
 
 The three `ple/` files contain the model's SSD-paged n-gram/hash embedding table,
@@ -50,9 +50,9 @@ From the downloaded model directory:
 
 ```bash
 export MODEL_DIR="$PWD"
-mkdir -p runtime-v5.5.8
-tar -xzf source-tree-flash-v5.5.8.tar.gz -C runtime-v5.5.8
-export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"
+mkdir -p runtime-v6.0.0
+tar -xzf source-tree-flash-v6.0.0.tar.gz -C runtime-v6.0.0
+export RUNTIME_DIR="$MODEL_DIR/runtime-v6.0.0"
 cd "$RUNTIME_DIR"
 ```
 
@@ -61,15 +61,15 @@ cd "$RUNTIME_DIR"
 The canonical source repository is
 [ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4).
 Its `main` branch includes the graph-pool lifetime, recurrent-state reset and prior automatic C1 corrections. For the exact source
-of this release, use the public `v5.5.8` tag in a new directory instead of
+of this release, use the public `v6.0.0` tag in a new directory instead of
 extracting the archive above:
 
 ```bash
 export MODEL_DIR="/absolute/path/to/flash-model"
-git clone --branch v5.5.8 --single-branch \
+git clone --branch v6.0.0 --single-branch \
   https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4.git \
-  "$MODEL_DIR/runtime-v5.5.8"
-export RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"
+  "$MODEL_DIR/runtime-v6.0.0"
+export RUNTIME_DIR="$MODEL_DIR/runtime-v6.0.0"
 cd "$RUNTIME_DIR"
 ```
 
@@ -98,7 +98,7 @@ Keep `.venv-rocm/`, `runtime/` and `build-gfx1151-sdk/` in place. Do not combine
 the executable or shared libraries with another runtime build.
 
 For an existing complete matching SDK, use the manual steps in
-`runtime-v5.5.8/docs/BUILD_LINUX.md`. AMD documents the package installation at
+`runtime-v6.0.0/docs/BUILD_LINUX.md`. AMD documents the package installation at
 [ROCm 10 installation](https://rocmdocs.amd.com/en/latest/install/rocm.html);
 the custom runtime source is [pwilkin/rocm-systems](https://github.com/pwilkin/rocm-systems/tree/7dda3ac6cfe6bbe0b7f08c23a67cfa118d8641a1).
 
@@ -113,7 +113,7 @@ MODEL_VARIANT=IU4 MODEL_RELEASE=5.0 ENABLE_UI=0 ENABLE_VISION=1 \
 ```
 
 After setting `ROCM_ROOT`, the equivalent model-directory shortcut is
-`bash "$MODEL_DIR/run-server-v5.5.8.sh"`. It uses the same rebuilt source
+`bash "$MODEL_DIR/run-server-v6.0.0.sh"`. It uses the same rebuilt source
 launcher and accepts the same environment overrides.
 
 The default is API-only at `http://127.0.0.1:8080`, with image input enabled,
@@ -124,7 +124,7 @@ can differ from the benchmark binary because the compiler and distribution
 differ. Loading and first-request warmup may take several minutes.
 
 To launch again from a new terminal, set `MODEL_DIR` to the downloaded model
-directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v5.5.8"`, and repeat the ROCM_ROOT and
+directory, `RUNTIME_DIR="$MODEL_DIR/runtime-v6.0.0"`, and repeat the ROCM_ROOT and
 launch lines. These are filesystem paths on your computer, not repository IDs.
 
 Use `CONTEXT_SIZE=65536` for a smaller maximum context. `ENABLE_MTP=0` disables
@@ -179,11 +179,11 @@ install a Node.js/npm version compatible with `tools/ui/package.json`, then run
 Launch with `ENABLE_UI=1 UI_DIR="$RUNTIME_DIR/tools/ui/dist"` after the resulting
 directory contains `index.html`. UI assets are independent of inference kernels.
 
-The default v5.5.8 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
+The default v6.0.0 launch loads `vision/mmproj-Qwen3.8-Flash-F16.mmproj`
 and keeps MTP depth 3. `--vision` explicitly enables the same behavior.
 Set `MMPROJ=/absolute/path/to/projector.mmproj` to override the location,
 or `ENABLE_VISION=0` for text-only operation. The runtime must be rebuilt
-from the current v5.5.8 source archive to retain the image/MTP attention
+from the current v6.0.0 source archive to retain the image/MTP attention
 correction and install automatic C1 dispatch.
 The target GGUF, MTP draft and projector do not need to be converted again.
 
@@ -217,21 +217,34 @@ images; loading the projector cannot change a client-side modality setting.
 
 ## Update from an earlier runtime
 
-v5.5.8 invalidates the owning HIP/CUDA graph cache after the legacy
-temporary-buffer pool physically frees memory. It retains the literal-zero
-recurrent-state reset and OpenVINO compatibility fixes introduced in v5.5.7.
-No new option or model conversion is required.
+v6.0.0 fixes image input in prompts longer than about 2,048 tokens, speeds up
+multi-slot serving and adds an optional disk tier for the prompt cache. It
+includes every earlier correction (v5.5.6 automatic C1 dispatch, v5.5.7
+recurrent-state reset, v5.5.8 graph-pool lifetime). No model conversion is
+required. See the [v6.0.0 notes](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v6.0.0/docs/qualification/v6.0.0/RELEASE-NOTES.md).
 
-Reuse the verified v5.0 target, matching draft, PLE files and projector. Download
-the new `source-tree-flash-v5.5.8.tar.gz`, extract it
-into a new runtime directory, and perform the complete build above. The HIP
-backend and all objects that include `ggml-cuda/common.cuh` must be rebuilt
-together because the private pool-factory interface changed. This update
-includes the previous scheduler, attention and speculative-path corrections
-plus automatic C1 dispatch, recurrent-state reset and graph-pool lifetime corrections; the older single-library vision patch below
-does not install the current package. Keep the previous runtime
-available until the new installation has loaded successfully. Stop your server
-before switching the installation used by its launcher.
+To update:
+
+1. Keep the verified v5.0 target, matching draft, PLE files and projector.
+2. Download the new `source-tree-flash-v6.0.0.tar.gz`, `run-server-v6.0.0.sh` and
+   `checksums-v6.0.0.sha256` with the command in the model card, or clone the
+   `v6.0.0` tag of [the source repository](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4), which builds both the IU4
+   and Orca variants.
+3. Extract into a **new** runtime directory (`runtime-v6.0.0`) and run the
+   complete build in step 2 of this guide. The server, core library and HIP
+   backend changed together; do not copy single libraries into an older build.
+4. Stop your server, point `RUNTIME_DIR` at the new directory and start it
+   again. Keep the previous runtime until the new one has loaded and answered
+   a request.
+
+Launch options are unchanged for one slot. With `PARALLEL_SLOTS` above 1 the
+launcher enables the v6 multi-slot paths by itself; see
+[CONCURRENCY.md](CONCURRENCY.md). To keep large conversation states on disk,
+add `PROMPT_CACHE_DISK_MIB=65536` (MiB of local disk the cache may use) and
+optionally `PROMPT_CACHE_DISK_DIR=/fast/local/path`.
+
+The older single-library vision patch below does not install the current
+package.
 
 ## Troubleshooting
 
@@ -240,6 +253,7 @@ before switching the installation used by its launcher.
 - Missing SDK packages: use the complete pinned `rocm[libraries,devel,device-gfx1151]` installation. Do not mix SDK versions or repair missing packages with cross-version symlinks.
 - Out of memory: stop other large GPU workloads, reduce `CONTEXT_SIZE`, or use `ENABLE_MTP=0`. Lowering context does not reduce the resident target weights.
 - Missing embedding files: assemble and verify all three `ple/` files. The model cannot operate with the main GGUF alone.
+- Image ignored in a long or tool-heavy prompt: update to v6.0.0; v5.5.0 through v5.5.8 lose the image once the prompt passes about 2,048 tokens.
 - Unexpected speed: check the reported GPU, selected source/build, model variant, MTP mode, context depth and batch sizes. Prompt processing at an existing depth differs from filling an empty context.
 
 <a id="update-an-existing-v50-build"></a>

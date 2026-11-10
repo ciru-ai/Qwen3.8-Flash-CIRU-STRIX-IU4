@@ -108,6 +108,9 @@ public:
     // n_keep_tail = minimum trailing tokens of a seq that must land in the same ubatch
     llama_ubatch split_equal(uint32_t n_ubatch, bool sequential, uint32_t n_keep_tail);
     llama_ubatch split_equal(uint32_t n_ubatch, bool sequential, uint32_t n_keep_tail, uint32_t max_seq_sets);
+    // groupable[seq]: sequences that may share a ubatch (up to max_seq_sets of them); any other sequence gets a ubatch of its own
+    llama_ubatch split_equal(uint32_t n_ubatch, bool sequential, uint32_t n_keep_tail, uint32_t max_seq_sets,
+                             const std::vector<bool> * groupable);
 
     // sequence-set-wise split - each ubatch contains a single sequence-set
     llama_ubatch split_seq(uint32_t n_ubatch);

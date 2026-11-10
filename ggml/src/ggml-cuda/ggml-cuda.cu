@@ -1861,8 +1861,59 @@ static bool ggml_cuda_should_fuse_mul_mat_vec_q(const ggml_tensor * tensor) {
     return use_mul_mat_vec_q;
 }
 
+
+// ---- CIRU exact short batches ----
+#include <set>
+#include <string>
+static int ciru_exact_batch_max() {
+    static const int v = getenv("CIRU_EXACT_BATCH_MAX") ? atoi(getenv("CIRU_EXACT_BATCH_MAX")) : 0;
+    return v;
+}
+// ---- end ----
+
 static void ggml_cuda_mul_mat(ggml_backend_cuda_context & ctx, const ggml_tensor * src0, const ggml_tensor * src1, ggml_tensor * dst) {
     GGML_TENSOR_BINARY_OP_LOCALS
+
+    // sequences on the third axis: the columns are independent, so treat [n, T, S] as T*S columns
+    if (ne12 > 1 && ne13 == 1 && ne02 == 1 && ne03 == 1 && ne11*ne12 <= ciru_exact_batch_max() && ciru_exact_batch_max() > 0 &&
+            ne1 == ne11 && ne2 == ne12 && ne3 == 1 &&
+            src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32 &&
+            ggml_is_contiguous(src1) && ggml_is_contiguous(dst)) {
+        ggml_tensor flat_src = *src1;
+        flat_src.ne[1] = ne11*ne12; flat_src.ne[2] = 1; flat_src.nb[2] = flat_src.nb[1]*flat_src.ne[1]; flat_src.nb[3] = flat_src.nb[2];
+        ggml_tensor flat_dst = *dst;
+        flat_dst.ne[1] = ne11*ne12; flat_dst.ne[2] = 1; flat_dst.nb[2] = flat_dst.nb[1]*flat_dst.ne[1]; flat_dst.nb[3] = flat_dst.nb[2];
+        if (flat_dst.src[1] == src1) { flat_dst.src[1] = &flat_src; }
+        ggml_cuda_mul_mat(ctx, src0, &flat_src, &flat_dst);
+        return;
+    }
+    if (ne11 > MMVQ_MAX_BATCH_SIZE && ne11 <= ciru_exact_batch_max() && ne2 == 1 && ne3 == 1 &&
+            ne12 == 1 && ne13 == 1 && ne02 == 1 && ne03 == 1 &&
+            src1->type == GGML_TYPE_F32 && dst->type == GGML_TYPE_F32 &&
+            ggml_is_contiguous(src1) && ggml_is_contiguous(dst)) {
+        for (int64_t off = 0; off < ne11; off += MMVQ_MAX_BATCH_SIZE) {
+            const int64_t n = std::min<int64_t>(MMVQ_MAX_BATCH_SIZE, ne11 - off);
+            ggml_tensor part_src = *src1;
+            part_src.ne[1] = n; part_src.nb[2] = part_src.nb[1]*n; part_src.nb[3] = part_src.nb[2];
+            part_src.data  = (char *) src1->data + off*src1->nb[1];
+            ggml_tensor part_dst = *dst;
+            part_dst.ne[1] = n; part_dst.nb[2] = part_dst.nb[1]*n; part_dst.nb[3] = part_dst.nb[2];
+            part_dst.data  = (char *) dst->data + off*dst->nb[1];
+            if (part_dst.src[1] == src1) { part_dst.src[1] = &part_src; }
+            ggml_cuda_mul_mat(ctx, src0, &part_src, &part_dst);
+        }
+        return;
+    }
+    if (getenv("CIRU_EXACT_TRACE") && ne11*ne12*ne13 > MMVQ_MAX_BATCH_SIZE && ne11*ne12*ne13 <= 64) {
+        static std::set<std::string> seen;
+        char sig[256];
+        snprintf(sig, sizeof(sig), "MUL_MAT %s w=%s[%lld,%lld,%lld] x=%s[%lld,%lld,%lld,%lld] cont=%d/%d", dst->name,
+                ggml_type_name(src0->type), (long long) ne00, (long long) ne01, (long long) ne02,
+                ggml_type_name(src1->type), (long long) ne10, (long long) ne11, (long long) ne12, (long long) ne13,
+                (int) ggml_is_contiguous(src1), (int) ggml_is_contiguous(dst));
+        std::string key = sig; for (auto & ch : key) { if (ch >= '0' && ch <= '9' && &ch > &key[8] && key.find(" w=") > size_t(&ch - &key[0])) { ch = '#'; } }
+        if (seen.insert(key).second) { fprintf(stderr, "CIRU_EXACT_TRACE %s\n", sig); }
+    }
 
     const int32_t hint = ggml_get_op_params_i32(dst, 1);
     if (hint == GGML_HINT_SRC0_IS_HADAMARD && ggml_cuda_op_fwht(ctx, src1, dst)) {
@@ -1997,6 +2048,27 @@ static void ggml_cuda_mul_mat_id(ggml_backend_cuda_context & ctx, ggml_tensor * 
     const ggml_tensor * src0 = dst->src[0];
     const ggml_tensor * src1 = dst->src[1];
     const ggml_tensor * ids  = dst->src[2];
+
+    if (dst->ne[2] > MMVQ_MAX_BATCH_SIZE && dst->ne[2] <= ciru_exact_batch_max() && dst->ne[3] == 1 &&
+            src1->ne[2] == dst->ne[2] && src1->ne[3] == 1 && ids->ne[1] == dst->ne[2] && ids->ne[2] == 1 && ids->ne[3] == 1 &&
+            ggml_is_contiguous(src1) && ggml_is_contiguous(dst) && ggml_is_contiguous(ids)) {
+        const int64_t total = dst->ne[2];
+        for (int64_t off = 0; off < total; off += MMVQ_MAX_BATCH_SIZE) {
+            const int64_t n = std::min<int64_t>(MMVQ_MAX_BATCH_SIZE, total - off);
+            ggml_tensor part_src = *src1;
+            part_src.ne[2] = n; part_src.nb[3] = part_src.nb[2]*n;
+            part_src.data  = (char *) src1->data + off*src1->nb[2];
+            ggml_tensor part_ids = *ids;
+            part_ids.ne[1] = n; part_ids.nb[2] = part_ids.nb[1]*n; part_ids.nb[3] = part_ids.nb[2];
+            part_ids.data  = (char *) ids->data + off*ids->nb[1];
+            ggml_tensor part_dst = *dst;
+            part_dst.ne[2] = n; part_dst.nb[3] = part_dst.nb[2]*n;
+            part_dst.data  = (char *) dst->data + off*dst->nb[2];
+            part_dst.src[1] = &part_src; part_dst.src[2] = &part_ids;
+            ggml_cuda_mul_mat_id(ctx, &part_dst);
+        }
+        return;
+    }
 
     GGML_ASSERT(src1->type == GGML_TYPE_F32);
     GGML_ASSERT(dst->type  == GGML_TYPE_F32);
@@ -6612,7 +6684,12 @@ static bool ggml_backend_cuda_device_supports_op(ggml_backend_dev_t dev, const g
 #endif // defined(GGML_USE_HIP) || defined(GGML_CUDA_USE_CUB)
         case GGML_OP_ARGSORT:
 #ifndef GGML_CUDA_USE_CUB
-            return op->src[0]->ne[0] <= 1024;
+            {
+                int64_t padded = 1;
+                while (padded < op->src[0]->ne[0]) { padded *= 2; }
+                return op->src[0]->ne[0] <= 1024 ||
+                    (size_t) padded * sizeof(int) <= ggml_cuda_info().devices[dev_ctx->device].smpb;
+            }
 #else
             return true;
 #endif

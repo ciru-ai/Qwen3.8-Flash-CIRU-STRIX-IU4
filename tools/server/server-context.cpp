@@ -314,6 +314,29 @@ struct server_slot {
             return false;
         }
 
+        if (cur->on_disk()) {
+            // too large for the RAM tier: stream the state to its files
+            const int64_t t_start = ggml_time_us();
+            bool ok = true;
+            try {
+                ok = llama_state_seq_save_file(ctx_tgt, cur->file_main.c_str(), id, nullptr, 0) > 0;
+                if (ok && ctx_dft && !cur->file_drft.empty()) {
+                    ok = llama_state_seq_save_file(ctx_dft, cur->file_drft.c_str(), id, nullptr, 0) > 0;
+                }
+            } catch (const std::exception & e) {
+                SRV_ERR("failed to write prompt state to disk: %s\n", e.what());
+                ok = false;
+            }
+            if (!ok) {
+                prompt_cache.discard(cur);
+                return false;
+            }
+            prompt_cache.finish_disk(cur);
+            SRV_INF("prompt cache: saved %d tokens to disk, %.1f MiB in %.0f ms\n", (int) prompt.tokens.size(),
+                    cur->disk_bytes / (1024.0 * 1024.0), (ggml_time_us() - t_start) / 1000.0);
+            return true;
+        }
+
         llama_state_seq_get_data_ext(ctx_tgt, cur->data.main.data(), cur_size_tgt, id, LLAMA_STATE_SEQ_FLAGS_NONE);
         if (ctx_dft) {
             llama_state_seq_get_data_ext(ctx_dft, cur->data.drft.data(), cur_size_dft, id, LLAMA_STATE_SEQ_FLAGS_NONE);
@@ -1671,24 +1694,77 @@ private:
             return res;
         }
 
+        // the least recently used idle slot goes first; its state is kept in the prompt cache when it fits
+        server_slot * victim = nullptr;
         for (auto & slot : slots) {
-            if (slot.is_processing()) {
+            if (slot.is_processing() || slot.prompt.n_tokens() == 0) {
                 continue;
             }
-
-            if (slot.prompt.n_tokens() > 0) {
-                SRV_WRN("purging slot %d with %zu tokens\n", slot.id, slot.prompt.tokens.size());
-
-                slot.prompt_clear();
-
-                res = true;
-
-                // clear slots one by one
-                break;
+            if (!victim || slot.t_last_used < victim->t_last_used) {
+                victim = &slot;
             }
         }
 
+        if (victim) {
+            SRV_WRN("purging slot %d with %zu tokens\n", victim->id, victim->prompt.tokens.size());
+
+            if (prompt_cache) {
+                if (victim->prompt_save(*prompt_cache)) {
+                    SRV_WRN("slot %d state kept in the prompt cache\n", victim->id);
+                }
+                prompt_cache->update();
+            }
+
+            victim->prompt_clear();
+
+            res = true;
+        }
+
         return res;
+    }
+
+    // Shared KV pool admission (CIRU_POOL_ADMISSION=1). A task whose prompt cannot fit next to the other
+    // slots would overflow the pool mid-decode, which fails every running request. Move idle slots out
+    // (their state goes to the prompt cache); if the running slots alone leave no room, the task waits.
+    bool ensure_pool_room(server_slot & chosen, const server_task & task) {
+        static const bool enabled = getenv("CIRU_POOL_ADMISSION") && atoi(getenv("CIRU_POOL_ADMISSION")) != 0;
+        static const int64_t reserve = getenv("CIRU_POOL_RESERVE") ? std::max(0, atoi(getenv("CIRU_POOL_RESERVE"))) : 4096;
+        if (!enabled || !params_base.kv_unified) {
+            return true;
+        }
+        const int64_t pool = llama_n_ctx(chosen.ctx_tgt);
+        const int64_t need = (int64_t) task.tokens.size() + reserve;
+        if (need > pool) {
+            return true; // cannot fit at all: the normal context checks report it
+        }
+        while (true) {
+            int64_t others = 0;
+            server_slot * victim = nullptr;
+            for (auto & slot : slots) {
+                if (&slot == &chosen) {
+                    continue;
+                }
+                others += slot.prompt.n_tokens();
+                if (!slot.is_processing() && slot.prompt.n_tokens() > 0 &&
+                        (!victim || slot.t_last_used < victim->t_last_used)) {
+                    victim = &slot;
+                }
+            }
+            if (others + need <= pool) {
+                return true;
+            }
+            if (!victim) {
+                SRV_WRN("pool admission: %d prompt tokens do not fit next to %lld tokens of running slots, deferring task %d\n",
+                        (int) task.tokens.size(), (long long) others, task.id);
+                return false;
+            }
+            SRV_WRN("pool admission: moving idle slot %d (%d tokens) out of the KV pool\n", victim->id, victim->prompt.n_tokens());
+            if (prompt_cache) {
+                victim->prompt_save(*prompt_cache);
+                prompt_cache->update();
+            }
+            victim->prompt_clear();
+        }
     }
 
     std::vector<common_adapter_lora_info> construct_lora_list(const std::map<int, float> & config) const {
@@ -2415,6 +2491,11 @@ private:
                         break;
                     }
 
+                    if (!ensure_pool_room(*slot, task)) {
+                        queue_tasks.defer(std::move(task));
+                        break;
+                    }
+
                     if (task.is_parent()) {
                         // try getting free slots for all child tasks
                         size_t n_child_tasks = task.child_tasks.size();
@@ -3107,6 +3188,12 @@ private:
         // process in chunks of params.n_batch
         int32_t n_batch  = llama_n_batch(ctx_tgt);
         int32_t n_ubatch = llama_n_ubatch(ctx_tgt);
+        {
+            static const int32_t share = getenv("CIRU_PROMPT_SHARE_TOKENS") ? std::max(0, atoi(getenv("CIRU_PROMPT_SHARE_TOKENS"))) : 0;
+            if (share > 0 && batch.size() > 0) {
+                n_batch = std::min<int32_t>(n_batch, batch.size() + share);
+            }
+        }
 
         auto & alora_scale       = batch.alora_scale;
         auto & alora_disabled_id = batch.alora_disabled_id;

@@ -180,6 +180,17 @@ echo "CIRU runtime check: server ${server_bin}; HIP ${hip_library}" >&2
 
 mkdir -p "${slot_dir}"
 
+# Optional disk tier for the prompt cache (v6). Saved conversation states that do not
+# fit in --cache-ram are kept as files and restored instead of re-reading the prompt.
+if [[ -n "${PROMPT_CACHE_DISK_MIB:-}" && "${PROMPT_CACHE_DISK_MIB}" != 0 ]]; then
+    [[ "${PROMPT_CACHE_DISK_MIB}" =~ ^[1-9][0-9]*$ ]] || {
+        echo 'PROMPT_CACHE_DISK_MIB must be a positive integer (MiB).' >&2; exit 2;
+    }
+    export CIRU_PROMPT_CACHE_DISK_MIB="${PROMPT_CACHE_DISK_MIB}"
+    export CIRU_PROMPT_CACHE_DISK_DIR="${PROMPT_CACHE_DISK_DIR:-${slot_dir}/prompt-cache}"
+    mkdir -p "${CIRU_PROMPT_CACHE_DISK_DIR}"
+fi
+
 set -a
 # shellcheck source=/dev/null
 source "${repo_root}/profiles/strix-halo-production.env"

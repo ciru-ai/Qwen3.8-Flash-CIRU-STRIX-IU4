@@ -512,6 +512,11 @@ llama_ubatch llama_batch_allocr::split_equal(uint32_t n_ubatch, bool sequential,
 }
 
 llama_ubatch llama_batch_allocr::split_equal(uint32_t n_ubatch, bool sequential, uint32_t n_keep_tail, uint32_t max_seq_sets) {
+    return split_equal(n_ubatch, sequential, n_keep_tail, max_seq_sets, nullptr);
+}
+
+llama_ubatch llama_batch_allocr::split_equal(uint32_t n_ubatch, bool sequential, uint32_t n_keep_tail, uint32_t max_seq_sets,
+        const std::vector<bool> * groupable) {
     if (sequential && has_cpl) {
         LLAMA_LOG_ERROR("%s: sequential split is not supported when there are coupled sequences in the input batch (you may need to use the -kvu flag)\n", __func__);
 
@@ -521,6 +526,7 @@ llama_ubatch llama_batch_allocr::split_equal(uint32_t n_ubatch, bool sequential,
     std::vector<seq_set_t> cur_seq_set;
 
     llama_seq_id last_seq_id = -1;
+    bool group_mode = false;
 
     // determine the non-overlapping sequence sets participating in this ubatch
     for (int32_t i = 0; i < batch.n_tokens; ++i) {
@@ -544,11 +550,23 @@ llama_ubatch llama_batch_allocr::split_equal(uint32_t n_ubatch, bool sequential,
         }
 
         if (add) {
+            uint32_t limit = max_seq_sets;
+            if (groupable) {
+                const llama_seq_id sid = batch.seq_id[i][0];
+                const bool ok = seq_set[i].count() == 1 && sid >= 0 && size_t(sid) < groupable->size() && (*groupable)[sid];
+                if (cur_seq_set.empty()) {
+                    group_mode = ok;
+                } else if (!group_mode || !ok) {
+                    continue; // left for a later ubatch
+                }
+                limit = group_mode ? max_seq_sets : 1;
+            }
+
             cur_seq_set.push_back(seq_set[i]);
 
             last_seq_id = batch.seq_id[i][0];
 
-            if (cur_seq_set.size() > n_ubatch || (max_seq_sets && cur_seq_set.size() >= max_seq_sets)) {
+            if (cur_seq_set.size() > n_ubatch || (limit && cur_seq_set.size() >= limit)) {
                 break;
             }
         }

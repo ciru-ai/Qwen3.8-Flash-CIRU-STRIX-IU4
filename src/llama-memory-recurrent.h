@@ -75,6 +75,7 @@ public:
 
     // per-seq rollback index
     std::vector<uint32_t> rs_idx;
+    std::vector<uint32_t> rs_avail; // per seq: deepest valid snapshot rollback, UINT32_MAX = no restriction
 
     void set_rs_idx(llama_seq_id seq_id, uint32_t idx);
 

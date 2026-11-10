@@ -598,6 +598,18 @@ struct server_prompt_cache_state {
     server_prompt prompt;
     server_prompt_data data;
 
+    // disk tier: the state lives in these files instead of `data` and `prompt.checkpoints`
+    std::string file_main;
+    std::string file_drft;
+    std::string file_ckpt;
+    size_t disk_bytes = 0;
+    size_t n_checkpoints_disk = 0;
+
+    bool on_disk() const {
+        return !file_main.empty();
+    }
+
+    // bytes held in RAM
     size_t size() const {
         size_t res = data.size();
 
@@ -613,7 +625,10 @@ struct server_prompt_cache {
     server_prompt_cache(int32_t limit_size_mib, size_t limit_tokens) {
         this->limit_size   = 1024ull*1024ull*(limit_size_mib < 0 ? 0 : limit_size_mib);
         this->limit_tokens = limit_tokens;
+        init_disk();
     }
+
+    ~server_prompt_cache();
 
     std::list<server_prompt_cache_state> states;
 
@@ -623,15 +638,39 @@ struct server_prompt_cache {
     // in tokens, 0 = no limit
     size_t limit_tokens = 0;
 
+    // disk tier (CIRU_PROMPT_CACHE_DISK_MIB / CIRU_PROMPT_CACHE_DISK_DIR); 0 = disabled
+    size_t limit_disk = 0;
+    std::string disk_dir;
+    uint64_t disk_counter = 0;
+
+    // RAM entries only
     size_t size() const;
 
     size_t n_tokens() const;
 
+    size_t size_disk() const;
+
+    bool disk_enabled() const {
+        return limit_disk > 0 && !disk_dir.empty();
+    }
+
+    // a returned entry with on_disk() set must be written by the caller, then finish_disk() or discard()
     server_prompt_cache_state * alloc(const server_prompt & prompt, size_t state_size_main, size_t state_size_drft);
+
+    void finish_disk(server_prompt_cache_state * state);
+    void discard(server_prompt_cache_state * state);
 
     bool load(server_prompt & prompt, const server_tokens & tokens_new, llama_context * ctx_tgt, llama_context * ctx_dft, int32_t id_slot);
 
     void update();
+
+private:
+    void init_disk();
+    std::string disk_base();
+    void erase_state(std::list<server_prompt_cache_state>::iterator it);
+    bool demote(server_prompt_cache_state & state);
+    bool evict_ram_oldest();
+    bool evict_disk_oldest();
 };
 
 // used exclusively by router mode

@@ -53,25 +53,39 @@ static ggml_tensor * qwen4exp_order_selected_cells(ggml_context * ctx, ggml_tens
     return ggml_reshape_3d(ctx, ggml_get_rows(ctx, rows, order), width, queries, streams);
 }
 
+// limits holds the block start positions from starts_first and one tail start per query from tails_first
 static ggml_tensor * qwen4exp_apply_compact_visibility(ggml_context *ctx,ggml_tensor *score,
-        ggml_tensor *limits,int64_t blocks,int64_t first,int64_t queries) {
-    GGML_ASSERT(limits->type==GGML_TYPE_I32 && score->ne[0]<=blocks && score->ne[1]==queries && score->ne[2]==1);
-    auto *starts=ggml_cast(ctx,ggml_view_1d(ctx,limits,score->ne[0],0),GGML_TYPE_F32);
-    auto *tails=ggml_cast(ctx,ggml_view_1d(ctx,limits,queries,(blocks+first)*sizeof(int32_t)),GGML_TYPE_F32);
+        ggml_tensor *limits,int64_t starts_first,int64_t tails_first,int64_t queries) {
+    GGML_ASSERT(limits->type==GGML_TYPE_I32 && score->ne[1]==queries && score->ne[2]==1 &&
+            starts_first+score->ne[0]<=limits->ne[0] && tails_first+queries<=limits->ne[0]);
+    auto *starts=ggml_cast(ctx,ggml_view_1d(ctx,limits,score->ne[0],starts_first*sizeof(int32_t)),GGML_TYPE_F32);
+    auto *tails=ggml_cast(ctx,ggml_view_1d(ctx,limits,queries,tails_first*sizeof(int32_t)),GGML_TYPE_F32);
     tails=ggml_reshape_2d(ctx,tails,1,queries);
     auto *visible=ggml_step(ctx,ggml_sub(ctx,ggml_repeat(ctx,tails,score),starts));
     return ggml_add(ctx,score,ggml_log(ctx,visible));
 }
 
 static ggml_tensor * qwen4exp_select_complete_blocks(ggml_context *ctx0, ggml_tensor *score,
-        ggml_tensor *block_cells, ggml_tensor *tail, int64_t block_budget, int64_t r) {
+        ggml_tensor *block_cells, ggml_tensor *tail, int64_t block_budget, int64_t r,
+        ggml_tensor *block_pos = nullptr) {
     const int64_t n_blocks=score->ne[0], n_query=score->ne[1], n_stream=score->ne[2];
     GGML_ASSERT(score->type==GGML_TYPE_F32 && ggml_is_contiguous(score));
     GGML_ASSERT(block_cells->type==GGML_TYPE_I32 && block_cells->ne[0]==r*n_blocks && block_cells->ne[1]==n_stream);
     GGML_ASSERT(tail->type==GGML_TYPE_I32 && tail->ne[0]==r-1 && tail->ne[1]==n_query && tail->ne[3]==n_stream);
             GGML_ASSERT(n_blocks>=block_budget);
             ggml_tensor * blocks=ggml_cont(ctx0,ggml_top_k(ctx0,score,block_budget));
-            ggml_tensor * order=ggml_argsort(ctx0,ggml_cast(ctx0,blocks,GGML_TYPE_F32),GGML_SORT_ORDER_ASC);
+            // Canonical reduction order: by block position. A lone sequence has row == position/ratio,
+            // so this equals the row order; with shared cache rows it keeps the same order as running alone.
+            ggml_tensor * sort_key=ggml_cast(ctx0,blocks,GGML_TYPE_F32);
+            if (block_pos && n_stream==1) {
+                GGML_ASSERT(block_pos->type==GGML_TYPE_I32 && block_pos->ne[0]>=n_blocks);
+                ggml_tensor * pos=ggml_cast(ctx0,ggml_view_1d(ctx0,block_pos,n_blocks,0),GGML_TYPE_F32);
+                ggml_tensor * shape=ggml_view_4d(ctx0,score,1,n_blocks,n_query,n_stream,
+                        score->nb[0],score->nb[1],score->nb[2],0);
+                pos=ggml_repeat(ctx0,ggml_reshape_4d(ctx0,pos,1,n_blocks,1,1),shape);
+                sort_key=ggml_reshape_3d(ctx0,ggml_get_rows(ctx0,pos,blocks),block_budget,n_query,n_stream);
+            }
+            ggml_tensor * order=ggml_argsort(ctx0,sort_key,GGML_SORT_ORDER_ASC);
             ggml_tensor * blocks_view=ggml_view_4d(ctx0,blocks,1,block_budget,n_query,n_stream,
                     blocks->nb[0],blocks->nb[1],blocks->nb[2],0);
             blocks=ggml_reshape_3d(ctx0,ggml_get_rows(ctx0,blocks_view,order),block_budget,n_query,n_stream);

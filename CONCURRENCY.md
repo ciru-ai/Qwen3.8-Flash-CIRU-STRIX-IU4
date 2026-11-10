@@ -1,6 +1,69 @@
 > Runtime 5.5.6 automatically selects the improved C1 route for eligible small joint batches. The serving settings and historical measurements below are unchanged. See [5.5.6 patch notes](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v5.5.6/docs/qualification/v5.5.6/RELEASE-NOTES.md).
 
-# Optional multi-slot serving and image-memory update
+> **Runtime 6.0.0** changes how pooled slots decode. The section below is current; everything after "Historical record" keeps the v5.5.0 text and measurements unchanged. See the [6.0.0 notes](https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/blob/v6.0.0/docs/qualification/v6.0.0/RELEASE-NOTES.md).
+
+# Multi-slot serving in v6.0.0
+
+One slot is still the default and still the fastest way to serve a single
+request. Use several slots when requests overlap.
+
+```bash
+PARALLEL_SLOTS=4 CONTEXT_SIZE=393216 PROMPT_CACHE_DISK_MIB=65536 \
+  MODEL_VARIANT=IU4 MODEL_RELEASE=5.0 ENABLE_UI=0 \
+  MODEL_DIR="$MODEL_DIR" RUNTIME_DIR="$RUNTIME_DIR" \
+  bash "$RUNTIME_DIR/scripts/ciru/run-server.sh" --kv-unified-per-slot 262144
+```
+
+This is the profile measured with the IU4 weights (MTP3): four slots sharing a
+393,216-token pool, each request limited to 262,144 tokens, microbatch 2,048.
+IU4 uses MTP3. `PARALLEL_SLOTS=2`
+with the default 262,144-token pool also works. The slots share the pool; they
+do not each get the full context at the same time.
+
+What v6.0.0 does differently with more than one slot:
+
+- Slots that are generating are decoded together in one pass. v5.5.x decoded
+  one slot per pass, so four busy slots produced about the same total as one.
+- Each slot scores only its own index rows instead of the whole pool.
+- A long prompt read is cut into 2,048-token pieces while another slot is
+  generating, so it no longer stalls that slot for the whole read.
+- With `PROMPT_CACHE_DISK_MIB` set, conversation states too large for the RAM
+  cache are kept on disk and restored, instead of being dropped and re-read.
+
+| Case (four pooled slots, MTP3, thinking on) | v5.5.8 | v6.0.0 |
+| --- | ---: | ---: |
+| 4 slots generating, about 240k tokens pooled, total | 21.4 tok/s | 49.9 tok/s |
+| 4 slots generating, about 328k tokens pooled, total | 11.3–12.1 tok/s | 42.0–42.6 tok/s |
+| 2 slots generating, about 328k tokens pooled, total | 11.5 tok/s | 37.3 tok/s |
+| 1 slot generating, about 328k tokens pooled | 12.6 tok/s | 24.5 tok/s |
+
+Measured on Ciru (Ryzen AI Max+ 395 / Radeon 8060S, NixOS) with the IU4 v5.0
+weights through the raw completion endpoint; each row is one run. Greedy output
+and log-probabilities matched the one-slot-per-pass decode on all four slots.
+The single-slot profile measured 35.5 tok/s at 20,000 tokens and 34.1 at
+100,000 on v6.0.0, so a lone request is still best served by one slot. The
+single-slot draft shortlist remains disabled with more than one slot, and
+Kairic Boost remains limited to one slot.
+
+| Variable | Default with several slots | Meaning |
+| --- | --- | --- |
+| `CIRU_QSA_BATCH_SEQS` | 4 | Slots decoded per pass; `0` decodes one slot per pass as in v5.5.8 |
+| `CIRU_EXACT_BATCH_MAX` | 32 | Keeps shared passes on single-sequence arithmetic; leave on with the line above |
+| `CIRU_QSA_OWN_ROWS` | 1 | Score only the slot's own index rows |
+| `CIRU_PROMPT_SHARE_TOKENS` | 2048 | Prompt tokens per iteration while another slot generates; `0` removes the limit |
+| `PROMPT_CACHE_DISK_MIB` | unset (off) | Disk budget for saved conversation states |
+| `PROMPT_CACHE_DISK_DIR` | `prompt-cache/` in the slot directory | Where those files go; use fast local storage |
+| `CIRU_POOL_ADMISSION` | unset (off) | Experimental: wait or evict idle history instead of failing when the pool is full |
+
+Limits: more than four slots is untested; pool admission never triggered in
+testing; the disk tier was tested with states up to 3 GB; no broad quality
+benchmark was rerun. Two requests whose combined demand exceeds the pool can
+still fail unless pool admission is enabled.
+
+---
+
+# Historical record: v5.5.0 multi-slot serving and image-memory update
+
 
 Runtime **v5.5.0** retains the v5 model and runtime features and keeps **one slot as the default**. Use two slots when accepting a second request matters more than the best single-request speed. The target GGUF, matching MTP draft, projector and PLE files are unchanged.
 

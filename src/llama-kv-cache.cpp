@@ -402,12 +402,11 @@ bool llama_kv_cache::seq_rm(llama_seq_id seq_id, llama_pos p0, llama_pos p1) {
 
         uint32_t new_head = cells.size();
 
-        for (uint32_t i = 0; i < cells.size(); ++i) {
-            if (!cells.pos_in(i, p0, p1)) {
-                continue;
-            }
-
-            if (cells.seq_has(i, seq_id) && cells.seq_rm(i, seq_id)) {
+        // Same cells, same order as a full scan; the per-sequence index avoids touching the whole pool.
+        std::vector<uint32_t> hits;
+        cells.seq_cells_in(seq_id, p0, p1, hits);
+        for (const uint32_t i : hits) {
+            if (cells.seq_rm(i, seq_id)) {
                 if (new_head == cells.size()) {
                     new_head = i;
                 }

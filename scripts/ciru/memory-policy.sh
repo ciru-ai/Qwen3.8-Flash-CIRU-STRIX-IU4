@@ -23,11 +23,19 @@ ciru_memory_policy() {
     case "$policy" in
         0)
             unset CIRU_QSA_UNIFIED_SERIAL CIRU_QSA_SEQUENCE_DENSE
+            unset CIRU_QSA_BATCH_SEQS CIRU_EXACT_BATCH_MAX CIRU_QSA_OWN_ROWS CIRU_PROMPT_SHARE_TOKENS
             ;;
         1)
             ciru_kv_args=(--kv-unified --kv-unified-per-slot "$context")
             ciru_idle_args=(--no-cache-idle-slots)
             export CIRU_QSA_UNIFIED_SERIAL=1 CIRU_QSA_SEQUENCE_DENSE=1
+            # v6: pooled slots that are generating share one pass (same arithmetic as one
+            # sequence per pass), each scores only its own index rows, and a long prompt read
+            # yields to generating slots. Set a variable to 0 for the v5.5.8 behaviour.
+            export CIRU_QSA_BATCH_SEQS="${CIRU_QSA_BATCH_SEQS:-4}"
+            export CIRU_EXACT_BATCH_MAX="${CIRU_EXACT_BATCH_MAX:-32}"
+            export CIRU_QSA_OWN_ROWS="${CIRU_QSA_OWN_ROWS:-1}"
+            export CIRU_PROMPT_SHARE_TOKENS="${CIRU_PROMPT_SHARE_TOKENS:-2048}"
             ;;
         *) echo 'CONTEXT_POOL must be auto, 0, or 1.' >&2; return 2 ;;
     esac

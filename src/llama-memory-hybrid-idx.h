@@ -2,6 +2,7 @@
 
 #include "llama-memory-hybrid.h"
 #include "qsa-prefix-state.h"
+#include <map>
 
 #include <memory>
 #include <vector>
@@ -98,13 +99,37 @@ public:
     ggml_tensor * qsa_cache(ggml_context * ctx, int il, int64_t blocks) const;
     void qsa_fill_updates(ggml_tensor * members, ggml_tensor * positions, ggml_tensor * rows) const;
     void qsa_commit(int il) const;
+    // sequences sharing the current ubatch on the incremental path (1 unless the ubatch was grouped)
+    size_t qsa_groups(const llama_ubatch & ubatch) const;
+    // per group: padded count of own blocks to score, empty when the whole cache must be scanned
+    std::vector<int64_t> qsa_own_widths(const llama_ubatch & ubatch) const;
+    void qsa_fill_own(ggml_tensor * rows, ggml_tensor * cells, ggml_tensor * positions, ggml_tensor * limits,
+                      ggml_tensor * tails, const llama_ubatch & ubatch) const;
 
 private:
     bool incremental_qsa = false;
-    bool qsa_recover_pending = false;
-    bool qsa_recover(llama_seq_id seq);
-    qsa_prefix_state qsa_prefix;
-    mutable std::vector<int64_t> qsa_ready;
+    // One incremental state per sequence. Every sequence owns rows of the shared per-layer key cache
+    // (block -> row); rows are allocated lowest-free-first, so a lone sequence keeps the identity layout.
+    struct qsa_seq_state {
+        qsa_prefix_state prefix;
+        std::vector<int32_t> rows;             // complete block -> cache row
+        mutable std::vector<int64_t> ready;    // per layer: leading blocks whose keys are cached
+        bool recover_pending = true;
+        int32_t max_row = -1;
+        size_t displaced = 0;                  // blocks whose row differs from their block index
+    };
+    std::map<llama_seq_id, qsa_seq_state> qsa_seqs;
+    std::vector<uint8_t> qsa_row_used;
+    size_t qsa_row_hint = 0, qsa_rows_in_use = 0, qsa_capacity = 0;
+    std::vector<llama_seq_id> qsa_active;      // sequences of the last applied ubatch in ubatch order, empty if untracked
+    qsa_seq_state & qsa_state(llama_seq_id seq);
+    const qsa_seq_state * qsa_group_state(size_t group) const;
+    uint32_t qsa_batch_groupable(const llama_batch_allocr & balloc, std::vector<bool> & groupable) const;
+    bool qsa_batch_validate(const std::vector<llama_ubatch> & ubatches, const llama_kv_cache::slot_info_vec_t & sinfos) const;
+    void qsa_release_rows(qsa_seq_state & state, size_t keep);
+    bool qsa_grow_rows(qsa_seq_state & state);
+    void qsa_invalidate_seq(qsa_seq_state & state);
+    bool qsa_recover(llama_seq_id seq, qsa_seq_state & state);
     std::vector<ggml_tensor *> qsa_keys;
     std::vector<std::pair<ggml_context_ptr, ggml_backend_buffer_ptr>> qsa_buffers;
     bool qsa_metadata(ggml_tensor * cells, ggml_tensor * positions, ggml_tensor * bias,
@@ -169,6 +194,11 @@ public:
     }
     void qsa_fill_updates(ggml_tensor * c, ggml_tensor * p, ggml_tensor * r) const { mem->qsa_fill_updates(c,p,r); }
     void qsa_commit(int il) const { mem->qsa_commit(il); }
+    size_t qsa_groups(const llama_ubatch & u) const { return mem ? mem->qsa_groups(u) : 1; }
+    std::vector<int64_t> qsa_own_widths(const llama_ubatch & u) const { return mem ? mem->qsa_own_widths(u) : std::vector<int64_t>(); }
+    void qsa_fill_own(ggml_tensor * r, ggml_tensor * c, ggml_tensor * p, ggml_tensor * l, ggml_tensor * t, const llama_ubatch & u) const {
+        mem->qsa_fill_own(r, c, p, l, t, u);
+    }
 
 
     // streams in the current slot info, the `ns` of get_k/get_v; 1 if unified

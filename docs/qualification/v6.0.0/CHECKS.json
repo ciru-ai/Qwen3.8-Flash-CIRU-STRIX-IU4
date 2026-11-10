@@ -1,0 +1,123 @@
+{
+  "runtime_version": "6.0.0",
+  "date": "2026-11-10",
+  "baseline_github_commit": "1c782b8579c0f1ac45993ce896acabcada5fbcab",
+  "machine": "Ciru: Ryzen AI Max+ 395 / Radeon 8060S (gfx1151), 128 GB, NixOS, TheRock 10.0.0, custom HIP/ROCr 7dda3ac6",
+  "build": {
+    "compiler": "GNU 15.2.0",
+    "build_type": "Release",
+    "container": "pinned build image, no network, no GPU"
+  },
+  "vision_long_prompt": {
+    "report": "https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-Orca/discussions/5",
+    "setup": "Orca v5.0 weights, one slot, 262144 context, MTP4, Kairic Boost on, thinking off, temperature 0, four photographs, max 200 output tokens",
+    "pass_rule": "reply names the subject and contains no tool call",
+    "tiers_tool_definitions": [
+      0,
+      4,
+      8,
+      16,
+      32
+    ],
+    "prompt_tokens": [
+      1110,
+      1853,
+      2509,
+      3821,
+      6415
+    ],
+    "v5.0.1": [
+      "4/4",
+      "4/4",
+      "4/4",
+      "4/4",
+      "2/4"
+    ],
+    "v5.5.0": [
+      "4/4",
+      "4/4",
+      "0/4",
+      "0/4",
+      "0/4"
+    ],
+    "v5.5.8": [
+      "4/4",
+      "4/4",
+      "0/4",
+      "0/4",
+      "0/4"
+    ],
+    "v6.0.0_three_runs": [
+      "12/12",
+      "12/12",
+      "12/12",
+      "12/12",
+      "6/12"
+    ],
+    "v6.0.0_iu4_all_tiers": "4/4",
+    "text_padding_no_tools": {
+      "v5.5.8_at_2542_tokens": "image described as completely blank",
+      "v6.0.0": "photograph described correctly at 2542 (5/5), 4042 (2/2) and 24002 (2/2) prompt tokens"
+    },
+    "wide_argsort_host_check": "2051 columns; passes of 512, 512 and 56 rows; bad_perm=0 bad_order=0 on six checked passes"
+  },
+  "multi_slot_speed_tok_s": {
+    "profile": "IU4 v5.0, 4 slots, shared 393216 pool, 262144 per request, microbatch 2048, MTP3",
+    "4_active_240k_pooled": {
+      "v5.5.8": "21.4",
+      "v6.0.0": "49.9"
+    },
+    "4_active_328k_pooled": {
+      "v5.5.8": "11.3-12.1",
+      "v6.0.0_before_indexed_rollback": "42.0-42.6"
+    },
+    "2_active_328k_pooled": {
+      "v5.5.8": 11.5,
+      "v6.0.0_before_indexed_rollback": 37.3
+    },
+    "1_active_328k_pooled": {
+      "v5.5.8": 12.6,
+      "v6.0.0_before_indexed_rollback": 24.5
+    },
+    "single_slot_profile": {
+      "v5.5.8": [
+        "34.9",
+        "33.4"
+      ],
+      "v6.0.0": [
+        "35.5",
+        "34.1"
+      ],
+      "tokens": [
+        20000,
+        100000
+      ]
+    }
+  },
+  "exactness_vs_one_slot_per_pass": {
+    "sampling": "greedy, top-5 log-probabilities compared",
+    "20k_per_slot": "300/300 tokens on each of 4 slots, max |dlogprob| 0",
+    "100k_per_slot": "300/300 tokens on each of four slots (maximum log-probability difference 0)"
+  },
+  "disk_prompt_cache": {
+    "pattern": "5 conversations of 65k-92k tokens over 4 slots, states 2.2-3.0 GB",
+    "return_visit": "55 tokens re-read, 2.9-3.6 s",
+    "without_disk_tier": "full re-read, 37-56 s at 29k-44k tokens",
+    "restored_vs_never_evicted": "48/48 tokens on 4 conversations",
+    "final_build_rerun": "final build, 5 conversations of 29k-44k tokens: return visits re-read 55 tokens in 2.3-4.5 s; first reads took 37-50 s"
+  },
+  "host_cpu": {
+    "busy_thread": "about 97% of one core in v5.5.8 and v6.0.0",
+    "engine_share_of_busy_thread_v6": "27% before indexed rollback, 10.5% after",
+    "seq_rm_share_before": "18.7%"
+  },
+  "not_tested": [
+    "broad model-quality benchmark",
+    "image request speed",
+    "cold disk restore",
+    "rollback-after-restore guard (targeted)",
+    "pool admission trigger",
+    "more than four slots",
+    "other GPU architectures"
+  ]
+}
