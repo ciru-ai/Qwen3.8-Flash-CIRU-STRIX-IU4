@@ -18,8 +18,10 @@ manual step that must happen before the next phase is allowed.
   -Phase upgrade     section 8: side-by-side upgrade to a new tag
   -Phase all         preflight through service, stopping at gates
 
-Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, runtime v3.0.0,
-ROCm 10.0, rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151), 128 GB unified.
+Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, runtime v3.0.0
+(the side-by-side upgrade path also run live through v4.4.0 and v6.0.0
+multi-slot), ROCm 10.0, rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151),
+128 GB unified.
 #>
 [CmdletBinding()]
 param(
@@ -43,7 +45,12 @@ param(
     # 0 = derive as (total RAM GB - 100), floored at 16
     [int]$WslMemoryGB = 0,
     # 0 = every logical processor
-    [int]$WslProcessors = 0
+    [int]$WslProcessors = 0,
+    # >0 only for multi-slot tags (v6+): slots sharing one CONTEXT_SIZE
+    # pool, proven with 2 slots on a 131072-token pool
+    [int]$ParallelSlots = 0,
+    # disk prompt cache budget in MiB; only written when -ParallelSlots > 0
+    [int]$PromptCacheDiskMiB = 0
 )
 
 $ErrorActionPreference = 'Stop'
@@ -143,6 +150,19 @@ function Get-ContextForUnits {
     $auto = Get-AutoContext $pool
     Write-Ok ("ROCm pool {0:N1} GiB -> CONTEXT_SIZE={1}" -f $pool, $auto)
     return $auto
+}
+
+# 'active' is not readiness: the unit is active while the ~80 GiB model
+# still loads. Poll /health until green or the deadline; return $true on
+# green, $false on timeout so callers decide how fatal that is.
+function Wait-ServerHealth([int]$TimeoutSec) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSec)
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 15
+        $h = Invoke-WslText 'curl -s -m 5 http://127.0.0.1:8080/health'
+        if ($h -match '"status":"ok"') { return $true }
+    }
+    return $false
 }
 
 function Write-ManualChecklist {
@@ -387,6 +407,10 @@ function Invoke-ServicePhase {
     if (-not (Get-ModelFilesPresent)) { Write-Bad 'model files missing: run -Phase model first'; exit 1 }
     $ctx = Get-ContextForUnits
 
+    # TimeoutStopSec must cover a loaded server's graceful exit: if
+    # systemd escalates to SIGKILL while the process still holds the
+    # GPU, the ROCDXG session wedges (dxg create_process failed -75 for
+    # every later GPU process; recovery is a full VM restart).
     Write-Unit 'qwen-ciru-server.service' @"
 [Unit]
 Description=Qwen3.8-Flash-CIRU-STRIX-IU4 llama-server (gfx1151)
@@ -397,6 +421,7 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=10
+TimeoutStopSec=300
 Environment=LD_LIBRARY_PATH=$RepoRoot/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
@@ -424,19 +449,23 @@ WantedBy=multi-user.target
 "@
 
     if (-not (Invoke-Wsl 'systemctl daemon-reload && systemctl enable --now qwen-ciru-server.service wsl-session-keeper.service')) { Write-Bad 'unit start failed'; exit 1 }
-    $a1 = Invoke-WslText 'systemctl is-active qwen-ciru-server.service'
     $a2 = Invoke-WslText 'systemctl is-active wsl-session-keeper.service'
-    if ($a1 -eq 'active' -and $a2 -eq 'active') {
-        Write-Ok "both units active (server CONTEXT_SIZE=$ctx)"
-        Write-Host "First load takes ~10-12 minutes. Follow it with: wsl -d $Distro -u root -- journalctl -u qwen-ciru-server.service -f"
-        Write-Host 'Then smoke test: curl http://127.0.0.1:8080/health'
-    } else { Write-Bad "unit not active: server=$a1 keeper=$a2 (journalctl -u <unit> to inspect)"; exit 1 }
+    if ($a2 -ne 'active') { Write-Bad "keeper unit not active (journalctl -u <unit> to inspect)"; exit 1 }
+    Write-Host '  waiting for /health (first model load, allow ~10-20 min)...'
+    if (Wait-ServerHealth 1200) {
+        Write-Ok "server healthy at CONTEXT_SIZE=$ctx, keeper active"
+    } else {
+        Write-Manual 'server not green within the deadline; follow the load with: journalctl -u qwen-ciru-server.service -f'
+    }
+    Write-Host 'Smoke test once green: curl http://127.0.0.1:8080/health (section 7 shows a chat request)'
 }
 
-# Side-by-side upgrade, the flow run for v1.1 -> v3.0.0: build the new
-# tag in its own tree while the current server keeps serving, verify the
-# new binaries, swap units. -WhatIfUpgrade stops after staging the unit
-# (no cutover); the old release stays at $RepoRoot for rollback.
+# Side-by-side upgrade, the flow run live on this host for
+# v1.1 -> v3.0.0, v3.0.0 -> v4.4.0, and v4.4.0 -> v6.0.0 multi-slot:
+# build the new tag in its own tree while the current server keeps
+# serving, verify the new binaries, swap units. -WhatIfUpgrade stops
+# after staging the unit (no cutover); the old release stays at
+# $RepoRoot for rollback.
 function Invoke-UpgradePhase {
     Write-Step 'Section 8: side-by-side upgrade'
     if ((Invoke-WslText 'test -x /opt/rocm/bin/rocminfo && echo yes || echo no') -ne 'yes') {
@@ -509,10 +538,22 @@ function Invoke-UpgradePhase {
         Write-Bad "no $RepoTag revision on the hub and the hub default checksums differ from the installed files; inspect the release notes and rerun -Phase model with -ModelRevision <tag>"; exit 1
     }
 
-    # v4.x needs the pool-fit batch profile (its 8192/8192 default OOMs
-    # the MTP arena on carve-out pools); older tags keep the defaults.
+    # v4.x+ needs the pool-fit batch profile, and for multi-slot tags it
+    # is not optional: their memory policy raises the microbatch to 2048
+    # for slots>1, which OOMs the MTP draft load on a ~111.7 GiB pool
+    # unless UBATCH_SIZE=512 overrides it (proven live on the v6.0.0
+    # 2-slot upgrade). Older tags keep the defaults.
     $batchEnv = ''
     if ($RepoTag -match '^v[4-9]') { $batchEnv = "Environment=BATCH_SIZE=2048`nEnvironment=UBATCH_SIZE=512`n" }
+
+    # Multi-slot tags (v6+): slots share one pooled CONTEXT_SIZE, so the
+    # pool stays memory-neutral. Proven live: 2 slots, 131072, disk
+    # prompt cache 65536 MiB.
+    $slotEnv = ''
+    if ($ParallelSlots -gt 0) {
+        $slotEnv = "Environment=PARALLEL_SLOTS=$ParallelSlots`n"
+        if ($PromptCacheDiskMiB -gt 0) { $slotEnv += "Environment=PROMPT_CACHE_DISK_MIB=$PromptCacheDiskMiB`n" }
+    }
 
     $unitName = "qwen-ciru-server-v$maj.service"
     Write-Unit $unitName @"
@@ -525,11 +566,12 @@ Wants=network-online.target
 Type=simple
 Restart=always
 RestartSec=10
+TimeoutStopSec=300
 Environment=LD_LIBRARY_PATH=$new/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
-$batchEnvWorkingDirectory=$new
+$batchEnv$slotEnvWorkingDirectory=$new
 ExecStart=$new/scripts/ciru/run-server.sh
 
 [Install]
@@ -556,9 +598,15 @@ WantedBy=multi-user.target
         }
     }
     if (-not (Invoke-Wsl "systemctl enable --now $unitName")) { Write-Bad "enabling $unitName failed"; exit 1 }
-    if ((Invoke-WslText "systemctl is-active $unitName") -eq 'active') {
-        Write-Ok "$unitName active (CONTEXT_SIZE=$ctx); old unit stopped+disabled; boot task and keeper follow the enabled unit unchanged"
-    } else { Write-Bad "$unitName not active (journalctl -u $unitName to inspect)"; exit 1 }
+    Write-Host '  waiting for /health (model load, allow ~6-12 min)...'
+    if (Wait-ServerHealth 900) {
+        Write-Ok "$unitName healthy (CONTEXT_SIZE=$ctx); old unit stopped+disabled; boot task and keeper follow the enabled unit unchanged"
+    } elseif ((Invoke-WslText "systemctl is-active $unitName") -eq 'active') {
+        Write-Manual "$unitName active but /health is not green within the deadline; follow with: journalctl -u $unitName"
+    } else {
+        Write-Bad "$unitName not active. If the journal shows 'no ROCm-capable device' and the kernel shows dxg 'create_process failed -75', the old server was SIGKILLed while holding the GPU and the ROCDXG session is wedged: run 'wsl --shutdown', start the distro again, and systemd restarts the enabled unit on a fresh device session."
+        exit 1
+    }
 }
 
 function Invoke-PortproxyPhase {

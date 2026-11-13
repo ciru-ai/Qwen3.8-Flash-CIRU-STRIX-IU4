@@ -362,7 +362,8 @@ back empty.
 
 A new release tag builds while the current server keeps serving, so the
 upgrade is one short restart instead of a re-setup. This is the flow run on
-this host for `v1.1` -> `v3.0.0`; the scripted version is `-Phase upgrade`
+this host for `v1.1` -> `v3.0.0`, and later for `v3.0.0` -> `v4.4.0` and
+`v4.4.0` -> `v6.0.0` multi-slot; the scripted version is `-Phase upgrade`
 (add `-WhatIfUpgrade` to stop after staging the new unit, before cutover).
 
 Clone the new tag into its own tree and build with the compile pool sized to
@@ -402,6 +403,27 @@ v4.x launchers also require a bundled runtime layout at
 ROCm install (the documented WSL route) does not ship that tree; the
 upgrade phase links it to `/opt/rocm` automatically.
 
+Tags from v6 on can serve several slots from one pooled context. Adding
+`-ParallelSlots 2` to the upgrade phase stages `PARALLEL_SLOTS` (plus
+`PROMPT_CACHE_DISK_MIB` when `-PromptCacheDiskMiB` is also given) so the
+slots share the same `CONTEXT_SIZE` pool and the upgrade stays
+memory-neutral. This exact profile ran live on the v4.4.0 -> v6.0.0
+cutover: 2 slots, 131072 pooled tokens, a 65536 MiB disk prompt cache.
+Multi-slot is not optional about the batch profile: the tag's memory
+policy raises the microbatch to 2048 for `slots>1`, which OOMs the MTP
+draft load on a ~111.7 GiB pool unless `UBATCH_SIZE=512` overrides it --
+the phase writes that pair for every v4.x+ tag. Once healthy, `/slots`
+shows one entry per slot with the full per-slot context.
+
+Stopping the old server is the riskiest moment of a cutover. A loaded
+server does not exit quickly, and if systemd escalates to SIGKILL while
+the process still holds the GPU, the ROCDXG session wedges: every later
+GPU process fails with `dxg: dxgvmb_send_create_process: create_process
+failed -75` and the server reports no ROCm-capable device. The units set
+`TimeoutStopSec=300` so a normal stop always finishes gracefully; if a
+wedge does happen the recovery is `wsl --shutdown`, then starting the
+distro again, which recreates the device session.
+
 Only one server can hold port 8080 and the GPU pool at a time:
 
 ```bash
@@ -428,6 +450,7 @@ unit is enabled - so reboot persistence needs no changes after an upgrade.
 | `CMake Error ... CMakeDetermineHIPCompiler.cmake` | missing `amdrocm-runtime-dev10.0` |
 | `Could not find hipblasConfig.cmake` | missing `amdrocm-blas10.0-gfx1151` / `amdrocm-blas-dev10.0` |
 | `cudaMalloc failed: out of memory` at startup on a large carve-out | `CONTEXT_SIZE=262144` does not fit ~95.8 GiB carve-out; use 131072 |
+| `no ROCm-capable device` after a stop/upgrade, kernel shows `dxg ... create_process failed -75` | the previous server was SIGKILLed while holding the GPU and the ROCDXG session is wedged; `wsl --shutdown`, start the distro again (`TimeoutStopSec=300` on the unit prevents the SIGKILL) |
 | VM `poweroff` / unit death ~15 s after closing the shell | WSL 2.6+ regression (microsoft/WSL#13416); set `vmIdleTimeout=-1` and install the self-keeper unit (Keepalive above) |
 | Server exits when a boot command re-fires | use the systemd unit, not `[boot] command` |
 | `wsl --install -d Ubuntu-26.04` stalls for many minutes | Store backend hang; use `winget install --id 9PDXGNCFSCZV --source msstore` or any msstore Ubuntu package, then `wsl --import` |
