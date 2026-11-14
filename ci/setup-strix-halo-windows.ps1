@@ -18,6 +18,9 @@ manual step that must happen before the next phase is allowed.
   -Phase upgrade     section 8: side-by-side upgrade to a new tag
   -Phase all         preflight through service, stopping at gates
 
+Fresh-install phases take the latest published release unless -RepoTag
+pins one; -Phase upgrade always requires an explicit -RepoTag.
+
 Verified on: Windows 11 25H2, WSL 2.7.12, Ubuntu 26.04.1, runtime v3.0.0
 (the side-by-side upgrade path also run live through v4.4.0 and v6.0.0
 multi-slot), ROCm 10.0, rocdxg-roct 1.2.2, Ryzen AI Max+ 395 (gfx1151),
@@ -28,7 +31,9 @@ param(
     [ValidateSet('preflight', 'wsl', 'rocm', 'build', 'model', 'service', 'portproxy', 'upgrade', 'all')]
     [string]$Phase = 'preflight',
     [string]$Distro = 'Ubuntu-26.04',
-    [string]$RepoTag = 'v3.0.0',
+    # empty = latest GitHub release (fresh-install phases); -Phase
+    # upgrade always requires an explicit tag
+    [string]$RepoTag = '',
     [string]$RepoRoot = '/opt/runtime',
     # empty = derive '<RepoRoot>-v<major>' from -RepoTag in the upgrade phase
     [string]$UpgradeRoot = '',
@@ -48,9 +53,13 @@ param(
     [int]$WslProcessors = 0,
     # >0 only for multi-slot tags (v6+): slots sharing one CONTEXT_SIZE
     # pool, proven with 2 slots on a 131072-token pool
-    [int]$ParallelSlots = 0,
+    [int]$ParallelSlots = 2,
     # disk prompt cache budget in MiB; only written when -ParallelSlots > 0
-    [int]$PromptCacheDiskMiB = 0
+    [int]$PromptCacheDiskMiB = 65536,
+    # MTP draft scoring threads; 0 = the launcher default. The unit
+    # profile pins this explicitly so installs reproduce the verified
+    # host instead of drifting with launcher defaults.
+    [int]$DraftBatchThreads = 4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -108,6 +117,26 @@ function Get-WslEngineVersion {
     if (-not (Get-Command wsl.exe -ErrorAction SilentlyContinue)) { return $null }
     $raw = (& wsl.exe --version 2>$null | Out-String) -replace "`0", ''
     if ($raw -match 'WSL version:\s*([\d.]+)') { return [version]$Matches[1] }
+    return $null
+}
+
+# Newest numeric tag of the runtime repo (unauthenticated GitHub API).
+# Tags, not releases/latest: the pointer can lag the newest tag
+# (observed: it named v4.4.1 while v6.0.0 was already tagged). Suffixed
+# tags (hotfixes, milestones) are filtered out.
+function Get-LatestTag {
+    try {
+        $t = Invoke-RestMethod 'https://api.github.com/repos/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/tags?per_page=100'
+        $best = $null
+        $bestV = $null
+        foreach ($item in $t) {
+            if ($item.name -notmatch '^v(\d+(?:\.\d+){1,2})$') { continue }
+            $v = [version]$Matches[1]
+            if ($null -eq $bestV -or $v -gt $bestV) { $bestV = $v; $best = $item.name }
+        }
+        if ($best) { return $best }
+        Write-Bad 'no numeric release tags found'
+    } catch { Write-Bad "tag lookup failed: $($_.Exception.Message)" }
     return $null
 }
 
@@ -398,6 +427,25 @@ function Write-Unit([string]$name, [string]$content) {
     if (-not (Invoke-Wsl "cp $u /etc/systemd/system/$name")) { Write-Bad "installing $name failed"; exit 1 }
 }
 
+# Environment lines shared by the fresh-install and upgrade unit
+# templates - together they reproduce the profile running live on the
+# verified host. v4.x+ must pin BATCH/UBATCH: the release default OOMs
+# the MTP arena on carve-out pools, and multi-slot tags raise the
+# microbatch to 2048 for slots>1 unless UBATCH_SIZE overrides it.
+# PARALLEL_SLOTS/PROMPT_CACHE_DISK_MIB take effect on v6+ tags only;
+# slots share the pooled CONTEXT_SIZE, so the profile stays
+# memory-neutral (proven live: 2 slots, 131072, 65536 MiB disk cache).
+function Get-ExtraUnitEnv {
+    $e = ''
+    if ($RepoTag -match '^v[4-9]') { $e += "Environment=BATCH_SIZE=2048`nEnvironment=UBATCH_SIZE=512`n" }
+    if ($DraftBatchThreads -gt 0) { $e += "Environment=DRAFT_BATCH_THREADS=$DraftBatchThreads`n" }
+    if ($ParallelSlots -gt 0) {
+        $e += "Environment=PARALLEL_SLOTS=$ParallelSlots`n"
+        if ($PromptCacheDiskMiB -gt 0) { $e += "Environment=PROMPT_CACHE_DISK_MIB=$PromptCacheDiskMiB`n" }
+    }
+    return $e
+}
+
 function Invoke-ServicePhase {
     Write-Step 'Section 5: server unit + self-keeper unit'
     $bd = Get-BuildDirName $RepoRoot
@@ -426,7 +474,7 @@ Environment=LD_LIBRARY_PATH=$RepoRoot/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
-WorkingDirectory=$RepoRoot
+$(Get-ExtraUnitEnv)WorkingDirectory=$RepoRoot
 ExecStart=$RepoRoot/scripts/ciru/run-server.sh
 
 [Install]
@@ -538,23 +586,6 @@ function Invoke-UpgradePhase {
         Write-Bad "no $RepoTag revision on the hub and the hub default checksums differ from the installed files; inspect the release notes and rerun -Phase model with -ModelRevision <tag>"; exit 1
     }
 
-    # v4.x+ needs the pool-fit batch profile, and for multi-slot tags it
-    # is not optional: their memory policy raises the microbatch to 2048
-    # for slots>1, which OOMs the MTP draft load on a ~111.7 GiB pool
-    # unless UBATCH_SIZE=512 overrides it (proven live on the v6.0.0
-    # 2-slot upgrade). Older tags keep the defaults.
-    $batchEnv = ''
-    if ($RepoTag -match '^v[4-9]') { $batchEnv = "Environment=BATCH_SIZE=2048`nEnvironment=UBATCH_SIZE=512`n" }
-
-    # Multi-slot tags (v6+): slots share one pooled CONTEXT_SIZE, so the
-    # pool stays memory-neutral. Proven live: 2 slots, 131072, disk
-    # prompt cache 65536 MiB.
-    $slotEnv = ''
-    if ($ParallelSlots -gt 0) {
-        $slotEnv = "Environment=PARALLEL_SLOTS=$ParallelSlots`n"
-        if ($PromptCacheDiskMiB -gt 0) { $slotEnv += "Environment=PROMPT_CACHE_DISK_MIB=$PromptCacheDiskMiB`n" }
-    }
-
     $unitName = "qwen-ciru-server-v$maj.service"
     Write-Unit $unitName @"
 [Unit]
@@ -571,7 +602,7 @@ Environment=LD_LIBRARY_PATH=$new/$bd/bin
 Environment=MODEL_DIR=$ModelDir
 Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=$ctx
-$batchEnv$slotEnvWorkingDirectory=$new
+$(Get-ExtraUnitEnv)WorkingDirectory=$new
 ExecStart=$new/scripts/ciru/run-server.sh
 
 [Install]
@@ -654,6 +685,18 @@ if (`$LASTEXITCODE -ne 0) { exit 1 }
     Register-ScheduledTask -TaskName 'Qwen CIRU boot' -Action $a -Trigger $t -Principal $p -Settings $s -Force -Description 'Boot the WSL VM and re-sync the 8080 portproxy at startup' | Out-Null
     Start-ScheduledTask -TaskName 'Qwen CIRU boot'
     Write-Ok "portproxy 0.0.0.0:8080 -> ${ip}:8080; boot task 'Qwen CIRU boot' registered (re-syncs after every reboot)"
+}
+
+# Fresh installs take the latest published release when no tag is
+# pinned; -Phase upgrade targets an explicit tag and never guesses one.
+# preflight is read-only and does not need the tag.
+if (-not $RepoTag) {
+    if ($Phase -eq 'upgrade') { Write-Bad '-Phase upgrade needs an explicit -RepoTag <new-tag>'; exit 1 }
+    if ($Phase -ne 'preflight') {
+        $RepoTag = Get-LatestTag
+        if (-not $RepoTag) { exit 1 }
+        Write-Ok "latest release: $RepoTag"
+    }
 }
 
 switch ($Phase) {
