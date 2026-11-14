@@ -42,7 +42,7 @@ carve-out, reboot, driver, HF login) before the phase that depends on it:
 
 Fresh installs default to the same profile this host runs and verifies:
 pool-sized `CONTEXT_SIZE`, `BATCH_SIZE=2048`/`UBATCH_SIZE=512`,
-`DRAFT_BATCH_THREADS=4`, and 2 slots with a 65536 MiB disk prompt cache.
+`DRAFT_BATCH_THREADS=8`, and 2 slots with a 65536 MiB disk prompt cache.
 Tune them with `-ParallelSlots`/`-PromptCacheDiskMiB`/
 `-DraftBatchThreads` (set `-ParallelSlots 0` for a single-slot unit);
 the values flow into both the fresh-install and upgrade unit templates.
@@ -234,7 +234,7 @@ Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=131072
 Environment=BATCH_SIZE=2048
 Environment=UBATCH_SIZE=512
-Environment=DRAFT_BATCH_THREADS=4
+Environment=DRAFT_BATCH_THREADS=8
 Environment=PARALLEL_SLOTS=2
 Environment=PROMPT_CACHE_DISK_MIB=65536
 WorkingDirectory=/opt/runtime

@@ -58,8 +58,9 @@ param(
     [int]$PromptCacheDiskMiB = 65536,
     # MTP draft scoring threads; 0 = the launcher default. The unit
     # profile pins this explicitly so installs reproduce the verified
-    # host instead of drifting with launcher defaults.
-    [int]$DraftBatchThreads = 4
+    # host instead of drifting with launcher defaults. A/B on identical
+    # decode probes measured 30.2 tok/s at 8 vs 29.5 tok/s at 4.
+    [int]$DraftBatchThreads = 8
 )
 
 $ErrorActionPreference = 'Stop'
