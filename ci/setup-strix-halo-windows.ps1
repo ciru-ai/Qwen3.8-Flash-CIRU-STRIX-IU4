@@ -52,15 +52,20 @@ param(
     # 0 = every logical processor
     [int]$WslProcessors = 0,
     # >0 only for multi-slot tags (v6+): slots sharing one CONTEXT_SIZE
-    # pool, proven with 2 slots on a 131072-token pool
-    [int]$ParallelSlots = 2,
-    # disk prompt cache budget in MiB; only written when -ParallelSlots > 0
-    [int]$PromptCacheDiskMiB = 65536,
+    # pool. Live 2-slot testing pushed the WSL VM to ~30 GiB of the
+    # ~31.6 GB Windows-visible RAM, starving the desktop into low-VM
+    # app crashes, so the stable default is single-slot (0); pass a v6+
+    # tag with -ParallelSlots 2 only after confirming headroom.
+    [int]$ParallelSlots = 0,
+    # disk prompt cache budget in MiB; written only when > 0 (opt-in,
+    # usable on single-slot and multi-slot installs alike)
+    [int]$PromptCacheDiskMiB = 0,
     # MTP draft scoring threads; 0 = the launcher default. The unit
     # profile pins this explicitly so installs reproduce the verified
-    # host instead of drifting with launcher defaults. A/B on identical
-    # decode probes measured 30.2 tok/s at 8 vs 29.5 tok/s at 4.
-    [int]$DraftBatchThreads = 8
+    # host instead of drifting with launcher defaults. A/B measured
+    # 30.2 tok/s at 8 vs 29.5 tok/s at 4, within noise, and the host is
+    # more stable at 4, so the settled default is 4.
+    [int]$DraftBatchThreads = 4
 )
 
 $ErrorActionPreference = 'Stop'
@@ -433,17 +438,18 @@ function Write-Unit([string]$name, [string]$content) {
 # verified host. v4.x+ must pin BATCH/UBATCH: the release default OOMs
 # the MTP arena on carve-out pools, and multi-slot tags raise the
 # microbatch to 2048 for slots>1 unless UBATCH_SIZE overrides it.
-# PARALLEL_SLOTS/PROMPT_CACHE_DISK_MIB take effect on v6+ tags only;
-# slots share the pooled CONTEXT_SIZE, so the profile stays
-# memory-neutral (proven live: 2 slots, 131072, 65536 MiB disk cache).
+# PARALLEL_SLOTS/PROMPT_CACHE_DISK_MIB take effect on v6+ tags only and
+# are opt-in (defaults are single-slot, no disk cache). Multi-slot was
+# reverted on this host after live 2-slot runs pushed the WSL VM to
+# ~30 GiB of the ~31.6 GB Windows-visible RAM and the desktop fell into
+# low-VM app crashes; PROMPT_CACHE_DISK_MIB is decoupled from slots so
+# it stays available on single-slot installs.
 function Get-ExtraUnitEnv {
     $e = ''
     if ($RepoTag -match '^v[4-9]') { $e += "Environment=BATCH_SIZE=2048`nEnvironment=UBATCH_SIZE=512`n" }
     if ($DraftBatchThreads -gt 0) { $e += "Environment=DRAFT_BATCH_THREADS=$DraftBatchThreads`n" }
-    if ($ParallelSlots -gt 0) {
-        $e += "Environment=PARALLEL_SLOTS=$ParallelSlots`n"
-        if ($PromptCacheDiskMiB -gt 0) { $e += "Environment=PROMPT_CACHE_DISK_MIB=$PromptCacheDiskMiB`n" }
-    }
+    if ($ParallelSlots -gt 0) { $e += "Environment=PARALLEL_SLOTS=$ParallelSlots`n" }
+    if ($PromptCacheDiskMiB -gt 0) { $e += "Environment=PROMPT_CACHE_DISK_MIB=$PromptCacheDiskMiB`n" }
     return $e
 }
 

@@ -40,12 +40,14 @@ carve-out, reboot, driver, HF login) before the phase that depends on it:
 .\ci\setup-strix-halo-windows.ps1 -Phase all -Distro Ubuntu-26.04 -RepoTag v4.4.0
 ```
 
-Fresh installs default to the same profile this host runs and verifies:
-pool-sized `CONTEXT_SIZE`, `BATCH_SIZE=2048`/`UBATCH_SIZE=512`,
-`DRAFT_BATCH_THREADS=8`, and 2 slots with a 65536 MiB disk prompt cache.
-Tune them with `-ParallelSlots`/`-PromptCacheDiskMiB`/
-`-DraftBatchThreads` (set `-ParallelSlots 0` for a single-slot unit);
-the values flow into both the fresh-install and upgrade unit templates.
+Fresh installs default to the profile this host settled on after live
+testing: single-slot over the pool-sized `CONTEXT_SIZE`,
+`BATCH_SIZE=2048`/`UBATCH_SIZE=512`, and `DRAFT_BATCH_THREADS=4`.
+Multi-slot and the disk prompt cache are opt-in via
+`-ParallelSlots`/`-PromptCacheDiskMiB` (2 slots and a 65536 MiB cache
+were the multiplication factor behind the low-VM crashes below, so
+they are not the default), and `-DraftBatchThreads` tunes the draft
+scoring threads; the values flow into both unit templates.
 
 Individual phases (`wsl`, `rocm`, `build`, `model`, `service`,
 `portproxy`, `upgrade`) can be re-run independently; long downloads resume.
@@ -234,9 +236,7 @@ Environment=HOST=0.0.0.0
 Environment=CONTEXT_SIZE=131072
 Environment=BATCH_SIZE=2048
 Environment=UBATCH_SIZE=512
-Environment=DRAFT_BATCH_THREADS=8
-Environment=PARALLEL_SLOTS=2
-Environment=PROMPT_CACHE_DISK_MIB=65536
+Environment=DRAFT_BATCH_THREADS=4
 WorkingDirectory=/opt/runtime
 ExecStart=/opt/runtime/scripts/ciru/run-server.sh
 
@@ -245,8 +245,8 @@ WantedBy=multi-user.target
 ```
 
 `BATCH_SIZE`/`UBATCH_SIZE` pin the pool-fit microbatch every v4.x+ tag
-needs on a carve-out pool; `PARALLEL_SLOTS`/`PROMPT_CACHE_DISK_MIB` are
-read by v6+ launchers (single-slot installs drop both lines).
+needs on a carve-out pool; `PARALLEL_SLOTS`/`PROMPT_CACHE_DISK_MIB`
+are written only when their flags are passed (opt-in, v6+ launchers).
 `TimeoutStopSec` must cover a loaded server's graceful exit - see the
 cutover notes in section 8.
 
@@ -426,13 +426,18 @@ ROCm install (the documented WSL route) does not ship that tree; the
 upgrade phase links it to `/opt/rocm` automatically.
 
 Multi-slot tags (v6+) share one pooled `CONTEXT_SIZE` across slots, so
-the pool size stays memory-neutral. For a single-GPU Strix Halo the
-profile proven live on this host is 2 slots over 131072 pooled tokens
-with a 65536 MiB disk prompt cache - the exact profile the v4.4.0 ->
-v6.0.0 cutover ran, and the upgrade phase defaults to it
-(`-ParallelSlots 2 -PromptCacheDiskMiB 65536`), staging the same unit a
-fresh install writes. Multi-slot is not optional about the batch
-profile: the tag's memory policy raises the microbatch to 2048 for
+the per-slot pool arithmetic is memory-neutral on the GPU pool - but
+live testing on this host showed that is not the constraint that
+matters on a low-Windows-RAM carve-out box. 2 concurrent slots (plus a
+65536 MiB disk prompt cache) pushed the WSL VM to ~30 GiB of the ~31.6
+GB of Windows-visible system RAM, and the desktop fell into repeated
+low-VM churn (recurring `Resource-Exhaustion-Detector` events, `Application
+Error` crashes, screen blanking, Volsnap aborting shadow copies). Both
+the upgrade phase and fresh installs therefore default to a stable
+single-slot unit with no disk cache; multi-slot is opt-in
+(`-ParallelSlots 2 -PromptCacheDiskMiB 65536`) for hosts with more
+Windows-side headroom. Whatever the slot count, the batch profile is
+not optional: multi-slot tags raise the microbatch to 2048 for
 `slots>1`, which OOMs the MTP draft load on a ~111.7 GiB pool unless
 `UBATCH_SIZE=512` overrides it -- the phase writes that pair for every
 v4.x+ tag. Once healthy, `/slots` shows one entry per slot with the
