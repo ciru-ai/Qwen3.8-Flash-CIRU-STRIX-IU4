@@ -1,0 +1,71 @@
+{
+  "version": "6.1.0",
+  "profile": "CIRU Flash Strix IU4 Hybrid",
+  "hardware": "AMD Ryzen AI Max+ 395 with Radeon 8060S (gfx1151), 128 GB unified RAM",
+  "software": "NixOS generation 70, Linux 7.2.2, pinned HaloBox b1064 ROCm libraries",
+  "upstream_base": "b9f3c0e878f82f80ea1528969f305017a909b73e",
+  "workload": {
+    "warmup_unscored": {
+      "prompt_tokens": 12960,
+      "generated_tokens": 32
+    },
+    "scored": {
+      "uncached_prompt_tokens": 4096,
+      "generated_tokens": 512,
+      "observations_per_configuration": 1
+    },
+    "context_tokens": 262144,
+    "kv": "f16/f16",
+    "parallel_slots": 1,
+    "mtp_depth": 2
+  },
+  "performance_baseline_same_weights_and_host_kernel": {
+    "pp": 1363.631521194882,
+    "tg": 42.22061253268069,
+    "ttfp_ms": 3080.1750120008364,
+    "wall_ms": 15183.46400000155,
+    "cache_n": 0,
+    "prompt_n": 4096,
+    "prompt_ms": 3003.744,
+    "predicted_n": 512,
+    "draft_n": 360,
+    "draft_n_accepted": 331,
+    "content_sha256": "5946ed0503820f27ef196e3c84ac1ee2964439751474557a0fd9fabdfd659686"
+  },
+  "performance_candidate_before_packaging": {
+    "pp": 1626.2667490387714,
+    "tg": 42.32660834485236,
+    "ttfp_ms": 2592.5400310079567,
+    "wall_ms": 14665.356771991355,
+    "cache_n": 0,
+    "prompt_n": 4096,
+    "prompt_ms": 2518.652,
+    "predicted_n": 512,
+    "draft_n": 360,
+    "draft_n_accepted": 331,
+    "content_sha256": "5946ed0503820f27ef196e3c84ac1ee2964439751474557a0fd9fabdfd659686"
+  },
+  "candidate_exact_checks": {
+    "hidden_values": 41902080,
+    "different_hidden_values": 0,
+    "matching_vocab_vectors": 8,
+    "rollback_positions_matching": 3,
+    "frozen_positions_exact": 256,
+    "fused_blocks": 46
+  },
+  "source_integrity_manifest_sha256": "6fa320a559c3cd545a6fac3ecf7c4b12804f19251d0ffd2f6950c8110b2cc6b7",
+  "runtime_archive_sha256": "3551c138a943a077459b023230253d54d6a209b8a02cda64ad79fff7bfaa7534",
+  "model_sha256": "4ff8156aabfa69ac8962a9bbbfded4e23add20f9246f5939cf4915c16e4fb8cb",
+  "extracted_runtime_qualification": {
+    "source_reconstructed_files_checked": 4488,
+    "clean_source_build_completed": true,
+    "reconstructed_hip_and_context_match_scored_bytes": true,
+    "runtime_archive_hash_verified": true,
+    "matched_output_and_draft_acceptance": true,
+    "score_prompt_tokens_per_second_observation": 1625.9226694347576,
+    "score_generation_tokens_per_second_observation": 42.43912871056888,
+    "observed_fused_blocks": 46,
+    "operating_system": "NixOS, Linux 7.2.2",
+    "libc": "glibc 2.44 compatibility directory"
+  }
+}

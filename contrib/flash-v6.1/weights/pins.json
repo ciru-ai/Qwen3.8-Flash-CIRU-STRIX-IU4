@@ -1,0 +1,76 @@
+{
+  "inputs": [
+    {
+      "repo": "jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4",
+      "revision": "8a2f3caffb5c7f0a05c7285b7dac2c9e4f765434",
+      "file": "Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf",
+      "local_path": "compact/Qwen3.8-Flash-CIRU-STRIX-IU4-v5.0.gguf",
+      "file_bytes": 72112333312,
+      "header_bytes": 11043818,
+      "header_sha256": "e17a3ede997504d06a901330fb5dcc001fec1adb246086689bd6a2753cacbd63",
+      "sha256": "745bf5b48ef5bd4ded36b3136cde3d35145b2ec5a3aabf03da0e5a792bc5a27d"
+    },
+    {
+      "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+      "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+      "file": "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf",
+      "local_path": "donor/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00001-of-00004.gguf",
+      "file_bytes": 10946624,
+      "header_bytes": 10946618,
+      "header_sha256": "acc44040f74d0e55fb89c3967056cce5dbda1bcc52e909c3ba6fc72b5e9c0858",
+      "sha256": "4448186216b3af4cc558bbce2c3213f01608f8f8b2e5267a9767971dd3ec8082"
+    },
+    {
+      "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+      "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+      "file": "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf",
+      "local_path": "donor/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf",
+      "file_bytes": 49859583136,
+      "header_bytes": 18695,
+      "header_sha256": "ede2308753458536267650f9c6ba2c6332d177eeff507acf9aaf99c316afd1da",
+      "sha256": "3f342f1c1580473f1ee94ddd5b28206e8c07a70fa1a366f59d1d6c922919a6c9"
+    },
+    {
+      "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+      "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+      "file": "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf",
+      "local_path": "donor/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00003-of-00004.gguf",
+      "file_bytes": 49376141504,
+      "header_bytes": 48045,
+      "header_sha256": "774810ae62bd36de97428d19ee43c5524050a62c25e4c9408bf8e75130649ace",
+      "sha256": "56758f40269cad5cd9b0d3d6fbae0f40f6d5be6de49e4ab392dbe83157d9cbd3"
+    },
+    {
+      "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+      "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+      "file": "UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf",
+      "local_path": "donor/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00004-of-00004.gguf",
+      "file_bytes": 12087983520,
+      "header_bytes": 11267,
+      "header_sha256": "181797a77cdb63fe46c11f8d09e9ddda036450cf9caf40cd76ae2c5e5a80df6e",
+      "sha256": "753bda48b98ba4f1636134a90a967de1b2d3908a236c026e464777342e53510a"
+    }
+  ],
+  "draft": {
+    "repo": "unsloth/Qwen3.8-Flash-Next-GGUF",
+    "revision": "38bb39ee97821de2c9009abb7e93950eec396e66",
+    "file": "MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf",
+    "local_path": "donor/MTP/mtp-Qwen3.8-Flash-Next-shared-Q8_0.gguf",
+    "file_bytes": 2786568256,
+    "sha256": "5ff54097406a905cf3a724c709124ceb0e3e10235ee862298969e91c96fa96e6"
+  },
+  "output": {
+    "local_path": "model/halo-c1.gguf",
+    "file_bytes": 102528733984,
+    "sha256": "4ff8156aabfa69ac8962a9bbbfded4e23add20f9246f5939cf4915c16e4fb8cb",
+    "header_sha256": "0741af3e2112d2ee43674c67d275aee82bbf427685f613e6eb7d6b075f2636c6",
+    "tensors": 1512
+  },
+  "ple": {
+    "tensor": "per_layer_token_embd.weight",
+    "source_file": "donor/UD-Q4_K_XL/Qwen3.8-Flash-Next-UD-Q4_K_XL-00002-of-00004.gguf",
+    "source_offset": 682453280,
+    "hybrid_offset": 11045152,
+    "bytes": 28800138240
+  }
+}

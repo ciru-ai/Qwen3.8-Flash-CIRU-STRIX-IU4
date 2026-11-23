@@ -66,5 +66,20 @@
     "affected_versions": "5.5.0-5.5.8",
     "reporter": "jack3149813146"
   },
-  "prior_graph_pool_validation": "docs/qualification/v5.5.8/CHECKS.json"
+  "prior_graph_pool_validation": "docs/qualification/v5.5.8/CHECKS.json",
+  "hybrid_runtime": {
+    "version": "6.1.0",
+    "date": "2026-11-22",
+    "target_filename": "halo-c1.gguf",
+    "target_sha256": "4ff8156aabfa69ac8962a9bbbfded4e23add20f9246f5939cf4915c16e4fb8cb",
+    "gpu": "AMD gfx1151",
+    "kv_cache": "f16",
+    "parallel_slots": 1,
+    "mtp_depth": 2,
+    "context_tokens": 262144,
+    "runtime_download": "https://github.com/ciru-ai/Qwen3.8-Flash-CIRU-STRIX-IU4/releases/tag/v6.1.0",
+    "model_download": "https://huggingface.co/jcbtc/Qwen3.8-Flash-CIRU-STRIX-IU4-Hybrid/tree/v6.1.0",
+    "instructions": "contrib/flash-v6.1/README.md",
+    "qualification": "contrib/flash-v6.1/qualification.json"
+  }
 }

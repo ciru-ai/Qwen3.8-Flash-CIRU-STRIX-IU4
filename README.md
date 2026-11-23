@@ -22,7 +22,7 @@ tags:
   - vision
 ---
 
-# Qwen3.8 Flash CIRU Strix IU4 — v6.0.0 runtime update
+# Qwen3.8 Flash CIRU Strix IU4
 
 Compact weights and a native CIRU runtime for AMD Strix Halo. **The original
 v4.4.1 GGUF remains in this repository** at its existing filename. v5.0 is
@@ -38,6 +38,10 @@ matching draft; do not interchange their model or draft files.
 > embedding table.
 > Build the included matching [CIRU runtime](INSTALL.md)
 > and keep all three `ple/` files on fast local storage.
+
+## Runtime v6.1.0 hybrid for AMD Strix Halo
+
+The hybrid release combines Ciru's C1 routed experts with the matching Unsloth donor and draft. It raised uncached 4,096-token prefill from 1,363.63 to 1,626.27 tokens/s on the same Sozo host kernel, using the same weights, MTP2, and output. The prebuilt runtime and hybrid GGUF are available as downloads. The original native IU4 model below uses its corresponding v6.0.0 runtime. [v6.1.0 download and setup](contrib/flash-v6.1/README.md)
 
 ## Runtime v6.0.0
 
